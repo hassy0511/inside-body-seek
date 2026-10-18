@@ -145,6 +145,10 @@ func is_busy() -> bool:
 func say(text: String, seconds := 4.0) -> void:
 	_msg_label.text = text
 	_msg_panel.visible = true
+	# タッチ操作のボタンと重ならないように、タッチのときは少し細くする
+	var touch_on: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
+	_msg_panel.offset_left = -360 if touch_on else -430
+	_msg_panel.offset_right = 360 if touch_on else 430
 	_msg_timer = seconds
 	_msg_panel.scale = Vector2(0.9, 0.9)
 	_msg_panel.pivot_offset = _msg_panel.size * 0.5

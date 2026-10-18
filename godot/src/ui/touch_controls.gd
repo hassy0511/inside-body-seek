@@ -30,15 +30,15 @@ func should_show() -> bool:
 
 
 func _stick_home() -> Vector2:
-	return Vector2(170, size.y - 170)
+	return Vector2(150, size.y - 150)
 
 
 func _action_center() -> Vector2:
-	return Vector2(size.x - 150, size.y - 150)
+	return Vector2(size.x - 95, size.y - 95)
 
 
 func _dash_center() -> Vector2:
-	return Vector2(size.x - 300, size.y - 110)
+	return Vector2(size.x - 80, size.y - 235)
 
 
 func _input(event: InputEvent) -> void:
@@ -47,11 +47,11 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var e := event as InputEventScreenTouch
 		if e.pressed:
-			if e.position.distance_to(_action_center()) < 80 and _action_touch < 0:
+			if e.position.distance_to(_action_center()) < 85 and _action_touch < 0:
 				_action_touch = e.index
 				Input.action_press("action")
 				queue_redraw()
-			elif e.position.distance_to(_dash_center()) < 55 and _dash_touch < 0:
+			elif e.position.distance_to(_dash_center()) < 60 and _dash_touch < 0:
 				_dash_touch = e.index
 				Input.action_press("dash")
 				queue_redraw()
@@ -120,10 +120,10 @@ func _draw() -> void:
 	draw_arc(sc, STICK_R, 0, TAU, 48, Color(1, 1, 1, 0.5), 3)
 	draw_circle(sc + _knob, KNOB_R, Color(1, 1, 1, 0.6))
 	var ac := _action_center()
-	draw_circle(ac, 80, Color(0.6, 0.95, 1.0, 0.75 if _action_touch >= 0 else 0.45))
-	draw_arc(ac, 80, 0, TAU, 48, Color(1, 1, 1, 0.7), 3)
+	draw_circle(ac, 75, Color(0.6, 0.95, 1.0, 0.75 if _action_touch >= 0 else 0.45))
+	draw_arc(ac, 75, 0, TAU, 48, Color(1, 1, 1, 0.7), 3)
 	draw_string(Game.font_bold, ac + Vector2(-46, 10), "おくすり", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, T.INK)
 	var dc := _dash_center()
-	draw_circle(dc, 55, Color(1.0, 0.85, 0.4, 0.75 if _dash_touch >= 0 else 0.45))
-	draw_arc(dc, 55, 0, TAU, 40, Color(1, 1, 1, 0.7), 3)
-	draw_string(Game.font_bold, dc + Vector2(-40, 8), "ダッシュ", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, T.INK)
+	draw_circle(dc, 50, Color(1.0, 0.85, 0.4, 0.75 if _dash_touch >= 0 else 0.45))
+	draw_arc(dc, 50, 0, TAU, 40, Color(1, 1, 1, 0.7), 3)
+	draw_string(Game.font_bold, dc + Vector2(-38, 8), "ダッシュ", HORIZONTAL_ALIGNMENT_LEFT, -1, 19, T.INK)

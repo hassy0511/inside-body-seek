@@ -8,7 +8,10 @@ func _ready() -> void:
 	var out := "/tmp/shot.png"
 	var frames := 60
 	var play := 0.0
+	var touch := false
 	for a in OS.get_cmdline_user_args():
+		if a == "--touch":
+			touch = true
 		if a.begins_with("--stage="):
 			stage = a.substr(8)
 		elif a.begins_with("--out="):
@@ -23,6 +26,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	SaveData.set_setting("volume", 0.0)
 	SaveData.set_setting("unlock_all", true)
+	SaveData.set_setting("touch", "on" if touch else "off")
 	if stage == "title":
 		Game.show_title()
 	elif stage == "select":

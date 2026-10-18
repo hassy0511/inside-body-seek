@@ -71,14 +71,18 @@ func _physics_process(delta: float) -> void:
 	if target == null:
 		return
 	var ov := overview_center != Vector3.INF
-	var want_h := 14.0 if ov else height
-	var want_d := 30.0 if ov else distance
-	var want_p := -0.95 if ov else pitch
+	var want_h := 6.0 if ov else height
+	var want_d := 36.0 if ov else distance
+	var want_p := -1.25 if ov else pitch
+	var want_fov := 85.0 if ov else 68.0
 	var pw := 1.0 - exp(-3.0 * delta)
 	_cur_height = lerpf(_cur_height, want_h, pw)
 	_cur_distance = lerpf(_cur_distance, want_d, pw)
 	_cur_pitch = lerpf(_cur_pitch, want_p, pw)
-	var focus: Vector3 = overview_center if ov else target.global_position
+	_cam.fov = lerpf(_cam.fov, want_fov, pw)
+	var focus: Vector3 = target.global_position
+	if ov:
+		focus = overview_center - Vector3(-sin(yaw), 0, -cos(yaw)) * 9.0
 	var want := focus + Vector3.UP * _cur_height
 	var w := 1.0 - exp(-6.0 * delta)
 	global_position = global_position.lerp(want, w)
