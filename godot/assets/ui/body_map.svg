@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="620" viewBox="0 0 440 620">
+  <!-- はなちゃん（ステージえらびの からだの絵） -->
+  <g stroke="#5a4a55" stroke-width="3" stroke-linejoin="round">
+    <!-- legs -->
+    <rect x="150" y="410" width="58" height="190" rx="26" fill="#9fb8ff"/>
+    <rect x="232" y="410" width="58" height="190" rx="26" fill="#9fb8ff"/>
+    <ellipse cx="179" cy="600" rx="34" ry="14" fill="#ffd27a"/>
+    <ellipse cx="261" cy="600" rx="34" ry="14" fill="#ffd27a"/>
+    <!-- arms -->
+    <path d="M135 200 Q70 260 82 400" fill="none" stroke="#ffe0c4" stroke-width="34"/>
+    <path d="M305 200 Q370 260 358 400" fill="none" stroke="#ffe0c4" stroke-width="34"/>
+    <circle cx="82" cy="405" r="20" fill="#ffe0c4"/>
+    <circle cx="358" cy="405" r="20" fill="#ffe0c4"/>
+    <!-- torso (shirt) -->
+    <rect x="128" y="182" width="184" height="240" rx="48" fill="#dff1ff"/>
+    <!-- neck -->
+    <rect x="203" y="150" width="34" height="40" rx="12" fill="#ffe0c4"/>
+    <!-- head -->
+    <circle cx="220" cy="95" r="72" fill="#ffe0c4"/>
+    <!-- hair -->
+    <path d="M150 85 Q160 20 220 22 Q280 20 290 85 Q270 55 220 52 Q170 55 150 85 Z" fill="#6b4a3a"/>
+    <circle cx="150" cy="80" r="14" fill="#6b4a3a"/>
+    <circle cx="290" cy="80" r="14" fill="#6b4a3a"/>
+    <circle cx="160" cy="62" r="11" fill="#ff8fb0" stroke="none"/>
+  </g>
+  <!-- organs (semi-transparent so the buttons sit on them) -->
+  <g opacity="0.85" stroke="#5a4a55" stroke-width="2">
+    <!-- brain -->
+    <path d="M186 60 Q180 40 200 36 Q215 26 230 36 Q252 32 256 52 Q268 66 252 76 Q238 84 220 80 Q200 86 190 74 Q180 70 186 60 Z" fill="#f4a7c6"/>
+    <path d="M200 46 q10 8 22 0 M210 66 q12 8 26 -2 M194 60 q8 10 18 4" fill="none" stroke="#c46e95"/>
+    <!-- eyes / nose / mouth on face -->
+    <circle cx="198" cy="98" r="6" fill="#3b2f35" stroke="none"/>
+    <circle cx="242" cy="98" r="6" fill="#3b2f35" stroke="none"/>
+    <path d="M216 108 q4 8 10 0" fill="none" stroke="#c46e95"/>
+    <path d="M203 126 q17 16 34 0" fill="none" stroke="#c0405c" stroke-width="4"/>
+    <!-- esophagus -->
+    <path d="M220 150 L220 205 Q222 250 246 300" fill="none" stroke="#f6a08f" stroke-width="12" stroke-linecap="round"/>
+    <!-- lungs -->
+    <path d="M205 215 Q150 225 148 290 Q150 330 190 325 Q212 318 208 280 Z" fill="#f9b6c4"/>
+    <path d="M235 215 Q290 225 292 290 Q290 330 250 325 Q228 318 232 280 Z" fill="#f9b6c4"/>
+    <!-- heart -->
+    <path d="M262 246 Q248 236 244 252 Q242 268 264 284 Q286 268 284 252 Q280 236 262 246 Z" fill="#e8455c"/>
+    <!-- stomach -->
+    <path d="M232 300 Q268 292 276 320 Q284 352 252 362 Q226 366 222 342 Q218 318 232 300 Z" fill="#ffb86b"/>
+    <!-- intestine (coils) -->
+    <path d="M160 372 q30 -16 60 0 t60 0 M160 392 q30 16 60 0 t60 0 M160 412 q30 -16 60 0 t60 0" fill="none" stroke="#f6a08f" stroke-width="14" stroke-linecap="round"/>
+    <!-- blood vessel along the left arm -->
+    <path d="M140 215 Q95 265 92 350" fill="none" stroke="#d63d4f" stroke-width="6" stroke-linecap="round" stroke-dasharray="10 8"/>
+  </g>
+</svg>

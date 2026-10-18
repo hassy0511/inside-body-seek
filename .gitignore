@@ -1,0 +1,13 @@
+# Godot
+godot/.godot/
+godot/export/
+*.tmp
+# Blender (生成物は GLB をコミット。.blend は再生成できるので除外)
+blender/out/
+# Python
+__pycache__/
+*.pyc
+.venv/
+# OS
+.DS_Store
+Thumbs.db
