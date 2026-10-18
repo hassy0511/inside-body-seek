@@ -499,8 +499,8 @@ def build_lungs():
         mk(f"MK_friend_wbc_{i + 1}", (x, y, -11))
     for i, (x, y) in enumerate([(-14, 10), (14, 12), (-8, 20), (10, 22)]):
         mk(f"MK_enemy_virus_{i + 1}", (x, y, -11))
-    mk("MK_pickup_heart_item_1", (-24, 8, -11))
-    mk("MK_pickup_heart_item_2", (24, 10, -11))
+    mk("MK_pickup_heart_item_1", (-24, 8, -9))
+    mk("MK_pickup_heart_item_2", (24, 10, -9))
     mk("MK_card_virus", (-10, 2, -11))
     mk("MK_path_000", (0, -26, -10))
     mk("MK_path_001", (0, 0, -14))
@@ -534,11 +534,11 @@ def build_brain():
         sparks.append(C.add_sphere(f"spark{i}", random.uniform(0.15, 0.4), (math.cos(a) * r, math.sin(a) * r, random.uniform(-9, 8)), 8, 6, spark))
     objs.append(C.join(sparks, "NC_Sparks"))
     # マーカー
-    mk("MK_player", (0, -28, -11))
+    mk("MK_player", (0, -2, -14.5), (0, 0, 0))
     mk("MK_goal", (0, 30, -11))
     for i, p in enumerate(neuron_pos):
         mk(f"MK_neuron_{i + 1}", p)
-    mk("MK_pickup_heart_item_1", (-22, 10, -12))
+    mk("MK_pickup_heart_item_1", (-22, 10, -9.5))
     mk("MK_path_000", (0, -28, -11))
     mk("MK_path_001", (0, 0, -15))
     mk("MK_path_002", (0, 30, -11))

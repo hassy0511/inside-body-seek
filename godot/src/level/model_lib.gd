@@ -56,6 +56,17 @@ static func placeholder(kind: String, radius := 0.6) -> Node3D:
 	return root
 
 
+## ゆかの高さに合わせる（マーカーが ゆかの下／上に ずれていても ひろえるように）
+static func snap_to_floor(n: Node3D, up := 0.6) -> bool:
+	var space := n.get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(n.global_position + Vector3.UP * 4.0, n.global_position + Vector3.DOWN * 30.0, 1)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or hit["normal"].y < 0.35:
+		return false
+	n.global_position.y = hit["position"].y + up
+	return true
+
+
 static func flat_material(color: Color, emission: Color = Color.BLACK, alpha := 1.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(color.r, color.g, color.b, alpha)

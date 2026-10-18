@@ -190,6 +190,7 @@ func _on_level_cleared(stage_id: String, no_damage: bool) -> void:
 
 func show_ending() -> void:
 	unload_level()
+	Sfx.play_bgm("bgm_title")
 	var t := TitleScreen.new()
 	t.ending_mode = true
 	_set_screen(t)
@@ -248,3 +249,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func say(text: String, seconds := 4.0) -> void:
 	if hud and is_instance_valid(hud):
 		hud.say(text, seconds)
+
+
+func hud_busy() -> bool:
+	return hud != null and is_instance_valid(hud) and hud.is_busy()

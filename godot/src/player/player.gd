@@ -34,6 +34,8 @@ var _respawning := false
 var _no_floor_time := 0.0
 var _stuck_time := 0.0
 var _stuck_from := Vector3.ZERO
+var hit_stun := 0.0
+var _stuck_count := 0
 
 ## テスト用：ここに座標を入れると その方向へ自動で動く
 var autopilot_target: Vector3 = Vector3.INF
@@ -116,11 +118,13 @@ func _physics_process(delta: float) -> void:
 			_no_floor_time = 0.0
 			global_position = level.respawn_position()
 			velocity = Vector3.ZERO
+	# なみ・いえき などの「乗っている間の効果」は、速度を決める前に集める
+	_check_overlaps()
 	var input := Vector2.ZERO
 	var dash := false
 	var shoot := false
 	var dir := Vector3.ZERO
-	if control_enabled and not _respawning:
+	if control_enabled and not _respawning and hit_stun <= 0.0:
 		if autopilot_target != Vector3.INF:
 			var to := autopilot_target - global_position
 			to.y = 0.0
@@ -133,11 +137,15 @@ func _physics_process(delta: float) -> void:
 			dash = Input.is_action_pressed("dash")
 			shoot = Input.is_action_pressed("action")
 			dir = _camera_relative(input)
+	if hit_stun > 0.0:
+		hit_stun -= delta
 	var target_speed := (DASH_SPEED if dash else SPEED) * speed_mult
 	var target_vel := dir * target_speed + external_push
-	steer(target_vel, ACCEL, delta)
+	steer(target_vel, ACCEL if hit_stun <= 0.0 else 5.0, delta)
 	if dir.length() > 0.1:
-		heading = heading.slerp(dir, minf(1.0, 10.0 * delta)).normalized()
+		# slerp は 反対向きのとき 軸の正規化エラーを出すことがあるので、普通の補間＋正規化にする
+		var h := heading.lerp(dir, minf(1.0, 10.0 * delta))
+		heading = h.normalized() if h.length() > 0.05 else dir
 	move_and_slide()
 
 	# 見た目
@@ -158,15 +166,15 @@ func _physics_process(delta: float) -> void:
 	if shoot and shot_timer <= 0.0:
 		_shoot()
 	_check_stuck(delta, dir)
-	_check_overlaps()
 	speed_mult = 1.0
 	external_push = Vector3.ZERO
 	_update_arrow(delta)
 
 
-## うごこうとしているのに 5 秒以上 その場から動けないときは、チェックポイントへ戻す
+## うごこうとしているのに 5 秒以上 その場から動けないときは、少し後ろへ押し戻す。
+## それでもだめなら チェックポイントへ戻す。
 func _check_stuck(delta: float, dir: Vector3) -> void:
-	if dir.length() < 0.1 or _respawning:
+	if dir.length() < 0.1 or _respawning or get_slide_collision_count() == 0:
 		_stuck_time = 0.0
 		_stuck_from = global_position
 		return
@@ -175,12 +183,21 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 		_stuck_from = global_position
 		return
 	_stuck_time += delta
-	if _stuck_time > 5.0 and level and level.has_method("respawn_position"):
+	if _stuck_time > 5.0 and level:
 		_stuck_time = 0.0
-		global_position = level.respawn_position()
-		velocity = Vector3.ZERO
+		_stuck_count += 1
+		if _stuck_count <= 2 and level.has_method("path_direction_at"):
+			# まず 3 m 後ろへ（くだなら道にそって）
+			var back: Vector3 = -level.path_direction_at(global_position) if level.path.is_valid() else -heading
+			global_position += back * 3.0 + Vector3.UP * 0.5
+			velocity = back * 4.0
+			Game.say("はさまっちゃった！ ちょっと もどるね。", 2.0)
+		elif level.has_method("respawn_position"):
+			_stuck_count = 0
+			global_position = level.respawn_position()
+			velocity = Vector3.ZERO
+			Game.say("あれ？ ぬけられない。チェックポイントから やりなおそう。", 3.0)
 		_stuck_from = global_position
-		Game.say("あれ？ はさまっちゃった。チェックポイントから やりなおそう。", 3.0)
 
 
 func _camera_relative(input: Vector2) -> Vector3:
@@ -246,6 +263,8 @@ func _on_area_entered(area: Area3D) -> void:
 
 
 func _check_overlaps() -> void:
+	if not hitbox.monitoring:
+		return
 	for area in hitbox.get_overlapping_areas():
 		if area.is_in_group("enemy_touch") and invulnerable <= 0.0 and not _respawning:
 			var src: Node3D = area.get_parent() if area.get_parent() is Node3D else area
@@ -261,12 +280,13 @@ func hurt(from: Vector3) -> void:
 		return
 	hearts -= 1
 	invulnerable = 1.5
+	hit_stun = 0.4
 	_blink = 0.0
 	var away := global_position - from
 	away.y = 0.0
 	if away.length() < 0.01:
 		away = -heading
-	velocity += away.normalized() * 10.0 + Vector3.UP * 2.0
+	velocity = away.normalized() * 10.0 + Vector3.UP * 2.0
 	hearts_changed.emit(hearts)
 	hurt_happened.emit()
 	Sfx.play("hurt")
@@ -290,7 +310,6 @@ func _respawn() -> void:
 			global_position = level.respawn_position()
 		hearts = MAX_HEARTS
 		hearts_changed.emit(hearts)
-		inventory.clear()
 		velocity = Vector3.ZERO
 	)
 	t.tween_property(model, "scale", Vector3.ONE, 0.4)

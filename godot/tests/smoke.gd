@@ -112,7 +112,7 @@ func _run_stage(id: String) -> void:
 			for i in p.get_slide_collision_count():
 				var c: KinematicCollision3D = p.get_slide_collision(i)
 				cols.append("%s n=%s" % [c.get_collider().get_parent().name if c.get_collider().get_parent() else c.get_collider().name, c.get_normal()])
-			_info("  dbg t=%.0f pos=%s floor=%s fp=%s vel=%s tgt=%s cols=%s" % [_stage_elapsed, p.global_position, p.floor_found, p.floor_point, p.velocity, p.autopilot_target, cols])
+			_info("  dbg t=%.0f pos=%s floor=%s vel=%s tgt=%s ctrl=%s seq=%s in=%d show=%s pend=%s cols=%d" % [_stage_elapsed, p.global_position, p.floor_found, p.velocity, p.autopilot_target, p.control_enabled, lvl.sequence_expected(), lvl._seq_input, lvl._seq_showing, lvl._seq_pending, cols.size()])
 		if _stage_elapsed - last_report > 30.0:
 			last_report = _stage_elapsed
 			if is_instance_valid(lvl):
@@ -140,6 +140,20 @@ func _drive(lvl) -> void:
 	if p == null or not lvl.started:
 		return
 	var target: Vector3 = lvl.current_target_position()
+	# しんけいパズル：矢印は こたえを 教えないので、テストでは 正解の順番を 直接 読む
+	for m in lvl.missions:
+		if m.type == "sequence" and not m.done:
+			var seq: Array = lvl.sequence_expected()
+			if seq.size() > 0 and not lvl._seq_showing and lvl._seq_input < seq.size():
+				target = lvl.neurons[seq[lvl._seq_input]].global_position
+			else:
+				target = Vector3.INF
+			break
+	# べん（ドア）：真ん中で止まらず、むこうがわへ 抜ける
+	for m in lvl.missions:
+		if m.type == "gate" and not m.done and target != Vector3.INF:
+			target = target + lvl.path_direction_at(target) * 5.0
+			break
 	var enemy := _nearest_enemy(lvl, p.global_position)
 	var enemy_target := target != Vector3.INF and enemy != null and enemy.global_position.distance_to(target) < 0.5
 	p.autopilot_shoot = enemy != null and enemy.global_position.distance_to(p.global_position) < 13.0

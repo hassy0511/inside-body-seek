@@ -132,8 +132,10 @@ func _attack_step(delta: float) -> Vector3:
 	var reach: float = 1.6 + float(best.get("radius"))
 	if to.length() < reach:
 		if _attack_cd <= 0.0:
-			_attack_cd = 2.0
-			best.take_hit(2, global_position)
+			# ボスには ちょっとだけ。たおすのは プレイヤーの やくめ
+			var is_boss: bool = best.get("kind") == "boss_virus"
+			_attack_cd = 3.0 if is_boss else 2.0
+			best.take_hit(1 if is_boss else 2, global_position)
 			Sfx.play("cheer", 1.4)
 			_vel = -to.normalized() * 6.0
 		return Vector3.ZERO

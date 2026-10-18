@@ -18,13 +18,19 @@ var _stay_t := 0.0
 const PALETTE := [Color(1.0, 0.4, 0.4), Color(1.0, 0.85, 0.3), Color(0.4, 0.9, 0.5), Color(0.4, 0.7, 1.0), Color(0.9, 0.5, 1.0), Color(1.0, 0.6, 0.3)]
 
 
+## 最初の物理フレームで ゆかの高さに合わせる
+func _physics_process(_delta: float) -> void:
+	ModelLib.snap_to_floor(self, 0.0)
+	set_physics_process(false)
+
+
 func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0
 	monitoring = false
 	var cs := CollisionShape3D.new()
 	var s := SphereShape3D.new()
-	s.radius = 2.0
+	s.radius = 1.6
 	cs.shape = s
 	cs.position = Vector3(0, 1.0, 0)
 	add_child(cs)

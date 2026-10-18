@@ -7,8 +7,8 @@ signal died(enemy: Enemy)
 
 const CONFIG := {
 	"mushiba": {"hp": 1, "speed": 3.0, "radius": 0.7, "behavior": "wander", "touch_r": 0.9},
-	"pylori": {"hp": 2, "speed": 3.6, "radius": 0.7, "behavior": "orbit", "touch_r": 0.9},
-	"akudama": {"hp": 2, "speed": 3.2, "radius": 0.8, "behavior": "chase", "touch_r": 1.0},
+	"pylori": {"hp": 1, "speed": 3.4, "radius": 0.7, "behavior": "orbit", "touch_r": 0.9},
+	"akudama": {"hp": 2, "speed": 2.8, "radius": 0.8, "behavior": "chase", "touch_r": 1.0},
 	"virus": {"hp": 1, "speed": 4.2, "radius": 0.6, "behavior": "jitter", "touch_r": 0.8},
 }
 

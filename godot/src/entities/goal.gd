@@ -12,6 +12,12 @@ var _t := 0.0
 var _hint_cd := 0.0
 
 
+## 最初の物理フレームで ゆかの高さに合わせる
+func _physics_process(_delta: float) -> void:
+	ModelLib.snap_to_floor(self, 0.0)
+	set_physics_process(false)
+
+
 func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0
@@ -46,7 +52,7 @@ func set_locked(v: bool) -> void:
 		return
 	locked = v
 	_apply_look()
-	if not v:
+	if not v and level != null and level.get("started"):
 		Sfx.play("goal_open")
 
 
@@ -76,3 +82,9 @@ func on_player_touch(_player: Node) -> void:
 				Game.say("まだ やることが あるよ：" + level.remaining_text(), 4.0)
 		return
 	reached.emit()
+
+
+## わっかの中に いるときに ゴールが ひらいても すぐ クリアできるように
+func on_player_stay(player: Node, _delta: float) -> void:
+	if not locked:
+		on_player_touch(player)

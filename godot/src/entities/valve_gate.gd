@@ -19,6 +19,8 @@ var _flap_r: MeshInstance3D
 var _area: Area3D
 var _counted := false
 var _hint_cd := 0.0
+var _last_lz := NAN
+var _inside_t := 0.0
 
 
 func _ready() -> void:
@@ -48,7 +50,7 @@ func _ready() -> void:
 	add_child(_area)
 	_t = -float(index) * 1.3
 	add_to_group("gate")
-	_apply(false)
+	_apply(false, true)
 
 
 func _flap(mat: Material, side: float) -> MeshInstance3D:
@@ -68,6 +70,9 @@ func _flap(mat: Material, side: float) -> MeshInstance3D:
 func _process(delta: float) -> void:
 	_t += delta
 	_hint_cd = maxf(_hint_cd - delta, 0.0)
+	_inside_t += delta
+	if _inside_t > 0.3:
+		_last_lz = NAN  # ドアの中から出た
 	var cycle := open_time + close_time
 	var phase := fposmod(_t, cycle)
 	var want_open := phase < open_time
@@ -83,9 +88,11 @@ func _process(delta: float) -> void:
 	pr.rotation.y = lerp_angle(pr.rotation.y, target, minf(1.0, 8.0 * delta))
 
 
-func _apply(o: bool) -> void:
+func _apply(o: bool, silent := false) -> void:
 	open = o
 	_body.get_child(0).set_deferred("disabled", o)
+	if silent:
+		return
 	if o:
 		Sfx.play("gate_open", 0.9 + index * 0.1)
 	else:
@@ -104,12 +111,16 @@ func on_player_touch(player: Node) -> void:
 	on_player_stay(player, 0.0)
 
 
-func on_player_stay(_player: Node, _delta: float) -> void:
+func on_player_stay(player: Node, _delta: float) -> void:
+	# 「とおりぬけた」と数えるのは、ドアの手前から むこうがわへ 抜けたとき
+	var lz := to_local((player as Node3D).global_position).z
+	_inside_t = 0.0
 	if open:
-		if not _counted:
+		if not _counted and not is_nan(_last_lz) and signf(lz) != signf(_last_lz) and absf(lz) > 0.2:
 			_counted = true
 			passed.emit(self)
 			Sfx.play("checkpoint", 1.3)
+		_last_lz = lz
 	elif _hint_cd <= 0.0:
 		_hint_cd = 5.0
 		Game.say("ドアが しまってる。ひらくまで まとう！", 3.0)

@@ -63,7 +63,8 @@ func play_bgm(name: String) -> void:
 		return
 	if s is AudioStreamWAV:
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		s.loop_end = s.get_data().size() / 2 if s.format == AudioStreamWAV.FORMAT_16_BITS else s.get_data().size()
+		s.loop_begin = 0
+		s.loop_end = int(round(s.get_length() * s.mix_rate))  # 圧縮形式（QOA）でも正しい
 	_bgm.stream = s
 	_bgm.volume_db = -8.0
 	_bgm.play()

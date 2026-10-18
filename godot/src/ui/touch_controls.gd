@@ -101,7 +101,7 @@ func _release_move() -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_VISIBILITY_CHANGED and not visible:
+	if what == NOTIFICATION_PAUSED or (what == NOTIFICATION_VISIBILITY_CHANGED and not visible):
 		_release_move()
 		if _action_touch >= 0:
 			Input.action_release("action")
@@ -110,6 +110,8 @@ func _notification(what: int) -> void:
 		_stick_touch = -1
 		_action_touch = -1
 		_dash_touch = -1
+		_knob = Vector2.ZERO
+		queue_redraw()
 
 
 func _draw() -> void:

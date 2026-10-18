@@ -9,6 +9,12 @@ var level: Node = null
 var _flag: MeshInstance3D
 
 
+## 最初の物理フレームで ゆかの高さに合わせる
+func _physics_process(_delta: float) -> void:
+	ModelLib.snap_to_floor(self, 0.0)
+	set_physics_process(false)
+
+
 func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0

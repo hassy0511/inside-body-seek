@@ -10,22 +10,24 @@ var _cycle := 0.0
 var _spawn_t := 6.0
 var core: MeshInstance3D
 var minions: Array[Node] = []
+var _base_scale := Vector3.ONE
 
 
 func _ready() -> void:
 	kind = "boss_virus"
 	super._ready()
-	hp = 10
-	max_hp = 10
+	hp = 14
+	max_hp = 14
 	speed = 1.8
 	radius = 2.4
 	hover_height = 2.6
 	behavior = "boss"
 	targetable = false
-	var cs := get_child(0) as CollisionShape3D
-	if cs and cs.shape is SphereShape3D:
-		(cs.shape as SphereShape3D).radius = 2.0
+	for c in get_children():
+		if c is CollisionShape3D and c.shape is SphereShape3D:
+			(c.shape as SphereShape3D).radius = 2.0
 	ModelLib.fit(model, 2.4)
+	_base_scale = model.scale
 	for c in touch.get_children():
 		if c is CollisionShape3D and c.shape is SphereShape3D:
 			(c.shape as SphereShape3D).radius = 2.6
@@ -67,22 +69,25 @@ func _physics_process(delta: float) -> void:
 		core.visible = true
 		core.scale = Vector3.ONE * (1.0 + 0.15 * sin(_bob * 6.0))
 		core.position = Vector3(0, 0.2, 0)
-		model.scale = Vector3.ONE * 0.9
+		model.scale = _base_scale * 0.9
 	else:
 		core.visible = false
-		model.scale = Vector3.ONE * (1.0 + (_flash * 0.3 if _flash > 0.0 else 0.0))
+		model.scale = _base_scale * (1.0 + (_flash * 0.3 if _flash > 0.0 else 0.0))
 	_flash = maxf(_flash - delta, 0.0)
 	# ミニオン
 	_spawn_t -= delta
 	minions = minions.filter(func(m): return is_instance_valid(m) and m.get("alive"))
 	if _spawn_t <= 0.0:
 		_spawn_t = 10.0
-		if minions.size() < 4 and level and level.has_method("spawn_enemy_at"):
-			for i in 2:
-				var off := Vector3(randf_range(-4, 4), 0, randf_range(-4, 4))
-				var m = level.spawn_enemy_at("virus", global_position + off)
-				if m:
-					minions.append(m)
+		var alive_virus := 0
+		for e in get_tree().get_nodes_in_group("enemy"):
+			if e.get("kind") == "virus" and e.get("alive"):
+				alive_virus += 1
+		if alive_virus < 4 and level and level.has_method("spawn_enemy_at"):
+			var off := Vector3(randf_range(-4, 4), 0, randf_range(-4, 4))
+			var m = level.spawn_enemy_at("virus", global_position + off)
+			if m:
+				minions.append(m)
 			Sfx.play("boss_roar")
 
 

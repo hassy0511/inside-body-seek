@@ -51,7 +51,10 @@ func _init() -> void:
 				q.exclude = q.exclude + [hit["rid"]]
 				hit = space.intersect_ray(q)
 				tries += 1
-			var ok: bool = (not hit.is_empty()) and hit["normal"].y > 0.35 and (p[1].y - hit["position"].y) > -3.5 and (p[1].y - hit["position"].y) < 6.0
+			var dy: float = (p[1].y - hit["position"].y) if not hit.is_empty() else 0.0
+			var ok: bool = (not hit.is_empty()) and hit["normal"].y > 0.35 and dy > -3.5 and dy < 6.0
+			if String(p[0]).begins_with("MK_pickup") and ok:
+				ok = dy > -2.0 and dy < 3.0  # ひろえる高さ（実行時にも ゆかへ合わせるが、目安として）
 			if not ok:
 				bad += 1
 				failures += 1

@@ -46,7 +46,7 @@ func _ready() -> void:
 	mp.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	mp.anchor_left = 1.0
 	mp.anchor_right = 1.0
-	mp.offset_left = -440
+	mp.offset_left = -480
 	mp.offset_right = -24
 	mp.offset_top = 90
 	mp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -80,8 +80,9 @@ func _ready() -> void:
 	_msg_panel.anchor_bottom = 1.0
 	_msg_panel.offset_left = -430
 	_msg_panel.offset_right = 430
-	_msg_panel.offset_top = -150
+	_msg_panel.offset_top = -200
 	_msg_panel.offset_bottom = -26
+	_msg_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_msg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_msg_panel.add_theme_stylebox_override("panel", T.rounded(Color(1, 1, 1, 0.92), 26, 4, T.SKY))
 	var hb := HBoxContainer.new()
@@ -93,7 +94,7 @@ func _ready() -> void:
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(T.label("ドクター・ピコ", 18, Color(0.3, 0.5, 0.7)))
-	_msg_label = T.label("", 26)
+	_msg_label = T.label("", 30)
 	_msg_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_msg_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(_msg_label)
@@ -118,7 +119,7 @@ func _refresh_missions() -> void:
 	if level == null:
 		return
 	for m in level.missions:
-		var l := T.label(("● " if m.done else "○ ") + m.label(), 22, Color(0.45, 0.7, 0.5) if m.done else T.INK)
+		var l := T.label(("● " if m.done else "○ ") + m.label(), 24, Color(0.45, 0.7, 0.5) if m.done else T.INK)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_mission_box.add_child(l)
 		_mission_labels.append(l)
@@ -135,6 +136,10 @@ func _process(delta: float) -> void:
 			if it == "nutrient":
 				n += 1
 		_pocket.text = ("ポケット：えいよう × %d" % n) if n > 0 else ""
+
+
+func is_busy() -> bool:
+	return _msg_panel.visible and _msg_timer > 0.0
 
 
 func say(text: String, seconds := 4.0) -> void:

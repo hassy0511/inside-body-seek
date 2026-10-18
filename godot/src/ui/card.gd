@@ -8,11 +8,19 @@ const T := preload("res://src/ui/ui_theme.gd")
 var _panel: PanelContainer
 var _btn: Button
 var _done := false
+var _opened_ms := 0
 
 
 func _ready() -> void:
+	_opened_ms = Time.get_ticks_msec()
 	if _btn:
 		_btn.grab_focus()
+		# 連打で読まずに閉じてしまわないように、少しの間は押せない
+		_btn.disabled = true
+		get_tree().create_timer(0.7, true).timeout.connect(func():
+			if is_instance_valid(_btn):
+				_btn.disabled = false
+				_btn.grab_focus())
 
 
 func setup(card: Dictionary, image_kind := "") -> void:
@@ -126,6 +134,8 @@ func _make_picture(kind: String) -> Control:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Time.get_ticks_msec() - _opened_ms < 700:
+		return
 	if event.is_action_pressed("action") or event.is_action_pressed("ui_accept"):
 		close()
 		get_viewport().set_input_as_handled()

@@ -19,6 +19,12 @@ static func create(k: String, v := 0) -> Pickup:
 	return p
 
 
+## 最初の物理フレームで ゆかの高さに合わせる
+func _physics_process(_delta: float) -> void:
+	ModelLib.snap_to_floor(self, 0.6)
+	set_physics_process(false)
+
+
 func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0
@@ -53,6 +59,8 @@ func _process(delta: float) -> void:
 func on_player_touch(player: Node) -> void:
 	if _taken:
 		return
+	if kind == "heart_item" and player.hearts >= player.MAX_HEARTS:
+		return  # ハートがいっぱいなら とっておく
 	_taken = true
 	if kind == "heart_item":
 		player.heal(1)

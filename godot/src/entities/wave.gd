@@ -3,7 +3,7 @@ extends Area3D
 ## ぜんどううんどうの なみ。道に そって すすみ、プレイヤーを おしてくれる。
 
 var level: Node = null
-var speed := 7.0
+var speed := 12.0
 var push := 9.0
 var dist := 0.0
 var ring_radius := 4.5

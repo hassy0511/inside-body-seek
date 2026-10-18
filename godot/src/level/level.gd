@@ -75,6 +75,8 @@ var _seq_input := 0
 var _seq_round := 0
 var _seq_showing := false
 var _seq_input_started := 0.0
+var _seq_pending := false
+var _spawn_heading := Vector3.FORWARD
 var _sign_font: Font
 
 
@@ -104,7 +106,7 @@ func begin() -> void:
 		SaveData.mark_card(stage_id, "stage")
 		started = true
 		if intro != "":
-			Game.say(intro, 6.0)
+			Game.say(intro, 9.0)
 	if show_story:
 		SaveData.data["story_seen"] = true
 		SaveData.save()
@@ -278,7 +280,10 @@ func _spawn_all() -> void:
 				cp.level = self
 				cp.position = pos
 				add_child(cp)
-				cp.activated.connect(func(c): respawn_point = c.global_position; Game.say("チェックポイント！ ここから やりなおせるよ。", 2.5))
+				cp.activated.connect(func(c):
+					if not path.is_valid() or path.progress_at(c.global_position) >= path.progress_at(respawn_point):
+						respawn_point = c.global_position
+					Game.say("チェックポイント！ ここから やりなおせるよ。", 2.5))
 			"enemy":
 				var ek := String(rest[0]) if rest.size() > 0 else "mushiba"
 				spawn_enemy_at(ek, pos)
@@ -298,8 +303,10 @@ func _spawn_all() -> void:
 				f.cheered.connect(_on_friend_cheered)
 				_add_card_point(fk, pos, f)
 			"pickup":
-				var pk := String(rest[0]) if rest.size() > 0 else "nutrient"
-				var idx := int(rest[1]) if rest.size() > 1 and String(rest[1]).is_valid_int() else 0
+				var words: Array = rest.filter(func(r): return not String(r).is_valid_int())
+				var nums: Array = rest.filter(func(r): return String(r).is_valid_int())
+				var pk: String = "_".join(PackedStringArray(words)) if words.size() > 0 else "nutrient"
+				var idx: int = int(nums[0]) if nums.size() > 1 else 0
 				var p := PickupScript.create(pk, idx)
 				p.level = self
 				p.position = pos
@@ -390,6 +397,15 @@ func _spawn_sign(text: String, pos: Vector3) -> void:
 func _add_card_point(key: String, pos: Vector3, node: Node) -> void:
 	if not stage.get("cards", {}).has(key):
 		return
+	if SaveData.card_seen(stage_id, key):
+		return
+	for cp in card_points:
+		if cp["key"] == key:
+			# もう登録してあるときは、いちばん新しいものを指す
+			if cp["node"] == null or not is_instance_valid(cp["node"]):
+				cp["node"] = node
+				cp["position"] = pos
+			return
 	card_points.append({"key": key, "position": pos, "node": node})
 
 
@@ -416,7 +432,12 @@ func _spawn_player() -> void:
 	player.camera = camera
 	player.hearts_changed.connect(func(h): hearts_changed.emit(h))
 	player.hurt_happened.connect(func(): damage_taken = true)
-	player.respawned.connect(func(): Game.say("ちょっと きゅうけい。もういっかい いこう！", 3.0))
+	_spawn_heading = player.heading
+	player.respawned.connect(func():
+		if player.inventory.size() > 0:
+			Game.say("ちょっと きゅうけい。ポケットの えいようは そのままだよ！", 3.0)
+		else:
+			Game.say("ちょっと きゅうけい。もういっかい いこう！", 3.0))
 
 
 # ---------------------------------------------------------------- ミッション
@@ -442,7 +463,7 @@ func _mission(type: String, target := "") -> Mission:
 
 func _on_mission_completed(m: Mission) -> void:
 	Sfx.play("mission")
-	if not m.is_reach():
+	if not m.is_reach() and not _non_reach_done():
 		Game.say("やったね！「%s」クリア！" % m.text, 3.0)
 	_update_goal_lock()
 	missions_changed.emit()
@@ -460,7 +481,7 @@ func _update_goal_lock() -> void:
 		var was := goal.locked
 		goal.set_locked(not _non_reach_done())
 		if was and not goal.locked and started:
-			Game.say("ゴールが ひらいたよ！ きいろい わっかへ いこう！", 4.0)
+			Game.say("やったね！ ぜんぶ できた！ きいろい わっかの ゴールへ いこう！", 4.0)
 
 
 func remaining_text() -> String:
@@ -519,13 +540,18 @@ func finish() -> void:
 	if finished:
 		return
 	finished = true
+	var no_damage := not damage_taken
 	player.control_enabled = false
 	player.velocity = Vector3.ZERO
+	player.invulnerable = 1.0e9
+	player.hitbox.set_deferred("monitoring", false)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		e.set_physics_process(false)
 	Sfx.play("clear")
 	Game.say("ステージクリア！", 3.0)
 	var t := create_tween()
 	t.tween_interval(0.2 if Game.testing else 1.6)
-	t.tween_callback(func(): cleared.emit(stage_id, not damage_taken))
+	t.tween_callback(func(): cleared.emit(stage_id, no_damage))
 
 
 func respawn_position() -> Vector3:
@@ -557,9 +583,14 @@ func current_target_position() -> Vector3:
 					if not g._counted:
 						return g.global_position
 			"sequence":
-				if _seq_input < _seq.size() and not _seq_showing and _seq.size() > 0:
-					return neurons[_seq[_seq_input]].global_position
-				return Vector3.INF
+				# こたえを 教えないように、しんけいの まんなかを 遠くからだけ指す
+				if neurons.is_empty():
+					return Vector3.INF
+				var c := Vector3.ZERO
+				for nn in neurons:
+					c += nn.global_position
+				c /= neurons.size()
+				return c if c.distance_to(player.global_position) > 16.0 else Vector3.INF
 			"reach":
 				if goal:
 					return goal.global_position
@@ -605,8 +636,10 @@ func _physics_process(delta: float) -> void:
 	if flow_speed > 0.0 and path.is_valid() and player:
 		player.external_push += path.direction_at(player.global_position) * flow_speed
 	# ヒント
-	if _hints.size() > 0 and elapsed >= float(_hints[0]["at"]):
-		Game.say(_hints[0]["text"], 5.0)
+	if _hints.size() > 0 and elapsed >= float(_hints[0]["at"]) and not Game.hud_busy():
+		var h: Dictionary = _hints[0]
+		var on_touch: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
+		Game.say(String(h.get("text_touch", h["text"])) if on_touch else String(h["text"]), 5.0)
 		_hints.remove_at(0)
 	# なみ（しょくどう）
 	if stage_id == "esophagus":
@@ -617,8 +650,7 @@ func _physics_process(delta: float) -> void:
 			w.level = self
 			add_child(w)
 			w.global_position = path.start()
-			if not SaveData.card_seen(stage_id, "wave"):
-				card_points.append({"key": "wave", "position": Vector3.INF, "node": w})
+			_add_card_point("wave", Vector3.INF, w)
 	# カード
 	_card_cd = maxf(_card_cd - delta, 0.0)
 	_card_check -= delta
@@ -626,8 +658,14 @@ func _physics_process(delta: float) -> void:
 		_card_check = 0.3
 		_check_cards()
 	# しんけいパズル
-	if _mission("sequence") != null and not _mission("sequence").done and _seq.is_empty() and not _seq_showing and elapsed > 2.0:
-		_start_sequence_round()
+	var sm := _mission("sequence")
+	if sm != null and not sm.done and _seq.is_empty() and not _seq_showing and not _seq_pending and not neurons.is_empty():
+		var c := Vector3.ZERO
+		for nn in neurons:
+			c += nn.global_position
+		c /= neurons.size()
+		if elapsed > 8.0 or player.global_position.distance_to(c) < 16.0:
+			_start_sequence_round()
 
 
 func _check_cards() -> void:
@@ -672,9 +710,19 @@ func _start_sequence_round() -> void:
 
 func _show_sequence() -> void:
 	_seq_showing = true
-	Game.say("よく みてね！", 1.5)
+	for nn in neurons:
+		nn.armed = false
+	# カメラを 上から見る位置にして、ぜんぶの しんけいを 見せる（プレイヤーは その場で待つ）
+	player.control_enabled = false
+	player.velocity = Vector3.ZERO
+	var c := Vector3.ZERO
+	for nn in neurons:
+		c += nn.global_position
+	c /= neurons.size()
+	camera.set_overview(c)
+	Game.say("よく みてね！", 2.0)
 	var t := create_tween()
-	t.tween_interval(1.2)
+	t.tween_interval(1.6)
 	for idx in _seq:
 		var n := neurons[idx]
 		t.tween_callback(func(): n.light_up(0.6))
@@ -685,6 +733,9 @@ func _show_sequence() -> void:
 		_seq_input_started = elapsed
 		for nn in neurons:
 			nn.armed = true
+		camera.clear_overview()
+		if not finished:
+			player.control_enabled = true
 		Game.say("きみの ばん！ おなじ じゅんばんに さわろう。", 3.0)
 	)
 
@@ -703,10 +754,13 @@ func _on_neuron_touched(n: Neuron) -> void:
 			m.add(1)
 			_seq = []
 			if not m.done:
+				_seq_pending = true
 				Game.say("せいかい！ つぎは もっと ながいよ。", 2.0)
 				var t := create_tween()
 				t.tween_interval(2.0)
-				t.tween_callback(_start_sequence_round)
+				t.tween_callback(func():
+					_seq_pending = false
+					_start_sequence_round())
 	elif elapsed - _seq_input_started < 0.6 and _seq_input == 0:
 		# はじまった しゅんかんに たまたま 乗っていた しんけいは 数えない
 		n.armed = false
@@ -714,6 +768,9 @@ func _on_neuron_touched(n: Neuron) -> void:
 		Sfx.play("wrong")
 		Game.say("ざんねん！ もういちど みてね。", 2.0)
 		_seq_input = 0
+		_seq_showing = true  # もう一度見せるまで さわっても数えない
+		for nn in neurons:
+			nn.armed = false
 		var t := create_tween()
 		t.tween_interval(1.5)
 		t.tween_callback(_show_sequence)

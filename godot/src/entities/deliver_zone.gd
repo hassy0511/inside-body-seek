@@ -10,6 +10,12 @@ var model: Node3D
 var _t := 0.0
 
 
+## 最初の物理フレームで ゆかの高さに合わせる
+func _physics_process(_delta: float) -> void:
+	ModelLib.snap_to_floor(self, 0.0)
+	set_physics_process(false)
+
+
 func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0
@@ -58,6 +64,8 @@ func _try_deliver(player: Node) -> void:
 	player.inventory = keep
 	Sfx.play("deliver")
 	delivered.emit(self, n)
+	set_process(false)
 	var t := create_tween()
 	t.tween_property(model, "scale", Vector3.ONE * 1.25, 0.15)
 	t.tween_property(model, "scale", Vector3.ONE, 0.25)
+	t.tween_callback(func(): set_process(true))

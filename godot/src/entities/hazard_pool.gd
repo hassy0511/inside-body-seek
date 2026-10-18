@@ -6,6 +6,7 @@ var radius := 5.0
 var level: Node = null
 var kind := "acid"
 var _tick := 0.0
+var _warn_cd := 0.0
 var _mesh: MeshInstance3D
 var _t := 0.0
 
@@ -35,11 +36,15 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_warn_cd = maxf(_warn_cd - delta, 0.0)
 	_mesh.scale = Vector3(1.0 + 0.02 * sin(_t * 2.0), 1.0, 1.0 + 0.02 * cos(_t * 2.0))
 
 
 func on_player_stay(player: Node, delta: float) -> void:
 	player.speed_mult = minf(player.speed_mult, 0.55)
+	if _warn_cd <= 0.0:
+		_warn_cd = 6.0
+		Game.say("いえきだ！ はやく いけから でよう！", 2.5)
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = 1.2
