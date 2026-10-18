@@ -7,7 +7,8 @@ var failures := 0
 
 func _init() -> void:
 	var names: Array = []
-	for s in StageDB.STAGES:
+	var db = preload("res://src/autoload/stage_db.gd")
+	for s in db.STAGES:
 		names.append(s["env"])
 	for n in names:
 		var ps = load("res://assets/models/stages/%s.glb" % n)
@@ -33,15 +34,28 @@ func _init() -> void:
 				pts.append([nm, mk.global_position])
 		pts.sort_custom(func(a, b): return a[0] < b[0])
 		var bad := 0
+		var last_path := ""
 		for p in pts:
+			if String(p[0]).begins_with("MK_path_") and String(p[0]) > last_path:
+				last_path = String(p[0])
+		for p in pts:
+			# くだの両端（フタの位置）は除く
+			if p[0] == "MK_path_000" or p[0] == last_path:
+				continue
 			var from: Vector3 = p[1] + Vector3.UP * 4.0
 			var q := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 30.0, 1)
 			var hit := space.intersect_ray(q)
-			var ok := not hit.is_empty() and hit.normal.y > 0.35 and (p[1].y - hit.position.y) > -3.5 and (p[1].y - hit.position.y) < 6.0
+			# はなげ など、ゆかではない細いものに当たったら それを除いてもう一度
+			var tries := 0
+			while not hit.is_empty() and hit["normal"].y <= 0.35 and tries < 3:
+				q.exclude = q.exclude + [hit["rid"]]
+				hit = space.intersect_ray(q)
+				tries += 1
+			var ok: bool = (not hit.is_empty()) and hit["normal"].y > 0.35 and (p[1].y - hit["position"].y) > -3.5 and (p[1].y - hit["position"].y) < 6.0
 			if not ok:
 				bad += 1
 				failures += 1
-				print("  [probe] %s/%s at %s -> %s" % [n, p[0], p[1], ("floor y=%.2f n=%s (%s)" % [hit.position.y, hit.normal, hit.collider.get_parent().name]) if hit else "NO FLOOR"])
+				print("  [probe] %s/%s at %s -> %s" % [n, p[0], p[1], ("floor y=%.2f n=%s (%s)" % [hit["position"].y, hit["normal"], hit["collider"].get_parent().name]) if not hit.is_empty() else "NO FLOOR"])
 		print("== %s bodies=%d markers_checked=%d bad=%d" % [n, bodies, pts.size(), bad])
 		env.queue_free()
 		await process_frame

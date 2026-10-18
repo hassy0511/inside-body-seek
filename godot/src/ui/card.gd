@@ -101,7 +101,7 @@ func _make_picture(kind: String) -> Control:
 	sv.own_world_3d = true
 	svc.add_child(sv)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0.6, 3.6)
+	cam.position = Vector3(0, 0.6, -3.6)
 	cam.look_at_from_position(cam.position, Vector3(0, 0.1, 0), Vector3.UP)
 	cam.fov = 40
 	sv.add_child(cam)

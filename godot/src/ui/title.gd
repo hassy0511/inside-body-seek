@@ -103,7 +103,7 @@ func _add_pod_preview() -> void:
 	sv.size = Vector2i(350, 350)
 	svc.add_child(sv)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0.8, 3.4)
+	cam.position = Vector3(0.6, 0.8, -3.4)
 	cam.look_at_from_position(cam.position, Vector3(0, 0, 0), Vector3.UP)
 	cam.fov = 40
 	sv.add_child(cam)

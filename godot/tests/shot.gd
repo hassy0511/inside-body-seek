@@ -28,7 +28,24 @@ func _ready() -> void:
 	elif stage == "select":
 		Game.show_stage_select()
 	elif stage == "zukan":
+		for sid in ["mouth", "esophagus", "stomach"]:
+			for key in StageDB.get_stage(sid)["cards"].keys():
+				SaveData.mark_card(sid, key)
 		Game.show_zukan()
+	elif stage == "card":
+		Game.testing = false  # カードを自動で閉じない
+		Game.start_stage("stomach")
+	elif stage == "result":
+		Game.start_stage("lungs")
+		var waited := 0
+		while (Game.level == null or not Game.level.started) and waited < 600:
+			await get_tree().process_frame
+			waited += 1
+		Game.testing = false
+		Game.level.damage_taken = true
+		Game.level.finish()
+		for i in 60:
+			await get_tree().process_frame
 	else:
 		Game.start_stage(stage)
 		var waited := 0
