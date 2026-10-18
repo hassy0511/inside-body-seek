@@ -19,7 +19,7 @@ var _flap_r: MeshInstance3D
 var _area: Area3D
 var _counted := false
 var _hint_cd := 0.0
-var _last_lz := NAN
+var _entry_side := 0.0  # ドアのどちら側から入ったか（+1 / -1）。0 は外にいる
 var _inside_t := 0.0
 
 
@@ -72,7 +72,7 @@ func _process(delta: float) -> void:
 	_hint_cd = maxf(_hint_cd - delta, 0.0)
 	_inside_t += delta
 	if _inside_t > 0.3:
-		_last_lz = NAN  # ドアの中から出た
+		_entry_side = 0.0  # ドアの範囲から出た
 	var cycle := open_time + close_time
 	var phase := fposmod(_t, cycle)
 	var want_open := phase < open_time
@@ -115,12 +115,13 @@ func on_player_stay(player: Node, _delta: float) -> void:
 	# 「とおりぬけた」と数えるのは、ドアの手前から むこうがわへ 抜けたとき
 	var lz := to_local((player as Node3D).global_position).z
 	_inside_t = 0.0
+	if _entry_side == 0.0 and absf(lz) > 0.2:
+		_entry_side = signf(lz)
 	if open:
-		if not _counted and not is_nan(_last_lz) and signf(lz) != signf(_last_lz) and absf(lz) > 0.2:
+		if not _counted and _entry_side != 0.0 and signf(lz) == -_entry_side and absf(lz) > 0.2:
 			_counted = true
 			passed.emit(self)
 			Sfx.play("checkpoint", 1.3)
-		_last_lz = lz
 	elif _hint_cd <= 0.0:
 		_hint_cd = 5.0
 		Game.say("ドアが しまってる。ひらくまで まとう！", 3.0)
