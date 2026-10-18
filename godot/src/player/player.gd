@@ -32,6 +32,8 @@ var _blink := 0.0
 var _propeller: Node3D
 var _respawning := false
 var _no_floor_time := 0.0
+var _stuck_time := 0.0
+var _stuck_from := Vector3.ZERO
 
 ## テスト用：ここに座標を入れると その方向へ自動で動く
 var autopilot_target: Vector3 = Vector3.INF
@@ -155,10 +157,30 @@ func _physics_process(delta: float) -> void:
 
 	if shoot and shot_timer <= 0.0:
 		_shoot()
+	_check_stuck(delta, dir)
 	_check_overlaps()
 	speed_mult = 1.0
 	external_push = Vector3.ZERO
 	_update_arrow(delta)
+
+
+## うごこうとしているのに 5 秒以上 その場から動けないときは、チェックポイントへ戻す
+func _check_stuck(delta: float, dir: Vector3) -> void:
+	if dir.length() < 0.1 or _respawning:
+		_stuck_time = 0.0
+		_stuck_from = global_position
+		return
+	if global_position.distance_to(_stuck_from) > 0.8:
+		_stuck_time = 0.0
+		_stuck_from = global_position
+		return
+	_stuck_time += delta
+	if _stuck_time > 5.0 and level and level.has_method("respawn_position"):
+		_stuck_time = 0.0
+		global_position = level.respawn_position()
+		velocity = Vector3.ZERO
+		_stuck_from = global_position
+		Game.say("あれ？ はさまっちゃった。チェックポイントから やりなおそう。", 3.0)
 
 
 func _camera_relative(input: Vector2) -> Vector3:

@@ -112,30 +112,15 @@ def solid_tube(name, pts, radius, mat, resolution=6, ribs=0.0, rib_every=3):
     return tube(name, pts, radius, mat, 0.0, 1.0, ribs, rib_every, True, resolution, flip=False)
 
 
-def orient_inward(obj, ref_points):
-    """面の法線を「中心線（ref_points）のほう」に向ける。
+def orient_inward(obj, _ref_points=None):
+    """面の法線を内向きにそろえる。
     Godot の当たり判定（trimesh）は表面の片側しか当たらないので、内側から遊ぶ部屋・くだは
-    必ず内向きにそろえる必要がある。normals_make_consistent(inside=True) は形によって
-    外向きになることがあったので、中心線との位置関係で面ごとに決める。"""
-    C.set_active(obj)
-    refs = [Vector(p) for p in ref_points]
-    bm = bmesh.new()
-    bm.from_mesh(obj.data)
-    bm.normal_update()
-    flipped = 0
-    for f in bm.faces:
-        c = f.calc_center_median()
-        nearest = min(refs, key=lambda r: (r - c).length_squared)
-        outward = c - nearest
-        if outward.length < 0.3:
-            continue
-        if f.normal.dot(outward) > 0.0:
-            f.normal_flip()
-            flipped += 1
-    bm.to_mesh(obj.data)
-    bm.free()
+    必ず内向きでないといけない。閉じたメッシュなら Blender の「一貫した法線（外向き）」が
+    確実なので、それを作ってから全部反転する。（中心線からの距離で面ごとに決める方法は、
+    くだと部屋の合流部で床が裏返ることがあった）"""
+    C.recalc_normals(obj, inside=False)
+    C.flip_normals(obj)
     obj.data.update()
-    return flipped
 
 
 def bowl_z(x, y, scale, up=1.0):

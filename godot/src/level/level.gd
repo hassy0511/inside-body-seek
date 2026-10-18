@@ -74,6 +74,7 @@ var _seq: Array[int] = []
 var _seq_input := 0
 var _seq_round := 0
 var _seq_showing := false
+var _seq_input_started := 0.0
 var _sign_font: Font
 
 
@@ -681,6 +682,9 @@ func _show_sequence() -> void:
 	t.tween_callback(func():
 		_seq_showing = false
 		_seq_input = 0
+		_seq_input_started = elapsed
+		for nn in neurons:
+			nn.armed = true
 		Game.say("きみの ばん！ おなじ じゅんばんに さわろう。", 3.0)
 	)
 
@@ -703,6 +707,9 @@ func _on_neuron_touched(n: Neuron) -> void:
 				var t := create_tween()
 				t.tween_interval(2.0)
 				t.tween_callback(_start_sequence_round)
+	elif elapsed - _seq_input_started < 0.6 and _seq_input == 0:
+		# はじまった しゅんかんに たまたま 乗っていた しんけいは 数えない
+		n.armed = false
 	else:
 		Sfx.play("wrong")
 		Game.say("ざんねん！ もういちど みてね。", 2.0)

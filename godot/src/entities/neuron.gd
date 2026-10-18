@@ -11,6 +11,9 @@ var _lit := 0.0
 var _glow: OmniLight3D
 var _color := Color(0.9, 0.85, 1.0)
 var _touch_cd := 0.0
+## さわったと数えるのは「あらためて入ってきた」とき。乗りっぱなしでは数えない
+var armed := true
+var _stay_t := 0.0
 
 const PALETTE := [Color(1.0, 0.4, 0.4), Color(1.0, 0.85, 0.3), Color(0.4, 0.9, 0.5), Color(0.4, 0.7, 1.0), Color(0.9, 0.5, 1.0), Color(1.0, 0.6, 0.3)]
 
@@ -47,6 +50,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_touch_cd = maxf(_touch_cd - delta, 0.0)
+	_stay_t += delta
+	if _stay_t > 0.25:
+		armed = true  # はなれたので、つぎに入ってきたら数える
 	if _lit > 0.0:
 		_lit -= delta
 		_glow.light_energy = 3.0 * clampf(_lit / 0.5, 0.0, 1.0)
@@ -61,8 +67,14 @@ func light_up(seconds := 0.6) -> void:
 	Sfx.play("beep", 0.8 + index * 0.12)
 
 
-func on_player_touch(_player: Node) -> void:
-	if _touch_cd > 0.0:
+func on_player_touch(player: Node) -> void:
+	on_player_stay(player, 0.0)
+
+
+func on_player_stay(_player: Node, _delta: float) -> void:
+	_stay_t = 0.0
+	if not armed or _touch_cd > 0.0:
 		return
-	_touch_cd = 0.8
+	armed = false
+	_touch_cd = 0.5
 	touched.emit(self)

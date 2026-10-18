@@ -9,6 +9,8 @@ cd "$ROOT/godot"
 echo "== import =="
 "$GODOT" --headless --path . --import >"$LOG.import" 2>&1 || true
 grep -E "SCRIPT ERROR|ERROR:" "$LOG.import" | grep -v -E "Draco|MeshOptimizer" | head -20
+echo "== floor probe =="
+"$GODOT" --headless --path . --script res://tests/probe.gd 2>&1 | grep -E "probe|PROBE|==" | head -40
 echo "== smoke =="
 "$GODOT" --headless --fixed-fps 60 --path . res://tests/smoke.tscn -- "$@" >"$LOG" 2>&1
 code=$?
