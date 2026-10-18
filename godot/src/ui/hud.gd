@@ -17,7 +17,7 @@ var _pause_btn: Button
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
@@ -30,7 +30,7 @@ func _ready() -> void:
 	add_child(_heart_box)
 
 	var top := PanelContainer.new()
-	top.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	top.anchor_left = 0.5
 	top.anchor_right = 0.5
 	top.offset_left = -220
@@ -43,7 +43,7 @@ func _ready() -> void:
 	add_child(top)
 
 	var mp := PanelContainer.new()
-	mp.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	mp.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	mp.anchor_left = 1.0
 	mp.anchor_right = 1.0
 	mp.offset_left = -440
@@ -57,7 +57,7 @@ func _ready() -> void:
 	add_child(mp)
 
 	_pause_btn = T.button("❚❚", 22)
-	_pause_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_pause_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_pause_btn.anchor_left = 1.0
 	_pause_btn.anchor_right = 1.0
 	_pause_btn.offset_left = -84
@@ -73,7 +73,7 @@ func _ready() -> void:
 	add_child(_pocket)
 
 	_msg_panel = PanelContainer.new()
-	_msg_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_msg_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_msg_panel.anchor_left = 0.5
 	_msg_panel.anchor_right = 0.5
 	_msg_panel.anchor_top = 1.0

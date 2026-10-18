@@ -107,7 +107,7 @@ func _physics_process(delta: float) -> void:
 
 func _stick_to_floor(_delta: float) -> void:
 	var space := get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 2.0, global_position + Vector3.DOWN * 12.0, 1)
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 4.0, global_position + Vector3.DOWN * 16.0, 1)
 	var hit := space.intersect_ray(q)
 	if not hit.is_empty():
 		var ty: float = hit["position"].y + 0.9 + radius * 0.3

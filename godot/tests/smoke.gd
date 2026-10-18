@@ -11,6 +11,7 @@ var _log: Array[String] = []
 var _stage_elapsed := 0.0
 var _only := ""
 var _finished := false
+var _debug := false
 
 
 func _ready() -> void:
@@ -18,6 +19,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--stage="):
 			_only = a.substr(8)
+		if a == "--debug":
+			_debug = true
 	var main = load("res://src/main.tscn").instantiate()
 	add_child(main)
 	await get_tree().process_frame
@@ -103,6 +106,13 @@ func _run_stage(id: String) -> void:
 		_stage_elapsed += dt
 		if is_instance_valid(lvl) and not lvl.finished:
 			_drive(lvl)
+		if _debug and is_instance_valid(lvl) and fmod(_stage_elapsed, 2.0) < dt and lvl.player:
+			var p = lvl.player
+			var cols: Array[String] = []
+			for i in p.get_slide_collision_count():
+				var c: KinematicCollision3D = p.get_slide_collision(i)
+				cols.append("%s n=%s" % [c.get_collider().get_parent().name if c.get_collider().get_parent() else c.get_collider().name, c.get_normal()])
+			_info("  dbg t=%.0f pos=%s floor=%s fp=%s vel=%s tgt=%s cols=%s" % [_stage_elapsed, p.global_position, p.floor_found, p.floor_point, p.velocity, p.autopilot_target, cols])
 		if _stage_elapsed - last_report > 30.0:
 			last_report = _stage_elapsed
 			if is_instance_valid(lvl):

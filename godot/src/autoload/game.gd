@@ -99,7 +99,14 @@ func _clear_screen() -> void:
 func _set_screen(c: Control) -> void:
 	_clear_screen()
 	_screen = c
+	c.theme = theme
 	ui_layer.add_child(c)
+
+
+## CanvasLayer の下に置く Control にはテーマが引き継がれないので、ここで付けてから足す
+func add_overlay(c: Control) -> void:
+	c.theme = theme
+	overlay_layer.add_child(c)
 
 
 func show_title() -> void:
@@ -127,6 +134,7 @@ func start_stage(stage_id: String) -> void:
 	level.setup(stage)
 	world.add_child(level)
 	hud = HudScene.new()
+	hud.theme = theme
 	ui_layer.add_child(hud)
 	hud.bind_level(level)
 	_ensure_touch_controls()
@@ -151,7 +159,7 @@ func unload_level() -> void:
 func _ensure_touch_controls() -> void:
 	if touch_controls == null or not is_instance_valid(touch_controls):
 		touch_controls = TouchControlsScene.new()
-		overlay_layer.add_child(touch_controls)
+		add_overlay(touch_controls)
 	touch_controls.visible = touch_controls.should_show()
 
 
@@ -196,7 +204,7 @@ func show_card(card: Dictionary, on_close: Callable = Callable(), image_kind := 
 		return
 	var p := CardPopup.new()
 	p.setup(card, image_kind)
-	overlay_layer.add_child(p)
+	add_overlay(p)
 	_popup_open = true
 	get_tree().paused = true
 	p.closed.connect(func():
@@ -226,7 +234,7 @@ func toggle_pause() -> void:
 		return
 	var pm := PauseMenu.new()
 	pm.name = "PauseMenu"
-	overlay_layer.add_child(pm)
+	add_overlay(pm)
 	get_tree().paused = true
 
 

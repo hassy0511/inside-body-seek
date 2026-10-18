@@ -121,16 +121,18 @@ func _build_environment() -> void:
 	e.background_color = stage.get("fog", Color(0.9, 0.7, 0.7))
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = stage.get("ambient", Color(1, 0.9, 0.9))
-	e.ambient_light_energy = 0.9
+	e.ambient_light_energy = 0.55
 	e.fog_enabled = true
-	e.fog_light_color = stage.get("fog", Color(0.9, 0.7, 0.7))
-	e.fog_density = float(stage.get("fog_density", 0.015))
+	e.fog_light_color = stage.get("fog", Color(0.9, 0.7, 0.7)).darkened(0.1)
+	e.fog_density = float(stage.get("fog_density", 0.015)) * 0.6
+	e.fog_sky_affect = 0.0
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	e.tonemap_exposure = 0.9
 	we.environment = e
 	add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55, 30, 0)
-	sun.light_energy = 0.9
+	sun.light_energy = 0.75
 	sun.light_color = Color(1.0, 0.97, 0.9)
 	sun.shadow_enabled = false
 	add_child(sun)

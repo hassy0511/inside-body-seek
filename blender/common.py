@@ -196,6 +196,10 @@ def smile(parent_name, pos_y, z, width=0.3, mat=None, thickness=0.04):
 def join(objs, name):
     """複数オブジェクトを 1 つに結合して名前をつける。"""
     objs = [o for o in objs if o is not None]
+    if len(objs) == 1:
+        objs[0].name = name
+        objs[0].data.name = name
+        return objs[0]
     bpy.ops.object.select_all(action="DESELECT")
     for o in objs:
         o.select_set(True)

@@ -9,11 +9,11 @@ var _t := 0.0
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for i in 28:
 		_bubbles.append({"x": randf(), "y": randf(), "r": randf_range(8, 40), "s": randf_range(0.02, 0.06)})
 	var vb := VBoxContainer.new()
-	vb.set_anchors_preset(Control.PRESET_CENTER)
+	vb.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	vb.anchor_left = 0.5
 	vb.anchor_right = 0.5
 	vb.anchor_top = 0.5
@@ -87,7 +87,7 @@ func _add_pod_preview() -> void:
 	var model := ModelLib.character("pod", 0.7)
 	var svc := SubViewportContainer.new()
 	svc.stretch = true
-	svc.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	svc.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	svc.anchor_left = 1.0
 	svc.anchor_top = 1.0
 	svc.anchor_right = 1.0

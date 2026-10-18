@@ -103,13 +103,46 @@ def tube(name, pts, radius, mat, noise_strength=0.4, noise_scale=3.0, ribs=0.0, 
         C.apply_modifiers(ob)
     bpy.ops.object.shade_smooth()
     if flip:
-        C.recalc_normals(ob, inside=True)
+        orient_inward(ob, pts)
     return ob
 
 
-def solid_tube(name, pts, radius, mat, resolution=6):
+def solid_tube(name, pts, radius, mat, resolution=6, ribs=0.0, rib_every=3):
     """ブーリアン用の 外向きのくだ（ふたつき）"""
-    return tube(name, pts, radius, mat, 0.0, 1.0, 0.0, 3, True, resolution, flip=False)
+    return tube(name, pts, radius, mat, 0.0, 1.0, ribs, rib_every, True, resolution, flip=False)
+
+
+def orient_inward(obj, ref_points):
+    """面の法線を「中心線（ref_points）のほう」に向ける。
+    Godot の当たり判定（trimesh）は表面の片側しか当たらないので、内側から遊ぶ部屋・くだは
+    必ず内向きにそろえる必要がある。normals_make_consistent(inside=True) は形によって
+    外向きになることがあったので、中心線との位置関係で面ごとに決める。"""
+    C.set_active(obj)
+    refs = [Vector(p) for p in ref_points]
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.normal_update()
+    flipped = 0
+    for f in bm.faces:
+        c = f.calc_center_median()
+        nearest = min(refs, key=lambda r: (r - c).length_squared)
+        outward = c - nearest
+        if outward.length < 0.3:
+            continue
+        if f.normal.dot(outward) > 0.0:
+            f.normal_flip()
+            flipped += 1
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+    return flipped
+
+
+def bowl_z(x, y, scale, up=1.0):
+    """だ円の部屋（中心 0,0,0）の床の高さ。scale=(a,b,c)。up だけ浮かせた値を返す。"""
+    a, b, c = scale
+    v = 1.0 - (x / a) ** 2 - (y / b) ** 2
+    return -c * math.sqrt(max(v, 0.0)) + up
 
 
 def ellipsoid_room(name, center, scale, mat, segments=40, rings=24, noise_strength=0.0, noise_scale=6.0, flip=True):
@@ -120,7 +153,7 @@ def ellipsoid_room(name, center, scale, mat, segments=40, rings=24, noise_streng
         C.displace_noise(o, noise_strength, noise_scale, hash(name) % 100)
         C.apply_modifiers(o)
     if flip:
-        C.recalc_normals(o, inside=True)
+        orient_inward(o, [Vector(center)])
     return o
 
 
@@ -190,7 +223,14 @@ def build_mouth():
     lip = C.material("Lip", (0.9, 0.35, 0.45), 0.7)
 
     objs = []
-    cavity = ellipsoid_room("MouthCavity", (0, 0, 2.0), (19, 26, 8.5), palate, 48, 28, 0.25, 5.0)
+    cavity = ellipsoid_room("cavity", (0, 0, 2.0), (19, 26, 8.5), palate, 48, 28, 0.0, flip=False)
+    throat_pts = catmull_rom([Vector((0, 14, -1)), Vector((0, 22, -3)), Vector((0, 30, -7)), Vector((0, 38, -14))], 6)
+    throat = solid_tube("throat", throat_pts, 4.5, gum)
+    cavity = boolean_union([cavity, throat], "MouthCavity")
+    C.displace_noise(cavity, 0.25, 5.0, 12)
+    C.apply_modifiers(cavity)
+    bpy.ops.object.shade_smooth()
+    orient_inward(cavity, [Vector((0, 0, 2.0))] + throat_pts)
     objs.append(cavity)
     tongue = C.add_sphere("Tongue", 1.0, (0, -1.0, -5.0), 40, 24, pink, scale=(13.5, 19.0, 2.6))
     C.set_active(tongue)
@@ -219,17 +259,13 @@ def build_mouth():
     lips = C.add_torus("Lips", 15.0, 2.2, (0, -22.0, 1.0), (math.radians(90), 0, 0), lip, 32, 12)
     lips.scale = (1.0, 1.0, 0.45)
     objs.append(lips)
-    # のどの あな（うしろ）
-    throat_pts = [Vector((0, 20, -2)), Vector((0, 28, -5)), Vector((0, 36, -12))]
-    throat = tube("Throat", catmull_rom(throat_pts, 6), 4.5, gum, 0.2, 2.0)
-    objs.append(throat)
     # のどちんこ
     uvula = C.add_sphere("NC_Uvula", 1.0, (0, 17, 5.5), 12, 8, lip, scale=(0.7, 0.7, 1.4))
     objs.append(uvula)
 
     # マーカー
     mk("MK_player", (0, -14, -2.0))
-    mk("MK_goal", (0, 26, -4.5))
+    mk("MK_goal", (0, 27, -8.5))
     mk("MK_enemy_mushiba_1", (-9.5, -9, -2.2))
     mk("MK_enemy_mushiba_2", (10, -4, -2.2))
     mk("MK_enemy_mushiba_3", (-6, 9, -2.2))
@@ -238,7 +274,7 @@ def build_mouth():
     mk("MK_sign_throat", (0, 22, -2))
     mk("MK_path_000", (0, -14, -2))
     mk("MK_path_001", (0, 0, -2))
-    mk("MK_path_002", (0, 26, -4.5))
+    mk("MK_path_002", (0, 27, -8.5))
     return objs
 
 
@@ -250,12 +286,17 @@ def build_esophagus():
     ctrl = [(0, 0, 0), (0, 25, -4), (6, 50, -10), (-6, 80, -18), (0, 110, -27), (7, 140, -36), (0, 170, -44), (0, 190, -48)]
     pts = catmull_rom(ctrl, 8)
     R = 5.2
-    objs = [tube("Esophagus", pts, R, wall, 0.35, 2.5, ribs=0.12, rib_every=4)]
+    main = solid_tube("esophagus", pts, R, wall, ribs=0.12, rib_every=4)
     # きかん（くうきの みち）：始まりのすぐ先で 右に分かれる 行き止まり
     pos, d = along(pts, 0.06)
-    tr_pts = catmull_rom([pos + side_of(d, 2.0), pos + side_of(d, 9.0) + Vector((0, 3, 1.5)), pos + side_of(d, 16.0) + Vector((0, 6, 4.0))], 6)
-    tr = tube("Trachea", tr_pts, 3.6, wall2, 0.2, 2.0, caps=True)
-    objs.append(tr)
+    tr_pts = catmull_rom([pos + side_of(d, 1.5), pos + side_of(d, 9.0) + Vector((0, 3, 1.5)), pos + side_of(d, 16.0) + Vector((0, 6, 4.0))], 6)
+    tr = solid_tube("trachea", tr_pts, 3.6, wall2)
+    main = boolean_union([main, tr], "Esophagus")
+    C.displace_noise(main, 0.3, 2.5, 22)
+    C.apply_modifiers(main)
+    bpy.ops.object.shade_smooth()
+    orient_inward(main, pts + tr_pts)
+    objs = [main]
     # 気管の入口をふさぐ「ふた」（こうとうがい）
     fpos = tr_pts[len(tr_pts) // 3]
     fd = (tr_pts[len(tr_pts) // 3 + 1] - fpos).normalized()
@@ -283,7 +324,17 @@ def build_stomach():
     wall = C.material("StomachWall", (0.98, 0.72, 0.5), 0.85)
     rugae = C.material("Rugae", (0.95, 0.6, 0.45), 0.85)
     objs = []
-    room = ellipsoid_room("StomachRoom", (0, 0, 0), (30, 38, 10), wall, 56, 32, 0.9, 7.0)
+    SC = (30, 38, 10)
+    room = ellipsoid_room("room", (0, 0, 0), SC, wall, 56, 32, 0.0, flip=False)
+    entry_pts = catmull_rom([Vector((0, 34, 16)), Vector((0, 36, 8)), Vector((0, 31, -2))], 6)
+    exit_pts = catmull_rom([Vector((14, -24, -7)), Vector((22, -32, -8)), Vector((30, -42, -10))], 6)
+    entry = solid_tube("entry", entry_pts, 4.0, wall)
+    exit_t = solid_tube("exit", exit_pts, 4.0, wall)
+    room = boolean_union([room, entry, exit_t], "StomachRoom")
+    C.displace_noise(room, 0.8, 7.0, 32)
+    C.apply_modifiers(room)
+    bpy.ops.object.shade_smooth()
+    orient_inward(room, [Vector((0, 0, 0))] + entry_pts + exit_pts)
     objs.append(room)
     # ひだ（かざり）：床の上の うねうねした帯
     bands = []
@@ -294,25 +345,23 @@ def build_stomach():
         bands.append(b)
     bands_o = C.join(bands, "NC_Rugae")
     objs.append(bands_o)
-    # いりぐち（上）と でぐち（右手前下）の くだ
-    entry = tube("Entry", catmull_rom([Vector((0, 34, 14)), Vector((0, 36, 8)), Vector((0, 32, 0))], 6), 4.0, wall, 0.2, 2.0, caps=True)
-    exit_t = tube("Exit", catmull_rom([Vector((16, -26, -7)), Vector((22, -32, -8)), Vector((28, -40, -10))], 6), 4.0, wall, 0.2, 2.0, caps=True)
-    objs += [entry, exit_t]
-    # マーカー
-    mk("MK_player", (0, 27, -5.5))
-    mk("MK_goal", (24, -35, -8))
-    mk("MK_hazard_acid_r7_1", (0, 2, -9.6))
-    mk("MK_hazard_acid_r5_2", (-13, 12, -8.8))
-    mk("MK_hazard_acid_r6_3", (12, -12, -9.0))
-    for i, (x, y) in enumerate([(-20, -2), (19, 14), (-9, -22)]):
-        mk(f"MK_friend_wallcell_{i + 1}", (x, y, -7.5))
-    for i, (x, y) in enumerate([(-17, 6), (-23, -9), (15, 20), (24, 8), (-3, -25)]):
-        mk(f"MK_enemy_pylori_{i + 1}", (x, y, -7.5))
-    mk("MK_pickup_heart_item_1", (10, 26, -7.0))
-    mk("MK_card_acid", (0, 11, -8.5))
-    mk("MK_path_000", (0, 27, -5.5))
-    mk("MK_path_001", (0, 0, -9))
-    mk("MK_path_002", (24, -35, -8))
+    # マーカー（床の高さは だ円の式から）
+    def fz(x, y, up=1.2):
+        return bowl_z(x, y, SC, up)
+    mk("MK_player", (0, 26, fz(0, 26, 1.5)))
+    mk("MK_goal", (23, -33, -12.0))
+    mk("MK_hazard_acid_r7_1", (0, 2, fz(0, 2, 0.0)))
+    mk("MK_hazard_acid_r5_2", (-12, 12, fz(-12, 12, 0.0)))
+    mk("MK_hazard_acid_r6_3", (11, -12, fz(11, -12, 0.0)))
+    for i, (x, y) in enumerate([(-19, -2), (17, 14), (-9, -22)]):
+        mk(f"MK_friend_wallcell_{i + 1}", (x, y, fz(x, y)))
+    for i, (x, y) in enumerate([(-15, 6), (-18, -10), (13, 20), (20, 4), (-3, -24)]):
+        mk(f"MK_enemy_pylori_{i + 1}", (x, y, fz(x, y)))
+    mk("MK_pickup_heart_item_1", (10, 24, fz(10, 24)))
+    mk("MK_card_acid", (0, 11, fz(0, 11)))
+    mk("MK_path_000", (0, 26, fz(0, 26)))
+    mk("MK_path_001", (0, 0, fz(0, 0)))
+    mk("MK_path_002", (23, -33, -12.0))
     return objs
 
 
@@ -396,29 +445,35 @@ def build_heart():
         y1 = y0 + 16
         t = solid_tube(f"tunnel{i}", [Vector((0, y0, 0)), Vector((0, y1, 0))], 4.0, wall)
         tunnels.append(t)
-    # 出口（だいどうみゃく）
-    aorta = solid_tube("aorta", catmull_rom([Vector((0, 118, 0)), Vector((0, 132, 2)), Vector((0, 146, 8))], 6), 4.0, wall)
+    # 出口（だいどうみゃく）：4 本目のトンネルの先から ゆるく上る
+    aorta_pts = catmull_rom([Vector((0, 132, 0)), Vector((0, 142, 1.5)), Vector((0, 154, 6)), Vector((0, 162, 12))], 6)
+    aorta = solid_tube("aorta", aorta_pts, 4.0, wall)
     body = boolean_union(rooms + tunnels + [aorta], "HeartRooms")
-    C.displace_noise(body, 0.35, 4.0, 61)
+    C.displace_noise(body, 0.3, 4.0, 61)
     C.apply_modifiers(body)
     bpy.ops.object.shade_smooth()
-    C.recalc_normals(body, inside=True)
+    refs = [Vector(c) for c in centers]
+    for i in range(4):
+        y0 = centers[i][1] + 10
+        refs += [Vector((0, y0 + k * 4, 0)) for k in range(5)]
+    refs += aorta_pts
+    orient_inward(body, refs)
     objs.append(body)
     # マーカー
     mk("MK_player", (0, -8, -6.5))
-    mk("MK_goal", (0, 140, 3.5))
+    mk("MK_goal", (0, 146, -0.5))
     for i in range(4):
         y = centers[i][1] + 18
         mk(f"MK_gate_{i + 1}", (0, y, -4.0))
     for i, key in enumerate(["ra", "rv", "la", "lv"]):
         mk(f"MK_sign_{key}", (0, centers[i][1], -6.0))
     mk("MK_sign_lung", (0, centers[1][1] + 18, -2.0))
-    mk("MK_sign_aorta", (0, 130, -2.0))
+    mk("MK_sign_aorta", (0, 136, -2.0))
     mk("MK_card_valve", (0, 12, -6.0))
     mk("MK_checkpoint_1", (0, 36, -7.5))
     mk("MK_checkpoint_2", (0, 72, -7.5))
     mk("MK_pickup_heart_item_1", (6, 108, -6.5))
-    pts = [Vector((0, -8, -6)), Vector((0, 0, -7)), Vector((0, 18, -4)), Vector((0, 36, -7)), Vector((0, 54, -4)), Vector((0, 72, -7)), Vector((0, 90, -4)), Vector((0, 108, -7)), Vector((0, 126, -4)), Vector((0, 140, 3))]
+    pts = [Vector((0, -8, -6)), Vector((0, 0, -7)), Vector((0, 18, -4)), Vector((0, 36, -7)), Vector((0, 54, -4)), Vector((0, 72, -7)), Vector((0, 90, -4)), Vector((0, 108, -7)), Vector((0, 126, -4)), Vector((0, 134, -4)), Vector((0, 146, -1))]
     path_markers(pts, 6.0)
     return objs
 

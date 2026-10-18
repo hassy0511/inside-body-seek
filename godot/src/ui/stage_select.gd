@@ -18,10 +18,10 @@ var _map: Control
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = Color(0.93, 0.95, 1.0)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
 	var back := T.button("← もどる", 24)
@@ -29,7 +29,7 @@ func _ready() -> void:
 	back.pressed.connect(func(): Sfx.play("click"); Game.show_title())
 	add_child(back)
 	var head := T.label("どこへ いく？", 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	head.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	head.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	head.anchor_left = 0.5
 	head.anchor_right = 0.5
 	head.offset_left = -300
@@ -48,7 +48,7 @@ func _ready() -> void:
 		tr.texture = load(tex_path)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_map.add_child(tr)
 

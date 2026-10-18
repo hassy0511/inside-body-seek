@@ -17,14 +17,14 @@ func _ready() -> void:
 
 func setup(card: Dictionary, image_kind := "") -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
 	dim.color = Color(0.2, 0.1, 0.15, 0.45)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
 	_panel = PanelContainer.new()
-	_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	_panel.anchor_left = 0.5
 	_panel.anchor_right = 0.5
 	_panel.anchor_top = 0.5
@@ -94,7 +94,7 @@ func _make_picture(kind: String) -> Control:
 		return circle
 	var svc := SubViewportContainer.new()
 	svc.stretch = true
-	svc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
 	sv.size = Vector2i(260, 300)

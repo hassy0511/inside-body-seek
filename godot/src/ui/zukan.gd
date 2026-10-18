@@ -6,17 +6,17 @@ const CardPopup := preload("res://src/ui/card.gd")
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = Color(0.95, 1.0, 0.95)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var back := T.button("← もどる", 24)
 	back.position = Vector2(24, 20)
 	back.pressed.connect(func(): Sfx.play("click"); Game.show_title())
 	add_child(back)
 	var head := T.label("からだの ずかん", 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	head.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	head.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	head.anchor_left = 0.5
 	head.anchor_right = 0.5
 	head.offset_left = -300
@@ -24,7 +24,7 @@ func _ready() -> void:
 	head.offset_top = 18
 	add_child(head)
 	var sc := ScrollContainer.new()
-	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.offset_top = 90
 	sc.offset_left = 40
 	sc.offset_right = -40
@@ -73,4 +73,4 @@ func _open(card: Dictionary, key: String) -> void:
 	Sfx.play("card")
 	var p := CardPopup.new()
 	p.setup(card, key)
-	Game.overlay_layer.add_child(p)
+	Game.add_overlay(p)

@@ -67,8 +67,8 @@ func _ready() -> void:
 
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.97, 0.9)
-	light.light_energy = 1.6
-	light.omni_range = 14.0
+	light.light_energy = 0.9
+	light.omni_range = 12.0
 	light.position = Vector3(0, 1.0, -0.5)
 	add_child(light)
 
