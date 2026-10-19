@@ -41,11 +41,6 @@ func _ready() -> void:
 	if model == null:
 		model = ModelLib.placeholder(kind, 0.45)
 	add_child(model)
-	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.95, 0.6) if kind == "nutrient" else Color(1.0, 0.5, 0.6)
-	light.light_energy = 0.8
-	light.omni_range = 4.0
-	add_child(light)
 	_t = randf() * TAU
 	add_to_group("pickup")
 

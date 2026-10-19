@@ -69,7 +69,7 @@ func _ready() -> void:
 	hb.add_theme_constant_override("separation", 12)
 	var touch := CheckButton.new()
 	touch.text = "タッチそうさ"
-	touch.button_pressed = SaveData.setting("touch", "auto") == "on"
+	touch.button_pressed = Game.touch_effective()
 	touch.toggled.connect(func(on): SaveData.set_setting("touch", "on" if on else "off"))
 	hb.add_child(touch)
 	var reset := T.button("きろくを けす", 20)
@@ -100,7 +100,7 @@ func _add_pod_preview() -> void:
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
 	sv.own_world_3d = true
-	sv.size = Vector2i(350, 350)
+	sv.size = Vector2i(Vector2(350, 350) * T.window_scale(self))
 	svc.add_child(sv)
 	var cam := Camera3D.new()
 	cam.position = Vector3(0.6, 0.8, -3.4)
@@ -127,14 +127,48 @@ func _add_pod_preview() -> void:
 
 
 func _confirm_reset() -> void:
-	var d := ConfirmationDialog.new()
-	d.title = "きろくを けす"
-	d.dialog_text = "ほしや ずかんの きろくを ぜんぶ けします。いいですか？"
-	d.ok_button_text = "けす"
-	d.cancel_button_text = "やめる"
-	add_child(d)
-	d.confirmed.connect(func(): SaveData.reset(); Game.show_title())
-	d.popup_centered()
+	# ゲームと同じ見た目の かくにん画面（「やめる」が最初に選ばれている）
+	var prev := get_viewport().gui_get_focus_owner()
+	var ov := Control.new()
+	ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0.2, 0.1, 0.15, 0.5)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ov.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -330
+	panel.offset_right = 330
+	panel.offset_top = -130
+	panel.offset_bottom = 130
+	ov.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 18)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(vb)
+	var msg := T.label("ほしや ずかんの きろくを ぜんぶ けします。\nいいですか？", 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(msg)
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 24)
+	var no := T.button("やめる", 28, 200)
+	var yes := T.button("けす", 28, 200)
+	T.colored_button(yes, Color(0.92, 0.9, 0.9), Color(0.7, 0.65, 0.68))
+	no.pressed.connect(func():
+		ov.queue_free()
+		if is_instance_valid(prev):
+			prev.grab_focus())
+	yes.pressed.connect(func(): SaveData.reset(); Game.show_title())
+	hb.add_child(no)
+	hb.add_child(yes)
+	vb.add_child(hb)
+	Game.add_overlay(ov)
+	no.grab_focus()
 
 
 func _process(delta: float) -> void:

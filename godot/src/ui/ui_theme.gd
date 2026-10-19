@@ -97,6 +97,14 @@ static func colored_button(b: Button, bg: Color, border: Color) -> Button:
 	return b
 
 
+## 画面の拡大率（SubViewport を くっきり描くため）
+static func window_scale(c: Control) -> float:
+	var vp := c.get_viewport()
+	if vp == null:
+		return 1.0
+	return clampf(vp.get_screen_transform().get_scale().x, 1.0, 3.0)
+
+
 ## ハートや星などを描く小さい Control
 static func star_points(center: Vector2, r: float, inner := 0.45) -> PackedVector2Array:
 	var pts := PackedVector2Array()

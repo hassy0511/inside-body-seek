@@ -57,9 +57,9 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 
 ```bash
 # A. Blender 本体を使う（4.2 以降）
-blender -b -P blender/build_all.py            # 全部
-blender -b -P blender/characters.py -- pod     # キャラクター 1 つだけ
-blender -b -P blender/stages.py -- stage_mouth # ステージ 1 つだけ
+blender -b -P blender/build_all.py              # 全部（.blend も保存するなら -- --blend）
+blender -b -P blender/characters.py -- pod       # キャラクター 1 つだけ
+blender -b -P blender/stages.py -- stage_mouth   # ステージ 1 つだけ
 
 # B. pip の bpy を使う（Python 3.11 または 3.13。環境に合う bpy を入れる）
 python -m venv .venv && .venv/bin/pip install bpy numpy

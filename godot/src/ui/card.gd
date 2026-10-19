@@ -42,6 +42,8 @@ func setup(card: Dictionary, image_kind := "") -> void:
 	_panel.offset_top = -230
 	_panel.offset_bottom = 230
 	_panel.add_theme_stylebox_override("panel", T.rounded(T.CREAM, 30, 6, T.YELLOW))
+	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(_panel)
 
 	var margin := MarginContainer.new()
@@ -64,7 +66,9 @@ func setup(card: Dictionary, image_kind := "") -> void:
 	hb.add_child(vb)
 	var tag := T.label("ものしりカード", 18, Color(0.75, 0.5, 0.2))
 	vb.add_child(tag)
-	var title := T.label(card.get("title", ""), 40, T.INK)
+	var title_text: String = card.get("title", "")
+	var title := T.label(title_text, 40 if title_text.length() <= 11 else 32, T.INK)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(title)
 	var body := T.label(card.get("text", ""), 25, T.INK)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -105,12 +109,12 @@ func _make_picture(kind: String) -> Control:
 	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
-	sv.size = Vector2i(260, 300)
+	sv.size = Vector2i(Vector2(260, 300) * T.window_scale(self))
 	sv.own_world_3d = true
 	svc.add_child(sv)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0.6, -3.6)
-	cam.look_at_from_position(cam.position, Vector3(0, 0.1, 0), Vector3.UP)
+	cam.position = Vector3(0, 0.8, -4.0)
+	cam.look_at_from_position(cam.position, Vector3(0, 0.3, 0), Vector3.UP)
 	cam.fov = 40
 	sv.add_child(cam)
 	var light := DirectionalLight3D.new()
@@ -124,7 +128,7 @@ func _make_picture(kind: String) -> Control:
 	env.environment = e
 	sv.add_child(env)
 	var pivot := Node3D.new()
-	ModelLib.fit(model, 1.1)
+	ModelLib.fit(model, 0.95)
 	pivot.add_child(model)
 	sv.add_child(pivot)
 	var spin := create_tween().set_loops()

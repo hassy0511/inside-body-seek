@@ -160,9 +160,18 @@ def boolean_union(objs, name):
     return base
 
 
-def scatter_on_floor(name, make_fn, count, pts, radius, seed, frac_range=(0.05, 0.95), spread=0.6, z_off=0.0):
-    """道の床に 小物を ばらまく（make_fn() は 1 個分のオブジェクトを返す）"""
+def floor_bvh(obj):
+    """ゆか（くだ）のメッシュから、上から下へレイを飛ばすための BVH を作る"""
+    from mathutils.bvhtree import BVHTree
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    return BVHTree.FromObject(obj, depsgraph)
+
+
+def scatter_on_floor(name, make_fn, count, pts, radius, seed, frac_range=(0.05, 0.95), spread=0.6, z_off=0.0, floor_obj=None):
+    """道の床に 小物を ばらまく（make_fn() は 1 個分のオブジェクトを返す）。
+    floor_obj を渡すと、でこぼこ（ノイズ）を含めた 本当のゆかの高さに置く。"""
     random.seed(seed)
+    bvh = floor_bvh(floor_obj) if floor_obj is not None else None
     objs = []
     for i in range(count):
         f = random.uniform(*frac_range)
@@ -170,6 +179,10 @@ def scatter_on_floor(name, make_fn, count, pts, radius, seed, frac_range=(0.05, 
         s = random.uniform(-spread, spread) * radius
         p = pos + side_of(d, s)
         p.z = pos.z - math.sqrt(max(radius * radius - s * s, 0.0)) + z_off
+        if bvh is not None:
+            hit, _n, _i, _d = bvh.ray_cast(Vector((p.x, p.y, pos.z)), Vector((0, 0, -1)), radius * 2.5)
+            if hit is not None:
+                p.z = hit.z + z_off
         o = make_fn(i)
         o.location = p
         o.rotation_euler = (0, 0, random.uniform(0, math.pi * 2))
@@ -288,7 +301,7 @@ def build_esophagus():
     rot = fd.to_track_quat("Z", "Y").to_euler()
     objs.append(C.add_cylinder("Epiglottis", 3.5, 0.4, fpos, rot, 20, flap))
     # たべもののかたまり（床に）
-    food = scatter_on_floor("FoodChunks", lambda i: CH.build_food(), 7, pts, R, 21, (0.18, 0.92), 0.55, 0.9)
+    food = scatter_on_floor("FoodChunks", lambda i: CH.build_food(), 7, pts, R, 21, (0.18, 0.92), 0.55, 0.7, floor_obj=main)
     objs.append(food)
     # マーカー
     path_markers(pts, 8.0)
@@ -360,11 +373,14 @@ def build_intestine():
     objs = [tube("Intestine", pts, R, wall, 0.5, 3.0)]
     # じゅうもう（かざり・当たり判定なし）：床に たくさん
     def villus(i):
-        h = random.uniform(0.6, 1.1)
-        o = C.add_cone(f"v{i}", 0.22, 0.12, h, (0, 0, h / 2), (0, 0, 0), 6, villi)
+        # ねもとが 原点（ゆかの高さ）に来るように作る
+        h = random.uniform(0.7, 1.2)
+        o = C.add_cone(f"v{i}", 0.22, 0.12, h, (0, 0, 0), (0, 0, 0), 6, villi)
+        for v in o.data.vertices:
+            v.co.z += h / 2
         tip = C.add_sphere(f"vt{i}", 0.16, (0, 0, h), 8, 6, villi)
         return C.join([o, tip], f"villus{i}")
-    objs.append(scatter_on_floor("NC_Villi", villus, 260, pts, R, 31, (0.02, 0.98), 0.75, 0.0))
+    objs.append(scatter_on_floor("NC_Villi", villus, 260, pts, R, 31, (0.02, 0.98), 0.75, -0.1, floor_obj=objs[0]))
     # マーカー
     path_markers(pts, 8.0)
     mk("MK_player", floor_point(pts, 0.01, R, 0.0, 1.2))
@@ -392,7 +408,7 @@ def build_vessel():
     pts = catmull_rom(ctrl, 8)
     R = 4.6
     objs = [tube("Vessel", pts, R, wall, 0.3, 3.0)]
-    objs.append(scatter_on_floor("Cholesterol", lambda i: CH.build_cholesterol(), 7, pts, R, 41, (0.2, 0.9), 0.5, 0.7))
+    objs.append(scatter_on_floor("Cholesterol", lambda i: CH.build_cholesterol(), 7, pts, R, 41, (0.2, 0.9), 0.5, 0.6, floor_obj=objs[0]))
     # 血しょうの つぶ（かざり）
     random.seed(5)
     dots = []
@@ -569,7 +585,7 @@ def build_nose():
         h.rotation_euler.rotate_axis("X", random.uniform(-0.3, 0.3))
         hairs.append(h)
     objs.append(C.join(hairs, "Hairs"))
-    objs.append(scatter_on_floor("Dust", lambda i: CH.build_dust(), 6, pts, R, 93, (0.25, 0.9), 0.5, 0.6))
+    objs.append(scatter_on_floor("Dust", lambda i: CH.build_dust(), 6, pts, R, 93, (0.25, 0.9), 0.5, 0.5, floor_obj=objs[0]))
     # マーカー
     path_markers(pts, 8.0)
     mk("MK_player", floor_point(pts, 0.01, R, 0.0, 1.2))
@@ -609,5 +625,9 @@ def build_all(names=None, save_blend=False):
 
 if __name__ == "__main__":
     import sys
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
+    args = [a for a in argv if not a.startswith("-") and not a.endswith(".py")]
+    unknown = [a for a in args if a not in BUILDERS]
+    if unknown:
+        sys.exit(f"unknown name(s) {unknown}; choices: {', '.join(BUILDERS)}")
     build_all(args or None)

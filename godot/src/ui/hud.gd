@@ -46,9 +46,9 @@ func _ready() -> void:
 	mp.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	mp.anchor_left = 1.0
 	mp.anchor_right = 1.0
-	mp.offset_left = -480
+	mp.offset_left = -520
 	mp.offset_right = -24
-	mp.offset_top = 90
+	mp.offset_top = 110
 	mp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mp.add_theme_stylebox_override("panel", T.rounded(Color(1, 1, 1, 0.82), 20, 0))
 	_mission_box = VBoxContainer.new()
@@ -56,14 +56,14 @@ func _ready() -> void:
 	mp.add_child(_mission_box)
 	add_child(mp)
 
-	_pause_btn = T.button("❚❚", 22)
+	_pause_btn = T.button("❚❚", 30)
 	_pause_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_pause_btn.anchor_left = 1.0
 	_pause_btn.anchor_right = 1.0
-	_pause_btn.offset_left = -84
-	_pause_btn.offset_right = -24
-	_pause_btn.offset_top = 18
-	_pause_btn.offset_bottom = 72
+	_pause_btn.offset_left = -120
+	_pause_btn.offset_right = -20
+	_pause_btn.offset_top = 14
+	_pause_btn.offset_bottom = 98
 	_pause_btn.focus_mode = Control.FOCUS_NONE
 	_pause_btn.pressed.connect(func(): Game.toggle_pause())
 	add_child(_pause_btn)

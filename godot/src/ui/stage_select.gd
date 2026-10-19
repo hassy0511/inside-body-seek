@@ -37,11 +37,24 @@ func _ready() -> void:
 	head.offset_top = 18
 	add_child(head)
 
+	# 画面の横幅が変わっても まんなかに まとまるように、横ならびの入れ物に入れる
+	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	row.anchor_left = 0.5
+	row.anchor_right = 0.5
+	row.anchor_top = 0.0
+	row.anchor_bottom = 0.0
+	row.offset_left = -570
+	row.offset_right = 570
+	row.offset_top = 80
+	row.offset_bottom = 700
+	row.add_theme_constant_override("separation", 60)
+	add_child(row)
 	_map = Control.new()
-	_map.position = Vector2(80, 80)
+	_map.custom_minimum_size = Vector2(440, 620)
 	_map.size = Vector2(440, 620)
 	_map.draw.connect(_draw_body)
-	add_child(_map)
+	row.add_child(_map)
 	var tex_path := "res://assets/ui/body_map.svg"
 	if ResourceLoader.exists(tex_path):
 		var tr := TextureRect.new()
@@ -69,9 +82,12 @@ func _ready() -> void:
 		b.add_theme_stylebox_override("pressed", T.rounded(border, 31, 3, border))
 		b.add_theme_stylebox_override("focus", T.outline(Color(0.9, 0.3, 0.5), 31, 5))
 		b.disabled = not unlocked
+		if not unlocked:
+			b.focus_mode = Control.FOCUS_NONE
 		var p: Vector2 = ORGAN_POS.get(id, Vector2(0.5, 0.5))
 		b.position = Vector2(p.x * _map.size.x - 31, p.y * _map.size.y - 31)
-		b.pressed.connect(func(): _select(id))
+		b.focus_entered.connect(func(): if selected != id: _select(id, false))
+		b.pressed.connect(func(): _select(id, true))
 		_map.add_child(b)
 		_buttons[id] = b
 		if unlocked and not cleared and first_unlocked == "":
@@ -80,16 +96,23 @@ func _ready() -> void:
 		first_unlocked = StageDB.STAGES[0]["id"]
 
 	var panel := PanelContainer.new()
-	panel.position = Vector2(580, 100)
-	panel.size = Vector2(640, 560)
-	add_child(panel)
+	panel.custom_minimum_size = Vector2(640, 560)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(panel)
 	_info = VBoxContainer.new()
 	_info.add_theme_constant_override("separation", 10)
 	panel.add_child(_info)
-	_select(first_unlocked)
+	_select(first_unlocked, true)
 
 
-func _select(id: String) -> void:
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		Sfx.play("click")
+		Game.show_title()
+		get_viewport().set_input_as_handled()
+
+
+func _select(id: String, go_to_start := false) -> void:
 	selected = id
 	Sfx.play("click", 1.1)
 	var s := StageDB.get_stage(id)
@@ -122,7 +145,12 @@ func _select(id: String) -> void:
 	_start_btn.disabled = not SaveData.is_unlocked(id)
 	_start_btn.pressed.connect(func(): Sfx.play("click"); Game.start_stage(id))
 	_info.add_child(_start_btn)
-	if not _start_btn.disabled:
+	# ゲームパッド：番号ボタン → みぎ で スタート、スタート → ひだり で いまの番号へ
+	if _buttons.has(id):
+		_start_btn.focus_neighbor_left = _start_btn.get_path_to(_buttons[id])
+		for k in _buttons.keys():
+			_buttons[k].focus_neighbor_right = _buttons[k].get_path_to(_start_btn)
+	if go_to_start and not _start_btn.disabled:
 		_start_btn.grab_focus()
 	for k in _buttons.keys():
 		_buttons[k].scale = Vector2.ONE * (1.15 if k == id else 1.0)

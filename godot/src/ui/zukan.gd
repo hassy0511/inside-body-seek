@@ -30,6 +30,7 @@ func _ready() -> void:
 	sc.offset_right = -40
 	sc.offset_bottom = -20
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.follow_focus = true
 	add_child(sc)
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -58,6 +59,7 @@ func _ready() -> void:
 				b.pressed.connect(func(): _open(card, key))
 			else:
 				b.disabled = true
+				b.focus_mode = Control.FOCUS_NONE
 			flow.add_child(b)
 			if first_btn == null and seen:
 				first_btn = b
@@ -71,6 +73,17 @@ func _ready() -> void:
 
 func _open(card: Dictionary, key: String) -> void:
 	Sfx.play("card")
+	var prev := get_viewport().gui_get_focus_owner()
 	var p := CardPopup.new()
 	p.setup(card, key)
 	Game.add_overlay(p)
+	p.closed.connect(func():
+		if is_instance_valid(prev):
+			prev.grab_focus())
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		Sfx.play("click")
+		Game.show_title()
+		get_viewport().set_input_as_handled()

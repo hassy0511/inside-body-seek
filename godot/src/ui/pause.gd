@@ -3,9 +3,13 @@ extends Control
 
 const T := preload("res://src/ui/ui_theme.gd")
 
+## ポーズを閉じたあとに フォーカスを戻す先
+var prev: Control = null
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	prev = get_viewport().gui_get_focus_owner()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
 	dim.color = Color(0.2, 0.1, 0.15, 0.5)
@@ -51,7 +55,7 @@ func _ready() -> void:
 	vb.add_child(hb)
 	var cb := CheckButton.new()
 	cb.text = "タッチそうさを つかう"
-	cb.button_pressed = SaveData.setting("touch", "auto") == "on"
+	cb.button_pressed = Game.touch_effective()
 	cb.toggled.connect(func(on):
 		SaveData.set_setting("touch", "on" if on else "off")
 		if Game.touch_controls:
@@ -61,6 +65,6 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
+	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		Game.toggle_pause()
 		get_viewport().set_input_as_handled()

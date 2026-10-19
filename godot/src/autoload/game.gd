@@ -54,6 +54,9 @@ func _setup_input() -> void:
 	_add_action("action", [_key(KEY_SPACE), _key(KEY_Z), _key(KEY_ENTER), _key(KEY_KP_ENTER), _jbtn(JOY_BUTTON_A)])
 	_add_action("dash", [_key(KEY_SHIFT), _key(KEY_X), _jbtn(JOY_BUTTON_B), _axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)])
 	_add_action("pause", [_key(KEY_ESCAPE), _key(KEY_P), _jbtn(JOY_BUTTON_START)])
+	# メニューを ゲームパッド／Z・X キーでも 操作できるように（ui_accept は標準では Enter/Space だけ）
+	_add_action("ui_accept", [_jbtn(JOY_BUTTON_A), _key(KEY_Z)])
+	_add_action("ui_cancel", [_jbtn(JOY_BUTTON_B), _key(KEY_X)])
 
 
 func _add_action(name: String, events: Array, deadzone := 0.3) -> void:
@@ -169,6 +172,7 @@ func retry_stage() -> void:
 
 
 func _on_level_cleared(stage_id: String, no_damage: bool) -> void:
+	SaveData.record_clear(stage_id, 1)  # けっか画面を とちゅうで やめても クリアは のこる
 	var stage := StageDB.get_stage(stage_id)
 	var r := ResultScreen.new()
 	r.setup(stage, no_damage)
@@ -226,12 +230,15 @@ func is_popup_open() -> bool:
 
 
 func toggle_pause() -> void:
-	if level == null or _popup_open:
+	if level == null or _popup_open or level.finished:
 		return
 	var existing := overlay_layer.get_node_or_null("PauseMenu")
 	if existing:
+		var prev = existing.get("prev")
 		existing.queue_free()
 		get_tree().paused = false
+		if prev != null and is_instance_valid(prev) and prev is Control:
+			(prev as Control).grab_focus()
 		return
 	var pm := PauseMenu.new()
 	pm.name = "PauseMenu"
@@ -240,7 +247,7 @@ func toggle_pause() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause") and level != null:
+	if event.is_action_pressed("pause") and level != null and not level.finished:
 		toggle_pause()
 		get_viewport().set_input_as_handled()
 
@@ -249,6 +256,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func say(text: String, seconds := 4.0) -> void:
 	if hud and is_instance_valid(hud):
 		hud.say(text, seconds)
+
+
+## タッチ操作が いま 有効か（設定が auto のときは タッチ画面の有無で決まる）
+func touch_effective() -> bool:
+	var s: String = SaveData.setting("touch", "auto")
+	return s == "on" or (s == "auto" and DisplayServer.is_touchscreen_available())
 
 
 func hud_busy() -> bool:

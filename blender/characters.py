@@ -63,7 +63,7 @@ def curve_tube(name, points, radius, mat, resolution=4, smooth=True, taper=False
 # ------------------------------------------------------------------ プレイヤー
 def build_pod():
     white = C.material("PodWhite", (0.96, 0.96, 1.0), 0.5)
-    glass = C.material("PodGlass", (0.55, 0.85, 1.0), 0.2, emission=(0.2, 0.4, 0.6), emission_strength=0.3)
+    glass = C.material("PodGlass", (0.6, 0.88, 1.0), 0.15, emission=(0.2, 0.4, 0.6), emission_strength=0.3, alpha=0.35)
     yellow = C.material("PodYellow", (1.0, 0.8, 0.25), 0.6)
     pink = C.material("PodPink", (1.0, 0.55, 0.7), 0.6)
     glow = C.material("PodGlow", (0.5, 0.95, 1.0), 0.3, emission=(0.4, 0.9, 1.0), emission_strength=2.0)
@@ -71,13 +71,14 @@ def build_pod():
     hair = C.material("Hair", (0.35, 0.22, 0.15), 0.8)
 
     body = C.add_sphere("pod_body", 0.6, (0, 0, 0), 28, 18, white, scale=(1.0, 1.25, 0.9))
-    window = C.add_sphere("pod_window", 0.42, (0, 0.38, 0.12), 24, 14, glass, scale=(1.0, 0.7, 0.9))
-    # まどの中の 主人公の かお
-    face = C.add_sphere("pod_face", 0.2, (0, 0.42, 0.14), 16, 10, skin)
-    hair_o = C.add_sphere("pod_hair", 0.21, (0, 0.40, 0.2), 16, 10, hair, scale=(1.05, 1.0, 0.7))
-    parts = [body, window, face, hair_o]
-    parts += C.eyes("pod", 0.56, 0.16, spacing=0.08, r=0.045, pupil=0.025)
-    parts.append(C.smile("pod", 0.6, 0.07, 0.06, thickness=0.012))
+    # まど（とうめいな ドーム）は 船体より 前に出す。中の かおは まどの中・船体の外
+    window = C.add_sphere("pod_window", 0.42, (0, 0.55, 0.28), 24, 14, glass, scale=(0.9, 0.75, 0.8))
+    face = C.add_sphere("pod_face", 0.2, (0, 0.59, 0.30), 16, 10, skin)
+    hair_o = C.add_sphere("pod_hair", 0.21, (0, 0.57, 0.36), 16, 10, hair, scale=(1.05, 1.0, 0.7))
+    nose_light = C.add_sphere("pod_noselight", 0.09, (0, 0.78, -0.05), 12, 8, glow)
+    parts = [body, face, hair_o, nose_light]
+    parts += C.eyes("pod", 0.73, 0.32, spacing=0.08, r=0.045, pupil=0.025)
+    parts.append(C.smile("pod", 0.77, 0.23, 0.06, thickness=0.012))
     # ひれ
     for sx in (-1, 1):
         fin = C.add_box(f"pod_fin{sx}", (0.5, 0.45, 0.08), (sx * 0.62, -0.25, -0.05), (0, math.radians(sx * 25), 0), yellow, bevel=0.03)
@@ -94,6 +95,12 @@ def build_pod():
     main = C.join(parts, "pod")
     C.apply_modifiers(main)
     C.shade_smooth(main, 50)
+    window.name = "Window"
+    C.set_active(window)
+    bpy.ops.object.shade_smooth()
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    window.parent = main
+    window.matrix_parent_inverse = main.matrix_world.inverted()
 
     blades = []
     for i in range(3):
@@ -136,6 +143,7 @@ def build_mushiba():
     body = C.add_ico("mushiba_body", 0.6, (0, 0, 0), 2, dark)
     C.displace_noise(body, 0.08, 0.6, 1)
     C.subdivide(body, 1)
+    C.apply_modifiers(body)
     parts = [body]
     parts += C.eyes("mushiba", 0.5, 0.18, spacing=0.22, r=0.11, pupil=0.06)
     # ギザギザの くち
@@ -181,6 +189,7 @@ def build_akudama():
     purple = C.material("AkudamaPurple", (0.55, 0.2, 0.65), 0.7)
     body = C.add_sphere("akudama_body", 0.6, (0, 0, 0), 24, 16, purple, scale=(1.0, 1.0, 0.8))
     C.displace_noise(body, 0.05, 0.7, 2)
+    C.apply_modifiers(body)
     parts = [body]
     parts += C.eyes("akudama", 0.5, 0.12, spacing=0.2, r=0.1, pupil=0.05)
     # へのじ くち：小さいトーラスを 上下さかさに
@@ -230,6 +239,7 @@ def build_cholesterol():
     yellow = C.material("CholYellow", (0.95, 0.85, 0.35), 0.9)
     body = C.add_ico("cholesterol_body", 0.8, (0, 0, 0), 2, yellow)
     C.displace_noise(body, 0.25, 0.8, 3)
+    C.apply_modifiers(body)
     parts = [body]
     for i in range(4):
         a = i * 1.6
@@ -243,6 +253,7 @@ def build_food():
     brown = C.material("FoodBrown", (0.75, 0.5, 0.3), 0.9)
     body = C.add_ico("food_body", 0.8, (0, 0, 0), 2, brown)
     C.displace_noise(body, 0.3, 1.0, 4)
+    C.apply_modifiers(body)
     o = C.join([body], "food")
     C.apply_modifiers(o)
     return o
@@ -252,6 +263,7 @@ def build_dust():
     grey = C.material("DustGrey", (0.6, 0.58, 0.55), 1.0)
     body = C.add_ico("dust_body", 0.6, (0, 0, 0), 2, grey)
     C.displace_noise(body, 0.35, 0.5, 5)
+    C.apply_modifiers(body)
     parts = [body]
     for i in range(8):
         a = i * 0.8
@@ -279,6 +291,7 @@ def build_wbc():
     white = C.material("WbcWhite", (0.98, 0.98, 0.94), 0.8)
     body = C.add_ico("wbc_body", 0.6, (0, 0, 0), 3, white)
     C.displace_noise(body, 0.12, 0.5, 6)
+    C.apply_modifiers(body)
     parts = [body]
     for i in range(5):
         a = i * 1.26
@@ -355,8 +368,8 @@ def build_nutrient_a():
     me = bpy.data.meshes.new("nutrient_a")
     bm = bmesh.new()
     outer, inner = 0.45, 0.2
-    top = bm.verts.new((0, 0, 0.12))
-    bot = bm.verts.new((0, 0, -0.12))
+    top = bm.verts.new((0, 0.12, 0))
+    bot = bm.verts.new((0, -0.12, 0))
     rim = []
     for i in range(10):
         a = math.pi / 2 + i * math.pi / 5
@@ -365,6 +378,7 @@ def build_nutrient_a():
     for i in range(10):
         bm.faces.new((rim[i], rim[(i + 1) % 10], top))
         bm.faces.new((rim[(i + 1) % 10], rim[i], bot))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(me)
     bm.free()
     o = bpy.data.objects.new("nutrient_a", me)
@@ -470,5 +484,9 @@ def build_all(names=None, save_blend=False):
 
 if __name__ == "__main__":
     import sys
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
+    args = [a for a in argv if not a.startswith("-") and not a.endswith(".py")]
+    unknown = [a for a in args if a not in BUILDERS]
+    if unknown:
+        sys.exit(f"unknown name(s) {unknown}; choices: {', '.join(BUILDERS)}")
     build_all(args or None)

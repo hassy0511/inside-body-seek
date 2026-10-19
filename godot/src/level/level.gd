@@ -43,7 +43,7 @@ const MissionScript := preload("res://src/level/mission.gd")
 
 const SIGN_TEXT := {
 	"ra": "みぎの しんぼう", "rv": "みぎの しんしつ", "la": "ひだりの しんぼう", "lv": "ひだりの しんしつ",
-	"lung": "→ はいへ", "aorta": "だいどうみゃく（でぐち）", "start": "スタート", "goal": "ゴール",
+	"lung": "→ はいへ", "aorta": "だいどうみゃく（でぐち）", "start": "スタート", "goal": "ゴール", "heart": "→ しんぞうへ",
 	"throat": "のど", "trachea": "きかん（くうきの みち）", "esophagus": "しょくどう（たべものの みち）",
 }
 
@@ -285,8 +285,7 @@ func _spawn_all() -> void:
 						respawn_point = c.global_position
 					Game.say("チェックポイント！ ここから やりなおせるよ。", 2.5))
 			"enemy":
-				var ek := String(rest[0]) if rest.size() > 0 else "mushiba"
-				spawn_enemy_at(ek, pos)
+				spawn_enemy_at(_kind_and_index(rest, "mushiba")["kind"], pos)
 			"boss":
 				var b := BossScript.new()
 				b.level = self
@@ -295,7 +294,7 @@ func _spawn_all() -> void:
 				b.died.connect(_on_enemy_died)
 				_add_card_point("boss_virus", pos, b)
 			"friend":
-				var fk := String(rest[0]) if rest.size() > 0 else "zendama"
+				var fk: String = _kind_and_index(rest, "zendama")["kind"]
 				var f := FriendScript.create(fk)
 				f.level = self
 				f.position = pos
@@ -303,10 +302,9 @@ func _spawn_all() -> void:
 				f.cheered.connect(_on_friend_cheered)
 				_add_card_point(fk, pos, f)
 			"pickup":
-				var words: Array = rest.filter(func(r): return not String(r).is_valid_int())
-				var nums: Array = rest.filter(func(r): return String(r).is_valid_int())
-				var pk: String = "_".join(PackedStringArray(words)) if words.size() > 0 else "nutrient"
-				var idx: int = int(nums[0]) if nums.size() > 1 else 0
+				var ki := _kind_and_index(rest, "nutrient")
+				var pk: String = ki["kind"]
+				var idx: int = ki["index"]
 				var p := PickupScript.create(pk, idx)
 				p.level = self
 				p.position = pos
@@ -314,7 +312,7 @@ func _spawn_all() -> void:
 				p.collected.connect(_on_pickup_collected)
 				_add_card_point(pk, pos, p)
 			"deliver":
-				var dk := String(rest[0]) if rest.size() > 0 else "villus"
+				var dk: String = _kind_and_index(rest, "villus")["kind"]
 				var d := DeliverScript.new()
 				d.kind = dk
 				d.level = self
@@ -380,7 +378,22 @@ func spawn_enemy_at(kind: String, pos: Vector3) -> Node:
 	return e
 
 
+## マーカー名の のこり（["heart", "item", "1"] など）を 種類と番号に分ける
+static func _kind_and_index(rest: Array, default_kind: String) -> Dictionary:
+	var words: Array = []
+	var nums: Array = []
+	for r in rest:
+		if String(r).is_valid_int():
+			nums.append(int(r))
+		else:
+			words.append(String(r))
+	var kind: String = "_".join(PackedStringArray(words)) if words.size() > 0 else default_kind
+	return {"kind": kind, "index": (nums[0] if nums.size() > 1 else 0), "nums": nums}
+
+
 func _spawn_sign(text: String, pos: Vector3) -> void:
+	if not SIGN_TEXT.values().has(text):
+		push_warning("sign text not found for marker: %s" % text)
 	var l := Label3D.new()
 	l.text = text
 	l.font = _sign_font

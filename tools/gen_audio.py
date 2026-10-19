@@ -102,7 +102,16 @@ def write(name: str, data: np.ndarray, vol=0.8):
     peak = np.max(np.abs(data)) if len(data) else 1.0
     if peak > 0:
         data = data / peak * vol
-    data = fade(data.copy())
+    if name.startswith("bgm_"):
+        # ループ曲は 端をフェードさせず、終わりと始まりを 30 ms クロスフェードして つなぎ目を消す
+        n = int(SR * 0.03)
+        head = data[:n].copy()
+        tail = data[-n:].copy()
+        ramp = np.linspace(0, 1, n)
+        data[:n] = head * ramp + tail * (1 - ramp)
+        data = data[:-n]
+    else:
+        data = fade(data.copy())
     pcm = (np.clip(data, -1, 1) * 32767).astype("<i2")
     OUT.mkdir(parents=True, exist_ok=True)
     with wave.open(str(OUT / f"{name}.wav"), "wb") as w:

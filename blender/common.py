@@ -86,8 +86,10 @@ def apply_modifiers(obj) -> None:
     for m in list(obj.modifiers):
         try:
             bpy.ops.object.modifier_apply(modifier=m.name)
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! modifier {m.name} on {obj.name}: {e}")
+    if obj.modifiers:
+        raise RuntimeError(f"could not apply modifiers on {obj.name}: {[m.name for m in obj.modifiers]}")
 
 
 # ------------------------------------------------------------------ 形
@@ -181,12 +183,12 @@ def smile(parent_name, pos_y, z, width=0.3, mat=None, thickness=0.04):
     """にっこり口（トーラスの下半分を使う）。"""
     mat = mat or material("Mouth", (0.5, 0.1, 0.2))
     t = add_torus(f"{parent_name}_smile", width, thickness, (0, pos_y, z), (math.radians(90), 0, 0), mat, 20, 8)
-    # 上半分を削る
+    # 上半分を削る（90°回転は「オブジェクトの回転」なので、メッシュのローカル Y が上下にあたる）
     set_active(t)
     bm = bmesh.new()
     bm.from_mesh(t.data)
     for v in list(bm.verts):
-        if v.co.z > 0.02:
+        if v.co.y > 0.02:
             bm.verts.remove(v)
     bm.to_mesh(t.data)
     bm.free()
@@ -197,17 +199,19 @@ def join(objs, name):
     """複数オブジェクトを 1 つに結合して名前をつける。"""
     objs = [o for o in objs if o is not None]
     if len(objs) == 1:
-        objs[0].name = name
-        objs[0].data.name = name
-        return objs[0]
-    bpy.ops.object.select_all(action="DESELECT")
-    for o in objs:
-        o.select_set(True)
-    bpy.context.view_layer.objects.active = objs[0]
-    bpy.ops.object.join()
-    o = bpy.context.active_object
+        o = objs[0]
+    else:
+        bpy.ops.object.select_all(action="DESELECT")
+        for ob in objs:
+            ob.select_set(True)
+        bpy.context.view_layer.objects.active = objs[0]
+        bpy.ops.object.join()
+        o = bpy.context.active_object
     o.name = name
     o.data.name = name
+    # 回転・拡大はメッシュに焼きこむ（Godot 側の当たり判定が ゆがんだノードの下に入らないように）
+    set_active(o)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     return o
 
 
