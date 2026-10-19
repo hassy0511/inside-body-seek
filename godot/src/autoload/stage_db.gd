@@ -32,7 +32,7 @@ const STAGES: Array[Dictionary] = [
 	{
 		"id": "esophagus", "order": 2, "name": "しょくどう", "kanji": "食道", "title": "つるつる すべりだい",
 		"difficulty": 1, "env": "stage_esophagus", "kind": "tube",
-		"fog": Color(0.95, 0.6, 0.6), "ambient": Color(1.0, 0.85, 0.85), "fog_density": 0.02,
+		"fog": Color(0.95, 0.6, 0.6), "ambient": Color(1.0, 0.85, 0.85), "fog_density": 0.016,
 		"flow_speed": 2.0,
 		"missions": [
 			{"type": "reach", "text": "しょくどうを くだって い（胃）へ いこう"},
