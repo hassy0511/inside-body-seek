@@ -12,6 +12,14 @@
 - 生成した GLB・WAV はコミットする。`godot/.godot/` と `blender/out/` はコミットしない。
 - Godot 側のコードは「子どもが詰まらない」を最優先：ゲームオーバーなし、はさまったら戻す、ヒントは上書きしない（`Game.hud_busy()`）。
 
+## 絵と 3D モデルは Codex に発注する
+
+- いまの見た目はすべて**仮**。絵やモデルの作り込みを自分で頑張らない。必要な絵は `docs/art_orders/` の発注書にまとめ、`codex_prompts.md` の文をユーザーに渡して Codex に出してもらう。
+- 新しいキャラクター・物・ステージを足すときは、**仮モデルを作るのと同時に発注書（または既存の発注書への追記）を書く**。
+- 差しかえの約束：GLB の名前（`godot/assets/models/characters/<ID>.glb`、`stages/stage_<id>.glb`）、`BUILDERS` の関数名、Godot が探す部品名（`Propeller`、`Window`）、当たり判定の `CONFIG` は変えない。UI・カードの挿絵は `res://assets/ui/...png` があれば自動で使う（`T.art()`。一覧は `docs/dashboard.md` 4 章）。
+- 納品の取り込みは `docs/art_orders/取り込み手順.md`、3D 化は `.claude/skills/model-from-art/SKILL.md`。
+- 発注を出した・納品を受けた・組み込んだら、`docs/dashboard.md`（3・4・7 章）と `docs/progress.md` を更新する。
+
 ## テスト（必ず通してからコミット）
 
 ```bash

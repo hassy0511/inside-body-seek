@@ -112,9 +112,9 @@ func begin() -> void:
 		SaveData.data["story_seen"] = true
 		SaveData.save()
 		Game.show_card({"title": "はなちゃんを たすけよう！", "text": StageDB.STORY_INTRO}, func():
-			Game.show_card(card, after_card, "stage"))
+			Game.show_card(card, after_card, "stage", stage_id), "intro", "story")
 	else:
-		Game.show_card(card, after_card, "stage")
+		Game.show_card(card, after_card, "stage", stage_id)
 
 
 # ---------------------------------------------------------------- 環境
@@ -701,7 +701,7 @@ func _check_cards() -> void:
 			_card_cd = 3.0
 			var card: Dictionary = stage["cards"][key]
 			Sfx.play("card")
-			Game.show_card(card, Callable(), key)
+			Game.show_card(card, Callable(), key, stage_id)
 			return
 
 

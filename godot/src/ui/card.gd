@@ -23,7 +23,9 @@ func _ready() -> void:
 				_btn.grab_focus())
 
 
-func setup(card: Dictionary, image_kind := "") -> void:
+## image_kind はカードのキー（"stage"、"mushiba" など）。stage_id を渡すと、納品された挿絵
+## res://assets/ui/cards/card_<stage_id>_<image_kind>.png があれば 3D のプレビューの代わりに出す。
+func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
@@ -56,7 +58,10 @@ func setup(card: Dictionary, image_kind := "") -> void:
 	hb.add_theme_constant_override("separation", 24)
 	margin.add_child(hb)
 
-	var pic := _make_picture(image_kind)
+	var sid := stage_id if stage_id != "" else Game.current_stage_id
+	var pic: Control = T.art_rect("cards/card_%s_%s" % [sid, image_kind], Vector2(260, 300)) if sid != "" else null
+	if pic == null:
+		pic = _make_picture(image_kind)
 	if pic:
 		hb.add_child(pic)
 

@@ -97,6 +97,31 @@ static func colored_button(b: Button, bg: Color, border: Color) -> Button:
 	return b
 
 
+## 納品された絵（res://assets/ui/<name>.png）があれば そのテクスチャ、なければ null。
+## Codex から届いた UI・カードの挿絵・顔アイコンは、同じ名前で置くだけで ここから拾われる（docs/art_orders/取り込み手順.md）。
+static func art(name: String) -> Texture2D:
+	var path := "res://assets/ui/%s.png" % name
+	if ResourceLoader.exists(path):
+		var t := load(path)
+		if t is Texture2D:
+			return t
+	return null
+
+
+## 納品された絵を 指定の大きさで出す TextureRect（絵が無ければ null）
+static func art_rect(name: String, size: Vector2) -> TextureRect:
+	var tex := art(name)
+	if tex == null:
+		return null
+	var tr := TextureRect.new()
+	tr.texture = tex
+	tr.custom_minimum_size = size
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return tr
+
+
 ## 画面の拡大率（SubViewport を くっきり描くため）
 static func window_scale(c: Control) -> float:
 	var vp := c.get_viewport()

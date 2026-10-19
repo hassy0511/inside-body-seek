@@ -56,7 +56,7 @@ func _ready() -> void:
 			var b := T.button(card["title"] if seen else "？？？", 22)
 			if seen:
 				T.colored_button(b, T.CREAM, T.PINK)
-				b.pressed.connect(func(): _open(card, key))
+				b.pressed.connect(func(): _open(card, key, sid))
 			else:
 				b.disabled = true
 				b.focus_mode = Control.FOCUS_NONE
@@ -71,11 +71,11 @@ func _ready() -> void:
 		back.grab_focus()
 
 
-func _open(card: Dictionary, key: String) -> void:
+func _open(card: Dictionary, key: String, sid := "") -> void:
 	Sfx.play("card")
 	var prev := get_viewport().gui_get_focus_owner()
 	var p := CardPopup.new()
-	p.setup(card, key)
+	p.setup(card, key, sid)
 	Game.add_overlay(p)
 	p.closed.connect(func():
 		if is_instance_valid(prev):

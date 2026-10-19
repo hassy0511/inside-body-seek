@@ -87,9 +87,12 @@ func _ready() -> void:
 	_msg_panel.add_theme_stylebox_override("panel", T.rounded(Color(1, 1, 1, 0.92), 26, 4, T.SKY))
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 16)
-	var face := Control.new()
-	face.custom_minimum_size = Vector2(90, 90)
-	face.draw.connect(func(): _draw_pico(face))
+	# 納品された顔（ui/pico_face_normal.png）があれば それ、なければ コードで描く仮の顔
+	var face: Control = T.art_rect("pico_face_normal", Vector2(90, 90))
+	if face == null:
+		face = Control.new()
+		face.custom_minimum_size = Vector2(90, 90)
+		face.draw.connect(func(): _draw_pico(face))
 	hb.add_child(face)
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL

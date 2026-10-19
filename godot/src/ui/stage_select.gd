@@ -55,7 +55,10 @@ func _ready() -> void:
 	_map.size = Vector2(440, 620)
 	_map.draw.connect(_draw_body)
 	row.add_child(_map)
+	# 納品された「からだの地図」（ui/bodymap_hana.png）があれば それ、なければ 仮の SVG
 	var tex_path := "res://assets/ui/body_map.svg"
+	if T.art("bodymap_hana") != null:
+		tex_path = "res://assets/ui/bodymap_hana.png"
 	if ResourceLoader.exists(tex_path):
 		var tr := TextureRect.new()
 		tr.texture = load(tex_path)
@@ -119,7 +122,16 @@ func _select(id: String, go_to_start := false) -> void:
 	for c in _info.get_children():
 		c.queue_free()
 	_info.add_child(T.label("ステージ %d" % s["order"], 20, Color(0.5, 0.45, 0.5)))
-	_info.add_child(T.label("%s（%s）" % [s["name"], s["kanji"]], 44, T.INK))
+	var name_label := T.label("%s（%s）" % [s["name"], s["kanji"]], 44, T.INK)
+	var icon := T.art_rect("stage_icons/stage_icon_%s" % id, Vector2(64, 64))
+	if icon:
+		var nh := HBoxContainer.new()
+		nh.add_theme_constant_override("separation", 12)
+		nh.add_child(icon)
+		nh.add_child(name_label)
+		_info.add_child(nh)
+	else:
+		_info.add_child(name_label)
 	_info.add_child(T.label(s["title"], 26, Color(0.9, 0.35, 0.5)))
 	var diff: String = ["", "かんたん", "ふつう", "むずかしい"][int(s["difficulty"])]
 	_info.add_child(T.label("むずかしさ： " + diff, 22))

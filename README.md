@@ -103,6 +103,15 @@ Godot は GLB の中の Empty の名前を見てスポーンします（`MK_<種
 ミッションの種類は `defeat` / `collect` / `deliver` / `cheer` / `reach` / `boss` / `gate` / `sequence`。
 新しい敵やなかまを増やすときは `entities/enemy.gd` や `entities/friend.gd` の `CONFIG` に 1 行足し、同じ名前の GLB を置きます。
 
+## 絵と 3D モデルの発注（Codex）
+
+見た目はすべて仮（スクリプト生成）。本番の絵は Codex に発注し、届いた絵をもとに Claude が組み込む。
+
+- 発注書と進め方：`docs/art_orders/README.md`（波 W0〜W4、渡すもの、納品先 `art/concepts/`、修正の出し方）
+- Codex に貼る文：`docs/art_orders/codex_prompts.md`（いま出すものは `docs/dashboard.md` 7 章）
+- 届いた絵の取り込み：`docs/art_orders/取り込み手順.md`。UI・カードの挿絵は `godot/assets/ui/` に同じ名前の PNG を置くだけで差しかわる
+- 状態：`docs/dashboard.md`
+
 ## 自動テスト
 
 ```bash

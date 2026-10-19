@@ -202,13 +202,13 @@ func show_ending() -> void:
 
 # ---------------------------------------------------------------- ポップアップ
 ## ものしりカードを出す（ゲームは一時停止）。閉じたら on_close を呼ぶ。
-func show_card(card: Dictionary, on_close: Callable = Callable(), image_kind := "") -> void:
+func show_card(card: Dictionary, on_close: Callable = Callable(), image_kind := "", stage_id := "") -> void:
 	if card.is_empty():
 		if on_close.is_valid():
 			on_close.call()
 		return
 	var p := CardPopup.new()
-	p.setup(card, image_kind)
+	p.setup(card, image_kind, stage_id)
 	add_overlay(p)
 	_popup_open = true
 	get_tree().paused = true

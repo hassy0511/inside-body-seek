@@ -6,6 +6,7 @@ const T := preload("res://src/ui/ui_theme.gd")
 var ending_mode := false
 var _bubbles: Array = []
 var _t := 0.0
+var _keyvisual: Texture2D = null
 
 
 func _ready() -> void:
@@ -26,11 +27,25 @@ func _ready() -> void:
 	vb.add_theme_constant_override("separation", 18)
 	add_child(vb)
 
+	# 納品された絵（docs/art_orders/W4_01_UI.md）：背景・ロゴ・はなちゃん。無ければ コードで描く仮の見た目
+	_keyvisual = T.art("title_keyvisual")
+
 	if ending_mode:
 		var p := PanelContainer.new()
 		var pv := VBoxContainer.new()
 		pv.add_theme_constant_override("separation", 14)
 		p.add_child(pv)
+		var hana := T.art_rect("hana_fullbody_happy", Vector2(240, 360))
+		if hana:
+			hana.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+			hana.anchor_top = 1.0
+			hana.anchor_bottom = 1.0
+			hana.offset_left = 30
+			hana.offset_right = 270
+			hana.offset_top = -380
+			hana.offset_bottom = -20
+			add_child(hana)
+			move_child(hana, 0)
 		pv.add_child(T.label("おめでとう！ ぜんぶ クリア！", 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
 		var body := T.label(StageDB.STORY_ENDING, 26)
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -45,11 +60,20 @@ func _ready() -> void:
 		Sfx.play("clear")
 		return
 
-	var title := T.label("からだのなか", 72, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	vb.add_child(title)
-	var title2 := T.label("だいぼうけん", 72, Color(0.9, 0.35, 0.5), HORIZONTAL_ALIGNMENT_CENTER)
-	vb.add_child(title2)
+	var logo := T.art_rect("title_logo", Vector2(520, 228))
+	if logo:
+		vb.add_child(logo)
+	else:
+		var title := T.label("からだのなか", 72, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
+		vb.add_child(title)
+		var title2 := T.label("だいぼうけん", 72, Color(0.9, 0.35, 0.5), HORIZONTAL_ALIGNMENT_CENTER)
+		vb.add_child(title2)
 	var sub := T.label("ちいさくなって からだのなかを たんけんしよう！", 24, Color(0.45, 0.35, 0.4), HORIZONTAL_ALIGNMENT_CENTER)
+	if _keyvisual:
+		# 納品された背景の上でも読めるように、白い ふちを付ける
+		sub.add_theme_color_override("font_color", Color.WHITE)
+		sub.add_theme_color_override("font_outline_color", Color(0.3, 0.15, 0.25))
+		sub.add_theme_constant_override("outline_size", 8)
 	vb.add_child(sub)
 	var sp := Control.new()
 	sp.custom_minimum_size = Vector2(0, 16)
@@ -78,6 +102,10 @@ func _ready() -> void:
 	hb.add_child(reset)
 	vb.add_child(hb)
 	var stars := T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), StageDB.STAGES.size() * 3], 22, Color(0.75, 0.55, 0.2), HORIZONTAL_ALIGNMENT_CENTER)
+	if _keyvisual:
+		stars.add_theme_color_override("font_color", Color(1.0, 0.92, 0.6))
+		stars.add_theme_color_override("font_outline_color", Color(0.3, 0.15, 0.25))
+		stars.add_theme_constant_override("outline_size", 8)
 	vb.add_child(stars)
 	start.grab_focus()
 	_add_pod_preview()
@@ -178,6 +206,13 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var sz := size
+	if _keyvisual:
+		# 画面いっぱいに（縦横比を保って はみ出す側を切る）
+		var ts := _keyvisual.get_size()
+		var k := maxf(sz.x / ts.x, sz.y / ts.y)
+		var dst := Rect2((sz - ts * k) * 0.5, ts * k)
+		draw_texture_rect(_keyvisual, dst, false)
+		return
 	draw_rect(Rect2(Vector2.ZERO, sz), Color(1.0, 0.85, 0.88))
 	draw_rect(Rect2(0, sz.y * 0.6, sz.x, sz.y * 0.4), Color(1.0, 0.78, 0.84))
 	for b in _bubbles:

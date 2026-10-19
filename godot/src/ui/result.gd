@@ -98,7 +98,18 @@ func _show_summary() -> void:
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_override("font", Game.font_regular)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_vb.add_child(body)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# 納品された まとめの挿絵（cards/card_<stage>_summary.png）があれば 左に出す
+	var pic := T.art_rect("cards/card_%s_summary" % stage["id"], Vector2(220, 250))
+	if pic:
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 20)
+		hb.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		hb.add_child(pic)
+		hb.add_child(body)
+		_vb.add_child(hb)
+	else:
+		_vb.add_child(body)
 	var btn := T.button("クイズに ちょうせん！", 30, 320)
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 	btn.pressed.connect(_show_quiz)

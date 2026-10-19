@@ -11,5 +11,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
-# Claude Code のワークツリー・設定
-.claude/
+# Claude Code のワークツリー・個人設定（.claude/skills/ はコミットする）
+.claude/worktrees/
+.claude/settings.local.json
