@@ -10,10 +10,10 @@ const STAGES: Array[Dictionary] = [
 	{
 		"id": "mouth", "order": 1, "name": "くち", "kanji": "口", "title": "はじまりは おくちから",
 		"difficulty": 1, "env": "stage_mouth", "kind": "arena",
-		"fog": Color(0.98, 0.78, 0.82), "ambient": Color(1.0, 0.9, 0.92), "fog_density": 0.012,
+		"fog": Color(0.97, 0.75, 0.79), "ambient": Color(1.0, 0.9, 0.92), "fog_density": 0.009,
 		"flow_speed": 0.0,
 		"missions": [
-			{"type": "defeat", "target": "mushiba", "count": 3, "text": "むしばきんを やっつけよう"},
+			{"type": "defeat", "target": "mushiba", "count": 4, "text": "むしばきんを やっつけよう"},
 			{"type": "reach", "text": "のどの おくの ゴールへ いこう"},
 		],
 		"intro": "ここは くち（口）の なか。は（歯）の あいだに むしばきんが かくれているよ。おくすりで やっつけよう！",

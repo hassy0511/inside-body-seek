@@ -214,65 +214,169 @@ def mk(name, pos, rot=(0, 0, 0)):
 
 # ------------------------------------------------------------------ 1. くち
 def build_mouth():
-    pink = C.material("TonguePink", (0.98, 0.55, 0.62), 0.8)
-    gum = C.material("GumPink", (0.95, 0.45, 0.55), 0.8)
-    palate = C.material("Palate", (0.98, 0.7, 0.75), 0.8)
-    tooth = C.material("ToothWhite", (1.0, 0.98, 0.94), 0.35)
-    lip = C.material("Lip", (0.9, 0.35, 0.45), 0.7)
+    pink = C.material("TonguePink", (0.93, 0.42, 0.52), 0.6)
+    bud = C.material("TasteBud", (0.99, 0.62, 0.70), 0.6)
+    gum = C.material("GumPink", (0.90, 0.36, 0.46), 0.75)
+    palate = C.material("Palate", (0.97, 0.66, 0.70), 0.85)
+    throat_m = C.material("Throat", (0.84, 0.32, 0.42), 0.8)
+    tooth = C.material("ToothWhite", (1.0, 0.98, 0.93), 0.3)
+    lip = C.material("Lip", (0.88, 0.30, 0.40), 0.7)
+    outside = C.material("Outside", (0.82, 0.93, 1.0), 0.9, emission=(0.82, 0.93, 1.0), emission_strength=0.7)
+
+    # 部屋（くちの なか）と した の形。マーカーの高さは この式から出す
+    SC = (24.0, 33.0, 10.0)
+    CZ = 2.5
+    TC = (0.0, -3.0, -6.3)
+    TS = (17.0, 24.0, 3.4)
+
+    def cav_z(x, y, sign=-1):
+        """部屋の床（sign=-1）/ 天井（sign=+1）の高さ"""
+        v = 1.0 - (x / SC[0]) ** 2 - (y / SC[1]) ** 2
+        return CZ + sign * SC[2] * math.sqrt(max(v, 0.0))
+
+    def tongue_z(x, y):
+        v = 1.0 - ((x - TC[0]) / TS[0]) ** 2 - ((y - TC[1]) / TS[1]) ** 2
+        return TC[2] + TS[2] * math.sqrt(v) if v > 0 else -99.0
+
+    def fz(x, y, up=1.2):
+        """した か 部屋の床の、高い方"""
+        return max(cav_z(x, y), tongue_z(x, y)) + up
 
     objs = []
-    cavity = ellipsoid_room("cavity", (0, 0, 2.0), (19, 26, 8.5), palate, 48, 28, 0.0, flip=False)
-    throat_pts = catmull_rom([Vector((0, 14, -1)), Vector((0, 22, -3)), Vector((0, 30, -7)), Vector((0, 38, -14))], 6)
-    throat = solid_tube("throat", throat_pts, 4.5, gum)
-    cavity = boolean_union([cavity, throat], "MouthCavity")
+    cavity = ellipsoid_room("cavity", (0, 0, CZ), SC, palate, 56, 32, 0.0, flip=False)
+    # のど：おくの かべに あいた あな から ゆるく くだる（ゆかは 部屋の ゆかに つなげる）
+    throat_ctrl = [(0, 18, 1.2), (0, 30, 0.3), (2, 44, -5), (-2, 60, -12), (2, 76, -19), (-1.5, 92, -26), (1, 108, -33), (0, 124, -40), (0, 140, -46), (0, 156, -52), (0, 166, -56)]
+    throat_pts = catmull_rom([Vector(p) for p in throat_ctrl], 6)
+    TR = 6.0
+    throat = solid_tube("throat", throat_pts, TR, throat_m, ribs=0.10, rib_every=9)
+    # のどの いりぐち：ひろい アーチ（まっすぐ すすんでも かべに ぶつからない）
+    FR = 8.5
+    fun_ctrl = [Vector((0, 13, 3.0)), Vector((0, 22, 2.6)), Vector((0, 32, 2.2))]
+    funnel = solid_tube("throat_mouth", fun_ctrl, FR, throat_m)
+
+    def fun_z(y, sign=-1):
+        """いりぐちの アーチの ゆか（sign=-1）/ 天井（sign=+1）の高さ（x=0）"""
+        t = max(0.0, min(1.0, (y - 13.0) / 19.0))
+        return 3.0 + (2.2 - 3.0) * t + sign * FR
+
+    cavity = boolean_union([cavity, throat, funnel], "MouthCavity")
     C.displace_noise(cavity, 0.25, 5.0, 12)
     C.apply_modifiers(cavity)
     bpy.ops.object.shade_smooth()
-    orient_inward(cavity, [Vector((0, 0, 2.0))] + throat_pts)
+    orient_inward(cavity, [Vector((0, 0, CZ))] + throat_pts)
+    # ブーリアンで のどの色が 消えるので、のどの まんなかの線に 近い面だけ あとから 色をつける
+    cavity.data.materials.append(throat_m)
+    for poly in cavity.data.polygons:
+        c = poly.center
+        if c.y > 20.0 and min((c - tp).length for tp in throat_pts[::3]) < TR + 3.2:
+            poly.material_index = 1
+    cavity.data.update()
     objs.append(cavity)
-    tongue = C.add_sphere("Tongue", 1.0, (0, -1.0, -5.0), 40, 24, pink, scale=(13.5, 19.0, 2.6))
+
+    # した：こい ピンクの ゆか
+    tongue = C.add_sphere("Tongue", 1.0, TC, 48, 28, pink, scale=TS)
     C.set_active(tongue)
     bpy.ops.object.transform_apply(scale=True)
     C.displace_noise(tongue, 0.12, 2.0, 11)
     C.apply_modifiers(tongue)
     objs.append(tongue)
-    # まんなかの みぞ
-    groove = C.add_box("NC_TongueGroove", (0.6, 24, 0.2), (0, -1.0, -2.35), (0, 0, 0), gum)
-    objs.append(groove)
-    # は（した）：前の弧に 12 本、（うえ）：天井から 12 本
+    tongue_bvh = floor_bvh(tongue)
+
+    def tongue_top(x, y):
+        """でこぼこを ふくめた 本当の したの おもての高さ"""
+        hit, _n, _i, _d = tongue_bvh.ray_cast(Vector((x, y, 20.0)), Vector((0, 0, -1)), 60.0)
+        return hit.z if hit is not None else tongue_z(x, y)
+
+    # みらい（あじを かんじる ぶつぶつ）：かざり。おもてに 少し うめこむので うかない
+    random.seed(17)
+    buds = []
+    while len(buds) < 150:
+        u, v = random.uniform(-1, 1), random.uniform(-1, 1)
+        if u * u + v * v > 0.80:
+            continue
+        x, y = TC[0] + u * TS[0], TC[1] + v * TS[1]
+        if abs(x) < 1.0:
+            continue
+        r = random.uniform(0.25, 0.45)
+        buds.append(C.add_sphere(f"bud{len(buds)}", r, (x, y, tongue_top(x, y) - r * 0.3), 8, 6, bud, scale=(1, 1, 0.65)))
+    # おくの V の列（ゆうかくにゅうとう）：おおきめの ぶつぶつ
+    for k in range(7):
+        t = (k - 3) / 3.0
+        x, y = t * 10.0, 13.0 - abs(t) * 8.0
+        r = 0.85
+        buds.append(C.add_sphere(f"vbud{k}", r, (x, y, tongue_top(x, y) - r * 0.35), 10, 8, bud, scale=(1, 1, 0.6)))
+    objs.append(C.join(buds, "NC_TasteBuds"))
+    # まんなかの すじ
+    line_pts = [Vector((0, y, tongue_top(0, y) + 0.05)) for y in range(-24, 16, 2)]
+    objs.append(tube("NC_TongueLine", line_pts, 0.30, gum, 0.0, 1.0, flip=False))
+
+    # は：した 14 本・うえ 14 本。まえば（まんなか 6 本）は ほそくて たかい、おくば は ひろい。
+    # ゆか／天井に 1.2 m うめこむので うかない。はぐき（かざり）が ねもとを つつむ
+    RX, RY = SC[0] - 4.0, SC[1] - 6.0
+    a0, a1 = math.radians(145), math.radians(395)
+    n_teeth = 14
     teeth = []
-    for row, zc, flip in (("lower", -4.3, 1), ("upper", 6.6, -1)):
-        for i in range(12):
-            a = math.radians(205 + i * (130 / 11))
-            x, y = math.cos(a) * 16.5, math.sin(a) * 21.0 + 2.0
-            w = 1.6 if 3 <= i <= 8 else 2.2
-            h = 2.6 if 3 <= i <= 8 else 2.2
-            t = C.add_box(f"tooth_{row}_{i}", (w, 1.6, h), (x, y, zc + flip * h * 0.5), (0, 0, a + math.pi / 2), tooth, bevel=0.35)
-            teeth.append(t)
+    for row, sgn in (("lower", -1), ("upper", 1)):
+        for i in range(n_teeth):
+            a = a0 + (a1 - a0) * (i + 0.5) / n_teeth
+            x, y = math.cos(a) * RX, math.sin(a) * RY
+            front = 4 <= i <= 9
+            w, d, h = (2.0, 1.6, 3.8) if front else (2.9, 2.3, 3.2)
+            zc = cav_z(x, y, sgn) - sgn * (h * 0.5 - 1.2)
+            teeth.append(C.add_box(f"tooth_{row}_{i}", (w, d, h), (x, y, zc), (0, 0, a + math.pi / 2), tooth, bevel=0.4))
+        gpts = []
+        for k in range(45):
+            a = a0 - 0.05 + (a1 - a0 + 0.1) * k / 44
+            x, y = math.cos(a) * (RX + 0.7), math.sin(a) * (RY + 0.7)
+            gpts.append(Vector((x, y, cav_z(x, y, sgn) + sgn * 0.4)))
+        objs.append(tube(f"NC_Gum_{row}", gpts, 1.3, gum, 0.0, 1.0, flip=False))
     teeth_o = C.join(teeth, "Teeth")
     C.apply_modifiers(teeth_o)
     C.shade_smooth(teeth_o, 60)
     objs.append(teeth_o)
-    # くちびる（前の壁）
-    lips = C.add_torus("Lips", 15.0, 2.2, (0, -22.0, 1.0), (math.radians(90), 0, 0), lip, 32, 12)
-    lips.scale = (1.0, 1.0, 0.45)
-    objs.append(lips)
-    # のどちんこ
-    uvula = C.add_sphere("NC_Uvula", 1.0, (0, 17, 5.5), 12, 8, lip, scale=(0.7, 0.7, 1.4))
-    objs.append(uvula)
 
-    # マーカー
-    mk("MK_player", (0, -14, -2.0))
-    mk("MK_goal", (0, 27, -8.5))
-    mk("MK_enemy_mushiba_1", (-9.5, -9, -2.2))
-    mk("MK_enemy_mushiba_2", (10, -4, -2.2))
-    mk("MK_enemy_mushiba_3", (-6, 9, -2.2))
-    mk("MK_pickup_heart_item_1", (7, 10, -2.0))
-    mk("MK_card_tooth", (-11, -10, -2.0))
-    mk("MK_sign_throat", (0, 22, -2))
-    mk("MK_path_000", (0, -14, -2))
-    mk("MK_path_001", (0, 0, -2))
-    mk("MK_path_002", (0, 27, -8.5))
+    # くちびる：まえの かべの ふちの わ。その むこうに あかるい「おそと」
+    lips = C.add_torus("Lips", 1.0, 0.36, (0, -30.8, CZ - 0.4), (math.radians(90), 0, 0), lip, 36, 12)
+    lips.scale = (8.6, 3.9, 0.55)
+    objs.append(lips)
+    objs.append(C.add_cylinder("NC_Outside", 1.0, 0.3, (0, -32.3, CZ - 0.4), (math.radians(90), 0, 0), 28, outside, scale=(6.0, 2.9, 1.0)))
+    # のどちんこ：天井から ぶらさがる（うえを うめこむ）。へんとう：のどの いりぐちの りょうわき
+    uz = fun_z(24, 1)
+    objs.append(C.add_sphere("NC_Uvula", 1.0, (0, 24, uz - 1.2), 12, 10, bud, scale=(0.9, 0.9, 2.0)))
+    for sx in (-1, 1):
+        objs.append(C.add_sphere(f"NC_Tonsil_{'l' if sx < 0 else 'r'}", 2.4, (sx * 9.2, 28.0, 0.3), 14, 10, bud, scale=(1, 1, 1.2)))
+    # のどの かべの ぶつぶつ（リンパの こぶ）：かざり。かべに うめこむ
+    cav_bvh = floor_bvh(cavity)
+    random.seed(23)
+    bumps = []
+    for i in range(40):
+        pos, d = along(throat_pts, random.uniform(0.12, 0.96))
+        phi = random.choice((-1, 1)) * random.uniform(math.radians(35), math.radians(150))
+        right = side_of(d, 1.0)
+        dirn = Vector((0, 0, -1)) * math.cos(phi) + right * math.sin(phi)
+        hit, _n, _i, _d = cav_bvh.ray_cast(pos, dirn, TR * 1.8)
+        if hit is None:
+            continue
+        r = random.uniform(0.5, 0.9)
+        bumps.append(C.add_sphere(f"tb{i}", r, hit - dirn * r * 0.35, 8, 6, bud))
+    objs.append(C.join(bumps, "NC_ThroatBumps"))
+
+    # マーカー（高さは ゆかの式から）
+    mk("MK_player", (0, -22, fz(0, -22, 1.5)))
+    goal = floor_point(throat_pts, 0.94, TR, 0.0, 0.8)
+    mk("MK_goal", goal)
+    mk("MK_checkpoint_1", floor_point(throat_pts, 0.12, TR, 0.0, 0.5))
+    # むしばきん：はの そばの みぞに 4 ひき（よこ 2・おく 2）。スタートから 13 m より とおく
+    for i, (x, y) in enumerate([(-15, -9), (-14.5, 13), (14.5, 13), (15, -9)]):
+        mk(f"MK_enemy_mushiba_{i + 1}", (x, y, fz(x, y, 1.0)))
+    mk("MK_pickup_heart_item_1", (9, -4, fz(9, -4, 1.0)))
+    mk("MK_card_tooth", (-9.5, -19, fz(-9.5, -19, 1.0)))
+    mk("MK_sign_throat", (0, 24, fun_z(24)))
+    mk("MK_path_000", (0, -22, fz(0, -22)))
+    mk("MK_path_001", (0, 0, fz(0, 0)))
+    mk("MK_path_002", (0, 22, fun_z(22) + 1.0))
+    mk("MK_path_003", floor_point(throat_pts, 0.15, TR, 0.0, 1.0))
+    mk("MK_path_004", goal)
     return objs
 
 
