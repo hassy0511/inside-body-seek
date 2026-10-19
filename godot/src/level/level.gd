@@ -43,7 +43,8 @@ const MissionScript := preload("res://src/level/mission.gd")
 
 const SIGN_TEXT := {
 	"ra": "みぎの しんぼう", "rv": "みぎの しんしつ", "la": "ひだりの しんぼう", "lv": "ひだりの しんしつ",
-	"lung": "→ はいへ", "aorta": "だいどうみゃく（でぐち）", "start": "スタート", "goal": "ゴール", "heart": "→ しんぞうへ",
+	"lung": "→ はいへ", "aorta": "だいどうみゃく\n（からだじゅうへ）", "start": "スタート", "goal": "ゴール", "heart": "→ しんぞうへ",
+	"vein": "だいじょうみゃく\n（からだから）", "pa": "はいどうみゃく\n（はいへ）", "pv": "はいじょうみゃく\n（はいから）",
 	"throat": "のど", "trachea": "きかん（くうきの みち）", "esophagus": "しょくどう（たべものの みち）",
 }
 

@@ -431,52 +431,53 @@ def build_vessel():
     return objs
 
 
-# ------------------------------------------------------------------ 6. しんぞう
-def build_heart():
-    wall = C.material("HeartWall", (0.85, 0.22, 0.3), 0.8)
+# ------------------------------------------------------------------ 6/8. しんぞう（みぎ・ひだり）
+def _heart_half(room_keys, entry_key, exit_key, left=False):
+    """しんぞうの かたがわ：入口のくだ → しんぼう → べん → しんしつ → べん → 出口のくだ。
+    ちは しんぞうを 2かい とおる（みぎ：からだ→はい、ひだり：はい→からだじゅう）。"""
+    wall = C.material("HeartWallL" if left else "HeartWall", (0.8, 0.18, 0.26) if left else (0.85, 0.22, 0.3), 0.8)
     objs = []
+    centers = [(0, 0, 0), (0, 36, 0)]
     rooms = []
-    centers = [(0, 0, 0), (0, 36, 0), (0, 72, 0), (0, 108, 0)]
     for i, c in enumerate(centers):
-        r = ellipsoid_room(f"room{i}", c, (14, 14, 8), wall, 32, 20, 0.0, flip=False)
-        rooms.append(r)
-    tunnels = []
-    for i in range(4):
-        y0 = centers[i][1] + 10
-        y1 = y0 + 16
-        t = solid_tube(f"tunnel{i}", [Vector((0, y0, 0)), Vector((0, y1, 0))], 4.0, wall)
-        tunnels.append(t)
-    # 出口（だいどうみゃく）：4 本目のトンネルの先から ゆるく上る
-    aorta_pts = catmull_rom([Vector((0, 132, 0)), Vector((0, 142, 1.5)), Vector((0, 154, 6)), Vector((0, 162, 12))], 6)
-    aorta = solid_tube("aorta", aorta_pts, 4.0, wall)
-    body = boolean_union(rooms + tunnels + [aorta], "HeartRooms")
-    C.displace_noise(body, 0.3, 4.0, 61)
+        scale = (14, 14, 8) if not (left and i == 1) else (15, 15, 9)  # ひだりの しんしつは 大きく（かべが あつい）
+        rooms.append(ellipsoid_room(f"room{i}", c, scale, wall, 32, 20, 0.0, flip=False))
+    tunnel = solid_tube("tunnel0", [Vector((0, 10, 0)), Vector((0, 26, 0))], 4.0, wall)
+    entry_pts = [Vector((0, -34, 0)), Vector((0, -10, 0))]
+    entry = solid_tube("entry", entry_pts, 4.0, wall)
+    exit_pts = catmull_rom([Vector((0, 46, 0)), Vector((0, 62, 1)), Vector((0, 78, 6)), Vector((0, 90, 13))], 6)
+    exit_t = solid_tube("exit", exit_pts, 4.0, wall)
+    body = boolean_union(rooms + [tunnel, entry, exit_t], "HeartRooms")
+    C.displace_noise(body, 0.3, 4.0, 61 if not left else 62)
     C.apply_modifiers(body)
     bpy.ops.object.shade_smooth()
-    refs = [Vector(c) for c in centers]
-    for i in range(4):
-        y0 = centers[i][1] + 10
-        refs += [Vector((0, y0 + k * 4, 0)) for k in range(5)]
-    refs += aorta_pts
-    orient_inward(body, refs)
+    orient_inward(body)
     objs.append(body)
     # マーカー
-    mk("MK_player", (0, -8, -6.5))
-    mk("MK_goal", (0, 146, -0.5))
-    for i in range(4):
-        y = centers[i][1] + 18
-        mk(f"MK_gate_{i + 1}", (0, y, -4.0))
-    for i, key in enumerate(["ra", "rv", "la", "lv"]):
+    mk("MK_player", (0, -28, -2.8))
+    mk("MK_goal", (0, 82, 4.0))
+    mk("MK_gate_1", (0, 18, -4.0))
+    mk("MK_gate_2", (0, 54, -3.6))
+    for i, key in enumerate(room_keys):
         mk(f"MK_sign_{key}", (0, centers[i][1], -6.0))
-    mk("MK_sign_lung", (0, centers[1][1] + 18, -2.0))
-    mk("MK_sign_aorta", (0, 136, -2.0))
+    mk(f"MK_sign_{entry_key}", (0, -22, -2.5))
+    mk(f"MK_sign_{exit_key}", (0, 66, 0.0))
     mk("MK_card_valve", (0, 12, -6.0))
     mk("MK_checkpoint_1", (0, 36, -7.5))
-    mk("MK_checkpoint_2", (0, 72, -7.5))
-    mk("MK_pickup_heart_item_1", (6, 108, -6.5))
-    pts = [Vector((0, -8, -6)), Vector((0, 0, -7)), Vector((0, 18, -4)), Vector((0, 36, -7)), Vector((0, 54, -4)), Vector((0, 72, -7)), Vector((0, 90, -4)), Vector((0, 108, -7)), Vector((0, 126, -4)), Vector((0, 134, -4)), Vector((0, 146, -1))]
+    mk("MK_pickup_heart_item_1", (6, 36, -6.5))
+    pts = [Vector((0, -28, -3)), Vector((0, -12, -3)), Vector((0, 0, -7)), Vector((0, 18, -4)), Vector((0, 36, -7)), Vector((0, 54, -4)), Vector((0, 66, -2)), Vector((0, 82, 4))]
     path_markers(pts, 6.0)
     return objs
+
+
+def build_heart():
+    """みぎの しんぞう：だいじょうみゃく → みぎの しんぼう → みぎの しんしつ → はいどうみゃく（はいへ）"""
+    return _heart_half(["ra", "rv"], "vein", "pa", left=False)
+
+
+def build_heart2():
+    """ひだりの しんぞう：はいじょうみゃく → ひだりの しんぼう → ひだりの しんしつ → だいどうみゃく（からだじゅうへ）"""
+    return _heart_half(["la", "lv"], "pv", "aorta", left=True)
 
 
 # ------------------------------------------------------------------ 7. はい
@@ -605,6 +606,7 @@ BUILDERS = {
     "stage_intestine": build_intestine,
     "stage_vessel": build_vessel,
     "stage_heart": build_heart,
+    "stage_heart2": build_heart2,
     "stage_lungs": build_lungs,
     "stage_brain": build_brain,
     "stage_nose": build_nose,
