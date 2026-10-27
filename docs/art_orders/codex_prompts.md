@@ -7,7 +7,7 @@ Codex に下のプロンプトをそのまま貼り付けて使う。リポジ�
 
 - 発注書（`docs/art_orders/*.md`）が「何を描くか」、このプロンプトが「どう作業して納品するか」を指示する。
 - Codex はブランチ `art/<波>` にコミットする。Claude はそのブランチを取り込んで確認・組み込みをする。
-- 元にするブランチ：いまは `claude/great-wright-k5ui35`（開発ブランチ）。main に取り込んだら ここを `main` に書きかえる。
+- 元にするブランチ：`main`（本線）。
 
 ---
 
@@ -16,7 +16,7 @@ Codex に下のプロンプトをそのまま貼り付けて使う。リポジ�
 プロンプト全文を貼る代わりに、下の短い文を貼れば、Codex がこの文書の該当の章を読んで作業する。
 
 ```text
-あなたはゲーム開発プロジェクト『からだのなか だいぼうけん』の作画担当です。リポジトリ https://github.com/hassy0511/inside-body-seek を取得し、ブランチ claude/great-wright-k5ui35 の docs/art_orders/codex_prompts.md を開いて、「<章番号と題名>」のコードブロックを最後まで読み、その指示どおりに作業して納品（<作業ブランチ> へ push）してください。
+あなたはゲーム開発プロジェクト『からだのなか だいぼうけん』の作画担当です。リポジトリ https://github.com/hassy0511/inside-body-seek を取得し、ブランチ main の docs/art_orders/codex_prompts.md を開いて、「<章番号と題名>」のコードブロックを最後まで読み、その指示どおりに作業して納品（<作業ブランチ> へ push）してください。
 指示の中で読むよう書かれている文書と絵は必ず読んでください。見つからないファイルがあれば作業を止めて報告してください。
 絵は必ず画像生成機能で描いてください。3D ソフトで作った画像やプログラムで描いた図形は不可です。描けないときは、spec の冒頭に「未納品」と書いてください。
 ```
@@ -32,14 +32,14 @@ Codex に下のプロンプトをそのまま貼り付けて使う。リポジ�
 
 【リポジトリ】
 - URL：https://github.com/hassy0511/inside-body-seek
-- 元にするブランチ：claude/great-wright-k5ui35
+- 元にするブランチ：main
 - 作業ブランチ：art/w0（元にするブランチから新しく作る。すでにあればそれを使う）
 
 【最初に行うこと】
-1. 上のリポジトリを取得し、ブランチ claude/great-wright-k5ui35 を最新にする。
+1. 上のリポジトリを取得し、ブランチ main を最新にする。
    git clone https://github.com/hassy0511/inside-body-seek.git
    cd inside-body-seek
-   git checkout claude/great-wright-k5ui35
+   git checkout main
    git pull
 2. 作業ブランチを作る：git checkout -b art/w0（すでにあれば git checkout art/w0 と git pull）
 3. 下の「必ず読む文書」がリポジトリ内にあることを確認する。見つからない場合は作業を止め、見つからないファイル名を報告する。
@@ -73,7 +73,8 @@ Codex に下のプロンプトをそのまま貼り付けて使う。リポジ�
 
 ## 2. W1〜W4：個別の発注（アートバイブルの選定後）
 
-発注書 1 本ごとに使う。`<発注書>`、`<選定案>`、`<波>`、`<フォルダ>`、`<コミット文>` を書き換える。
+発注書 1 本ごとに使う。`<発注書>`、`<波>`、`<フォルダ>`、`<コミット文>` を書き換える。
+アートバイブルは **A-model に決定済み**（2026-10-27）なので、選定案の書き換えはいらない。
 
 | 発注書 | 波（作業ブランチ） | フォルダ | コミット文 |
 |-------|------------------|---------|-----------|
@@ -90,28 +91,31 @@ Codex に下のプロンプトをそのまま貼り付けて使う。リポジ�
 
 【リポジトリ】
 - URL：https://github.com/hassy0511/inside-body-seek
-- 元にするブランチ：claude/great-wright-k5ui35
+- 元にするブランチ：main
 - 作業ブランチ：<波>（元にするブランチから新しく作る。すでにあればそれを使う）
 - 参照するブランチ：art/w0（アートバイブル。読むだけで、作業ブランチには取り込まない）
 
 【最初に行うこと】
-1. 上のリポジトリを取得し、ブランチ claude/great-wright-k5ui35 を最新にする。
+1. 上のリポジトリを取得し、ブランチ main を最新にする。
    git clone https://github.com/hassy0511/inside-body-seek.git
    cd inside-body-seek
-   git checkout claude/great-wright-k5ui35
+   git checkout main
    git pull
 2. 作業ブランチを作る：git checkout -b <波>（すでにあれば git checkout <波> と git pull）
 3. アートバイブルを別のフォルダに取り出す（参照用）：
    git fetch origin art/w0
    git worktree add ../inside-body-seek-w0 origin/art/w0
-   参照するファイル：../inside-body-seek-w0/art/concepts/W0_art_bible/ の artbible_<選定案>_*.png と spec_<選定案>.md
+   参照する絵：../inside-body-seek-w0/art/concepts/W0_art_bible/ の artbible_a_model_*.png（4 枚）。
+   雰囲気だけの参考：同じフォルダの artbible_a_keyvisual.png（細部は写さない）。
 4. 下の「必ず読む文書」がそろっていることを確認する。見つからない場合は作業を止め、見つからないファイル名を報告する。
 
 【必ず読む文書】
 1. docs/art_orders/00_共通ルール.md（すべての発注に共通するルール。最優先で守る）
 2. docs/art_orders/01_3D変換用の絵の条件.md（3D にする絵がある発注のとき）
 3. docs/art_orders/<発注書>（今回の発注書）
-4. 選定されたアートバイブル：案 <選定案>（上の 3 で取り出したもの）。画風・塗り・色の決め方は、これに厳密に合わせる。
+4. 選定されたアートバイブル：A-model（A 案の画風を、3D にしやすい少ない部品にした派生）。
+   説明：art/concepts/W0_art_bible/spec_a_model.md と selection_a.md（このブランチにある。冒頭の「決定」を優先）。
+   絵は上の 3 で取り出したもの。画風・塗り・色の hex・部品の数は、これに厳密に合わせる。
 5. すでに納品済みの関連する絵（art/concepts/ 内。他の art/ ブランチにある場合は同じように worktree で取り出す）。同じキャラクター・物が出てくる場合は、それと一致させる。
 6. 文章の正本：godot/src/autoload/stage_db.gd（カードの題名・本文。絵の内容を合わせる）
 

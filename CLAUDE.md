@@ -12,8 +12,15 @@
 - 生成した GLB・WAV はコミットする。`godot/.godot/` と `blender/out/` はコミットしない。
 - Godot 側のコードは「子どもが詰まらない」を最優先：ゲームオーバーなし、はさまったら戻す、ヒントは上書きしない（`Game.hud_busy()`）。
 
+## ブランチとダッシュボード
+
+- 本線は `main`。Claude はセッションの作業ブランチで直し、テストが通ったら `main` にも push する（fast-forward）。Codex の依頼文も `main` を見る。
+- Codex の納品は `art/<波>` ブランチ。`main` には spec の md と「そのまま使う PNG」だけ取り込む（`docs/art_orders/取り込み手順.md`）。
+- ブックマーク用のページ：https://claude.ai/artifact/MVn6LNMs2uSEnZcwKFR3re 。中身は `docs/dashboard.md` から `tools/dashboard_data.py` で作る JSON と `tools/dashboard_page.html`。dashboard.md を直したらページも更新する（dashboard.md 8 章）。
+
 ## 絵と 3D モデルは Codex に発注する
 
+- アートバイブルは **A-model**（A 案の画風を 3D にしやすくした派生）に決定済み（`docs/art_orders/W0_取り込みの結果.md`）。
 - いまの見た目はすべて**仮**。絵やモデルの作り込みを自分で頑張らない。必要な絵は `docs/art_orders/` の発注書にまとめ、`codex_prompts.md` の文をユーザーに渡して Codex に出してもらう。
 - 新しいキャラクター・物・ステージを足すときは、**仮モデルを作るのと同時に発注書（または既存の発注書への追記）を書く**。
 - 差しかえの約束：GLB の名前（`godot/assets/models/characters/<ID>.glb`、`stages/stage_<id>.glb`）、`BUILDERS` の関数名、Godot が探す部品名（`Propeller`、`Window`）、当たり判定の `CONFIG` は変えない。UI・カードの挿絵は `res://assets/ui/...png` があれば自動で使う（`T.art()`。一覧は `docs/dashboard.md` 4 章）。
@@ -23,6 +30,8 @@
 ## テスト（必ず通してからコミット）
 
 ```bash
+# クラウドの環境に Godot が無ければ CI と同じ URL から落とす：
+# https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
 export GODOT=/path/to/Godot_v4.7-stable_linux.x86_64
 tools/run_tests.sh                 # 全ステージ：インポート → 床プローブ → 自動操縦でクリアまで
 tools/run_tests.sh --stage=mouth   # 1 ステージだけ
