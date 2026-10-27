@@ -16,7 +16,7 @@
 
 - 本線は `main`。Claude はセッションの作業ブランチで直し、テストが通ったら `main` にも push する（fast-forward）。Codex の依頼文も `main` を見る。
 - Codex の納品は `art/<波>` ブランチ。`main` には spec の md と「そのまま使う PNG」だけ取り込む（`docs/art_orders/取り込み手順.md`）。
-- ブックマーク用のページ：https://claude.ai/artifact/MVn6LNMs2uSEnZcwKFR3re 。中身は `docs/dashboard.md` から `tools/dashboard_data.py` で作る JSON と `tools/dashboard_page.html`。dashboard.md を直したらページも更新する（dashboard.md 8 章）。
+- ブックマーク用のページ（GitHub Pages）：https://hassy0511.github.io/inside-body-seek/ 。main に push すると CI がテストのあと `tools/build_dashboard.py` で `docs/dashboard.md` から作りなおして `gh-pages` に出す。手で更新しない（dashboard.md 8 章）。
 
 ## 絵と 3D モデルは Codex に発注する
 

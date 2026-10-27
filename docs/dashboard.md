@@ -2,8 +2,8 @@
 
 最終更新：2026-10-27
 
-**ブックマーク用のページ**：https://claude.ai/artifact/MVn6LNMs2uSEnZcwKFR3re
-（この文書の 1〜4・7 章と `stage_db.gd`・テストの結果から作る。更新のしかたは 8 章）
+**ブックマーク用のページ**：https://hassy0511.github.io/inside-body-seek/
+（この文書の 1〜4・7 章と `stage_db.gd`・テストの結果から、main に push するたびに自動で作りなおす。しくみは 8 章）
 
 ゲームの仕組み・文章・テスト・音は Claude が進め、**絵と 3D モデルのデザインは Codex に発注する**（`docs/art_orders/README.md`）。
 いまの見た目はすべて仮（Blender スクリプトで自動生成）。納品があれば同じ名前のファイルを置きかえるだけで本番に差しかわる（`docs/art_orders/取り込み手順.md`）。
@@ -78,7 +78,7 @@
 
 ## 6. 記録
 
-- 2026-10-27：W0 の納品を確認し、A-model に決定。依頼文を `main` と A-model に合わせた。ブックマーク用のページを作成。
+- 2026-10-27：W0 の納品を確認し、A-model に決定。依頼文を `main` と A-model に合わせた。ブックマーク用のページ（GitHub Pages）を作成。
 - 2026-10-19：Codex への発注の仕組みを整備（発注書 8 本、プロンプト、取り込み手順、差しかえ用のコード）。口・食道の磨き込みを取り込み。
 - それ以前：`docs/progress.md`。
 
@@ -120,9 +120,8 @@
 絵は必ず画像生成機能で描いてください。3D ソフトで作った画像やプログラムで描いた図形は不可です。描けないときは、spec の冒頭に「未納品」と書いてください。
 ```
 
-## 8. ページの更新（Claude 用）
+## 8. ページのしくみ（Claude 用）
 
-1. この文書（1〜4・7 章）を直す。ステージの名前・ミッションは `stage_db.gd` から自動で入る。
-2. テストを回したログがあれば渡す（ステージごとの自動プレイの結果がページに出る）。
-   `python3 tools/dashboard_data.py --out <出力先> --test-log <run_tests.sh の LOG>`
-3. 出てきた JSON のうち変わったものを、ページに添付しなおす（Artifact の `asset: true` で上げ、`ArtifactData` で `datasets/<id>` の `source.url`・`updated` を更新）。表の列を変えたときは `files/index.html` も直す。
+- この文書（1〜4・7 章）を直して main に push すれば、GitHub Actions（`.github/workflows/test.yml`）がテストを回したあと `tools/build_dashboard.py` でページを作り、`gh-pages` ブランチに出す（GitHub Pages）。ステージの名前・ミッションは `stage_db.gd` から、自動テストの列はそのテストのログから入る。
+- 表の形（見出しの列）を変えたら `tools/build_dashboard.py` の列名も合わせる。7 章は「### 題」＋「```text」の形を守る。
+- 手元で見るとき：`python3 tools/build_dashboard.py --html /tmp/dash/index.html --test-log <run_tests.sh の LOG>`

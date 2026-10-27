@@ -10,6 +10,7 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 - 操作はボタン 2 つ（うごく＋おくすり。ダッシュはおまけ）。ゲームオーバーはなく、チェックポイントから何度でも
 
 企画・設計の詳細は [docs/design.md](docs/design.md) にあります。
+開発の進み具合（ダッシュボード）：https://hassy0511.github.io/inside-body-seek/
 
 ## 遊び方
 
