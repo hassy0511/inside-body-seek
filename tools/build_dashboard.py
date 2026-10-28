@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ブックマーク用のダッシュボード（GitHub Pages：https://hassy0511.github.io/inside-body-seek/）を 1 枚の HTML で作る。
 
-元にするもの：docs/dashboard.md の 1〜4・7 章、godot/src/autoload/stage_db.gd、テストのログ（あれば）。
+元にするもの：docs/dashboard.md の 1〜4・7 章、docs/story.md、godot/src/autoload/stage_db.gd、テストのログ（あれば）。
     python3 tools/build_dashboard.py --html _site/index.html --test-log /tmp/inside-body-seek-test.log
 main に push されると GitHub Actions（.github/workflows/test.yml）がテストのあとに作りなおし、gh-pages ブランチへ出す。
 """
@@ -75,6 +75,53 @@ def stages(gd: str, test_log: str) -> list:
     return sorted(out, key=lambda s: s["順"])
 
 
+def inline(t: str) -> str:
+    t = html.escape(t)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+    return re.sub(r"`(.+?)`", r"<code>\1</code>", t)
+
+
+def md_html(md: str) -> str:
+    """docs/story.md 用の小さな Markdown（## 見出し・段落・箇条書き・引用・表・太字・コード）。"""
+    out, lines, i = [], md.splitlines(), 0
+    is_list = lambda l: re.match(r"(\d+\.|-) ", l)
+    while i < len(lines):
+        l = lines[i]
+        if not l.strip() or l.startswith("# "):
+            i += 1
+            continue
+        if l.startswith("## "):
+            out.append("<h3>%s</h3>" % inline(l[3:]))
+            i += 1
+            continue
+        block = []
+        if l.startswith("|"):
+            while i < len(lines) and lines[i].startswith("|"):
+                block.append([inline(c.strip()) for c in lines[i].strip().strip("|").split("|")])
+                i += 1
+            head = "".join("<th>%s</th>" % c for c in block[0])
+            body = "".join("<tr>%s</tr>" % "".join("<td>%s</td>" % c for c in r) for r in block[2:])
+            out.append('<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (head, body))
+        elif l.startswith(">"):
+            while i < len(lines) and lines[i].startswith(">"):
+                block.append(lines[i][1:].strip())
+                i += 1
+            cls = "status" if block[0].startswith("状態") else "game"
+            out.append('<blockquote class="%s">%s</blockquote>' % (cls, "<br>".join(inline(b) for b in block)))
+        elif is_list(l):
+            tag = "ol" if l[0].isdigit() else "ul"
+            while i < len(lines) and is_list(lines[i]):
+                block.append(re.sub(r"^(\d+\.|-) ", "", lines[i]))
+                i += 1
+            out.append("<%s>%s</%s>" % (tag, "".join("<li>%s</li>" % inline(b) for b in block), tag))
+        else:
+            while i < len(lines) and lines[i].strip() and not re.match(r"(#|>|\|)", lines[i]) and not is_list(lines[i]):
+                block.append(lines[i])
+                i += 1
+            out.append("<p>%s</p>" % inline(" ".join(block)))
+    return "\n".join(out)
+
+
 def git_rev() -> str:
     try:
         return subprocess.check_output(["git", "-C", str(ROOT), "log", "-1", "--format=%h"], text=True).strip()
@@ -94,7 +141,7 @@ def tone(v: str) -> str:
         return "bad"
     if "いま" in v:
         return "now"
-    if re.match(r"^(未|仮|—|第\d弾|納品待ち)", v):
+    if re.match(r"^(未|仮|—|第\d弾|納品待ち|確認待ち)", v):
         return "muted"
     return "plain"
 
@@ -117,14 +164,17 @@ def table(rows: list, cols: list) -> str:
     return '<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (head, "".join(body))
 
 
-def render(data: dict, updated: str, rev: str, tested: bool, lineup: str) -> str:
+def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str) -> str:
     e = html.escape
     st = data["stages"]
     ok = sum(1 for s in st if s["自動テスト"].startswith("OK"))
     test_line = ("自動テスト：<b class=\"%s\">%d / %d</b> ステージがクリアまで通る" % ("ok" if ok == len(st) else "bad", ok, len(st))
                  if tested else "自動テスト：まだ結果がありません")
     todo = data["todo"]
-    now = next((t for t in todo if "いま" in t.get("状態", "")), todo[0])
+    nows = [t for t in todo if "いま" in t.get("状態", "")] or todo[:1]
+    now_html = "".join('<p class="now"><b>いま やること（%s）</b><span>%s</span></p>' % (e(t["だれ"]), e(t["やること"])) for t in nows)
+    m = re.search(r"状態：\*\*(.+?)\*\*", story)
+    story_state = m.group(1) if m else "案"
     cards = "".join(
         '<article class="card prompt"><div class="prompt-head"><h3>%s</h3>'
         '<button type="button" class="copy" data-i="%d">コピー</button></div><pre id="p%d">%s</pre></article>'
@@ -132,7 +182,8 @@ def render(data: dict, updated: str, rev: str, tested: bool, lineup: str) -> str
     rev_html = ' ／ <a href="%s/commit/%s">%s</a>' % (REPO_URL, e(rev), e(rev)) if rev else ""
     return TEMPLATE.format(
         updated=e(updated), rev=rev_html, test_line=test_line,
-        now_what=e(now["やること"]), now_who=e(now["だれ"]),
+        now=now_html,
+        story=md_html(story), story_state=e(story_state), story_tone="now" if "待ち" in story_state else "ok",
         todo=table(todo, ["やること", "だれ", "状態"]),
         prompts=cards,
         phases=table(data["phases"], ["段階", "内容", "状態"]),
@@ -212,6 +263,20 @@ button.copy.done {{ background: var(--pico); }}
 figure {{ margin: 0; display: grid; gap: .4rem; }}
 figure img {{ width: 100%; height: auto; border-radius: 10px; display: block; }}
 figcaption {{ color: var(--muted); font-size: .8rem; }}
+nav {{ display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .25rem; }}
+nav a {{ text-decoration: none; font-size: .8rem; padding: .15rem .7rem; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }}
+nav a:hover {{ border-color: var(--wall); }}
+.now + .now {{ margin-top: 0; }}
+.story {{ gap: .8rem; }}
+.story h3 {{ margin: .6rem 0 0; font-size: 1.05rem; }}
+.story h3:first-of-type {{ margin-top: 0; }}
+.story p, .story ul, .story ol {{ margin: 0; max-width: 48rem; }}
+.story ul, .story ol {{ padding-left: 1.4rem; display: grid; gap: .3rem; }}
+.story code {{ font-size: .85em; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 .3em; }}
+.story td {{ font-size: .9rem; }}
+blockquote {{ margin: 0; max-width: 48rem; }}
+blockquote.game {{ font-family: var(--round); font-weight: 500; font-size: 1.02rem; line-height: 1.9; padding: .8rem 1.1rem; background: var(--bg); border: 2px solid var(--floor); border-radius: 16px; }}
+blockquote.status {{ color: var(--muted); font-size: .85rem; }}
 footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); padding-top: 1rem; }}
 @media (max-width: 40rem) {{ .wide {{ display: none; }} }}
 </style>
@@ -220,13 +285,19 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
 <div class="wrap">
 <header>
   <h1><small>開発ダッシュボード</small>からだのなか だいぼうけん</h1>
-  <p class="now"><b>いま やること（{now_who}）</b><span>{now_what}</span></p>
+  {now}
   <p class="meta">{test_line} ／ 更新 {updated}{rev}</p>
+  <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#stages">ステージ</a><a href="#models">3D モデル</a></nav>
 </header>
 
 <section id="todo">
   <h2>いま やること</h2>
   <div class="card">{todo}</div>
+</section>
+
+<section id="story">
+  <h2>ストーリー案 <span class="chip {story_tone}">{story_state}</span></h2>
+  <div class="card story">{story}</div>
 </section>
 
 <section id="prompts">
@@ -297,6 +368,7 @@ def main() -> None:
     gd = (ROOT / "godot/src/autoload/stage_db.gd").read_text(encoding="utf-8")
     log_path = pathlib.Path(a.test_log) if a.test_log else None
     log = log_path.read_text(encoding="utf-8", errors="replace") if log_path and log_path.is_file() else ""
+    story = (ROOT / "docs/story.md").read_text(encoding="utf-8")
     sec = sections(md)
     data = {
         "phases": first_table(sec[1]),
@@ -313,7 +385,7 @@ def main() -> None:
     updated = datetime.datetime.now(jst).strftime("%Y-%m-%d %H:%M")
     out = pathlib.Path(a.html)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(data, updated, git_rev(), bool(log), lineup), encoding="utf-8")
+    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup), encoding="utf-8")
     print("wrote %s（%s）" % (out, ", ".join("%s %d" % (k, len(v)) for k, v in data.items())))
 
 
