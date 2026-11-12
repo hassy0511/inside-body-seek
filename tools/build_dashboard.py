@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ブックマーク用のダッシュボード（GitHub Pages：https://hassy0511.github.io/inside-body-seek/）を 1 枚の HTML で作る。
 
-元にするもの：docs/dashboard.md の 1〜4・7 章、docs/story.md、godot/src/autoload/stage_db.gd、テストのログ（あれば）。
+元にするもの：docs/dashboard.md の 1〜4・7 章、docs/story.md、godot/src/autoload/episode_db.gd（カルテ）と stage_db.gd（場所）、テストのログ（あれば）。
     python3 tools/build_dashboard.py --html _site/index.html --test-log /tmp/inside-body-seek-test.log
 main に push されると GitHub Actions（.github/workflows/test.yml）がテストのあとに作りなおし、gh-pages ブランチへ出す。
 """
@@ -75,6 +75,32 @@ def stages(gd: str, test_log: str) -> list:
     return sorted(out, key=lambda s: s["順"])
 
 
+def episodes(ep_gd: str, gd: str, test_log: str) -> list:
+    """godot/src/autoload/episode_db.gd から カルテの 表を 作る（書きかたの きまりは その ファイルの 先頭）。"""
+    cleared = {m.group(1): float(m.group(2))
+               for m in re.finditer(r"cleared (\w+) in ([\d.]+)s \(sim\)", test_log)}
+    patients = dict(re.findall(r'"(\w+)": \{"name": "([^"]+)"', ep_gd))
+    place_names = {m.group(1): "%s（%s）" % (m.group(2), m.group(3))
+                   for m in re.finditer(r'"id": "(\w+)", "order": \d+, "name": "([^"]+)", "kanji": "([^"]+)"', gd)}
+    body = ep_gd.split("const EPISODES", 1)[1].split("\n]\n", 1)[0]
+    out = []
+    # 1 話 = 2 タブの「"id": …」から 次の「"id":」まで。場面の 場所は 4 タブの「"place": "…",」
+    for b in re.split(r'\n\t\t"id": ', body)[1:]:
+        b = '"id": ' + b
+        g = lambda key: re.search(r'"%s": "?([^",]*)"?' % key, b).group(1)
+        places = re.findall(r'\n\t\t\t\t"place": "(\w+)"', b)
+        eid = g("id")
+        test = "—"
+        if test_log:
+            test = "OK（%.0f 秒）" % cleared[eid] if eid in cleared else "クリアできず"
+        out.append({
+            "話": int(g("no")), "だいめい": g("title"), "患者": patients.get(g("patient"), g("patient")),
+            "場所": " → ".join(place_names.get(p, p) for p in places), "パターン": g("pattern"),
+            "むずかしさ": "★" * int(g("difficulty")), "自動テスト": test,
+        })
+    return sorted(out, key=lambda e: e["話"])
+
+
 def inline(t: str) -> str:
     t = html.escape(t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
@@ -131,7 +157,7 @@ def git_rev() -> str:
 
 # ---------------------------------------------------------------- 書き出し
 STATUS_COLS = {"状態", "出した日", "確認", "自動テスト"}
-NARROW_HIDE = {"内容", "題", "形", "ミッション", "納品", "組み込み"}
+NARROW_HIDE = {"内容", "題", "形", "ミッション", "納品", "組み込み", "パターン", "場所"}
 
 
 def tone(v: str) -> str:
@@ -154,7 +180,7 @@ def table(rows: list, cols: list) -> str:
         tds = []
         for c in cols:
             v = str(r.get(c, ""))
-            cls = ' class="wide"' if c in NARROW_HIDE else (' class="num"' if c == "順" else "")
+            cls = ' class="wide"' if c in NARROW_HIDE else (' class="num"' if c in ("順", "話") else "")
             if c in STATUS_COLS and v and v != "—":
                 v_html = '<span class="chip %s%s">%s</span>' % (tone(v), " short" if len(v) <= 12 else "", e(v))
             else:
@@ -167,8 +193,11 @@ def table(rows: list, cols: list) -> str:
 def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str) -> str:
     e = html.escape
     st = data["stages"]
+    eps = data["episodes"]
     ok = sum(1 for s in st if s["自動テスト"].startswith("OK"))
-    test_line = ("自動テスト：<b class=\"%s\">%d / %d</b> ステージがクリアまで通る" % ("ok" if ok == len(st) else "bad", ok, len(st))
+    ep_ok = sum(1 for x in eps if x["自動テスト"].startswith("OK"))
+    test_line = ("自動テスト：カルテ <b class=\"%s\">%d / %d</b>、場所 <b class=\"%s\">%d / %d</b> がクリアまで通る"
+                 % ("ok" if ep_ok == len(eps) else "bad", ep_ok, len(eps), "ok" if ok == len(st) else "bad", ok, len(st))
                  if tested else "自動テスト：まだ結果がありません")
     todo = data["todo"]
     nows = [t for t in todo if "いま" in t.get("状態", "")] or todo[:1]
@@ -189,6 +218,8 @@ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup:
         phases=table(data["phases"], ["段階", "内容", "状態"]),
         lineup=lineup,
         art=table(data["art"], ["波", "発注書", "出した日", "納品", "確認", "組み込み"]),
+        episodes=table(eps, ["話", "だいめい", "患者", "場所", "パターン", "むずかしさ", "自動テスト"]),
+        episode_count=len(eps), stage_count=len(st),
         stages=table(st, ["順", "ステージ", "題", "形", "むずかしさ", "ミッション", "自動テスト"]),
         models=table(data["models"], ["種類", "ID（GLB 名）", "状態", "発注書"]),
         repo=REPO_URL,
@@ -287,7 +318,7 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
   <h1><small>開発ダッシュボード</small>からだのなか だいぼうけん</h1>
   {now}
   <p class="meta">{test_line} ／ 更新 {updated}{rev}</p>
-  <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#stages">ステージ</a><a href="#models">3D モデル</a></nav>
+  <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
 </header>
 
 <section id="todo">
@@ -322,9 +353,15 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
   <div class="card">{art}</div>
 </section>
 
+<section id="episodes">
+  <h2>カルテ（{episode_count} 話まで実装）</h2>
+  <p class="note">1 話 = そうだん → よそう → 場所を 1〜3 こ めぐる → カルテ。秒数は、自動操縦が そうだんから カルテまでに かかった ゲームの中の時間。子どもが遊ぶと 1 話 10〜15 分の想定。</p>
+  <div class="card">{episodes}</div>
+</section>
+
 <section id="stages">
-  <h2>ステージ（10）</h2>
-  <p class="note">自動テストの秒数は、自動操縦がクリアまでにかかったゲームの中の時間。子どもが遊ぶと 1 ステージ 3〜6 分の想定。</p>
+  <h2>場所（{stage_count}）</h2>
+  <p class="note">カルテが めぐる 場所（臓器）。ミッションは 場所の 既定で、カルテの 場面が 上書きする。自動テストは 場所だけを 既定の ミッションで 通した 結果。</p>
   <div class="card">{stages}</div>
 </section>
 
@@ -366,6 +403,7 @@ def main() -> None:
     a = ap.parse_args()
     md = (ROOT / "docs/dashboard.md").read_text(encoding="utf-8")
     gd = (ROOT / "godot/src/autoload/stage_db.gd").read_text(encoding="utf-8")
+    ep_gd = (ROOT / "godot/src/autoload/episode_db.gd").read_text(encoding="utf-8")
     log_path = pathlib.Path(a.test_log) if a.test_log else None
     log = log_path.read_text(encoding="utf-8", errors="replace") if log_path and log_path.is_file() else ""
     story = (ROOT / "docs/story.md").read_text(encoding="utf-8")
@@ -376,6 +414,7 @@ def main() -> None:
         "art": first_table(sec[3]),
         "models": first_table(sec[4]),
         "stages": stages(gd, log),
+        "episodes": episodes(ep_gd, gd, log),
         "prompts": prompts(sec[7]),
     }
     for name, rows in data.items():

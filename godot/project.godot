@@ -19,6 +19,7 @@ config/icon="res://assets/icon.svg"
 [autoload]
 
 StageDB="*res://src/autoload/stage_db.gd"
+EpisodeDB="*res://src/autoload/episode_db.gd"
 SaveData="*res://src/autoload/save_data.gd"
 Sfx="*res://src/autoload/sfx.gd"
 Game="*res://src/autoload/game.gd"

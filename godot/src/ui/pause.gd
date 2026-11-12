@@ -1,5 +1,5 @@
 extends Control
-## ポーズ画面。つづける／もういちど／ステージえらびへ、音のおおきさ、タッチそうさ。
+## ポーズ画面。つづける／この ばめんを やりなおす／カルテえらびへ、音のおおきさ、タッチそうさ。
 
 const T := preload("res://src/ui/ui_theme.gd")
 
@@ -23,8 +23,8 @@ func _ready() -> void:
 	panel.anchor_bottom = 0.5
 	panel.offset_left = -260
 	panel.offset_right = 260
-	panel.offset_top = -230
-	panel.offset_bottom = 230
+	panel.offset_top = -245
+	panel.offset_bottom = 245
 	add_child(panel)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 14)
@@ -34,11 +34,13 @@ func _ready() -> void:
 	var b1 := T.button("つづける", 30)
 	b1.pressed.connect(func(): Game.toggle_pause())
 	vb.add_child(b1)
-	var b2 := T.button("さいしょから やりなおす", 26)
+	var b2 := T.button("この ばめんを やりなおす", 26)
 	b2.pressed.connect(func(): get_tree().paused = false; queue_free(); Game.retry_stage())
 	vb.add_child(b2)
-	var b3 := T.button("ステージえらびへ", 26)
-	b3.pressed.connect(func(): get_tree().paused = false; queue_free(); Game.show_stage_select())
+	# おえた 場面が ある カルテは、やめても「つづきから」で もどれる。それを ボタンに 書く（やめるのが こわくない ように）
+	var can_resume: bool = not Game.episode.is_empty() and SaveData.resume().get("ep", "") == Game.episode["id"]
+	var b3 := T.button("カルテえらびへ\n（つづきから できるよ）" if can_resume else "カルテえらびへ", 22 if can_resume else 26)
+	b3.pressed.connect(func(): get_tree().paused = false; queue_free(); Game.show_episode_select())
 	vb.add_child(b3)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 12)

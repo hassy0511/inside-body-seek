@@ -1,10 +1,9 @@
 extends Node
-## ステージ定義（データ駆動）。
+## 場所（臓器）の 定義（データ駆動）。GLB・マーカー・霧の色・ものしりカード・既定の ミッションを 持つ。
+## カルテ（1 話）の 文と、場面ごとの 上書きは EpisodeDB（episode_db.gd）。設計は docs/episodes.md。
 ## 文章は ひらがな・カタカナ中心。臓器名は「い（胃）」のように ひらがな＋漢字。
 ## レベルの形（ゆか・かべ・スポーン位置）は blender/ で生成した GLB 側にある。
-
-const STORY_INTRO := "ともだちの はなちゃんが かぜを ひいて、おなかも いたいんだって。\nミクロごうで ちいさくなって、からだの なかから たすけよう！\nジュースと いっしょに のみこんで もらうよ。……ごくん！"
-const STORY_ENDING := "はなちゃん、すっかり げんきに なった！\n「……ハックション！」\nミクロごうは くしゃみに のって、はなから そとへ とびだした。\nからだの なかの ぼうけん、これで おしまい。また あそんでね！"
+## tools/build_dashboard.py が この ファイルを 正規表現で 読む（STAGES の キーと 書きかたを 変えない）。
 
 const STAGES: Array[Dictionary] = [
 	{
@@ -68,7 +67,7 @@ const STAGES: Array[Dictionary] = [
 		],
 		"cards": {
 			"stage": {"title": "い（胃）", "text": "い（胃）は たべものを ためて、いえき（胃液）で どろどろに とかす ふくろ。\nいえきは とても つよい「さん」。でも い（胃）の かべは ねんえき（粘液）で まもられているから だいじょうぶ。\nたべものは 2〜4じかん ここに いるよ。"},
-			"pylori": {"title": "ピロリきん", "text": "いの かべに すみついて、かべを よわらせる ばいきん。\nらせんの からだで、しっぽ（べんもう）を くるくる まわして およぐよ。"},
+			"pylori": {"title": "ピロリきん", "text": "い（胃）の かべに すみついて、かべを よわらせる ばいきん。\nらせんの からだで、しっぽ（べんもう）を くるくる まわして およぐよ。"},
 			"wallcell": {"title": "い（胃）の かべの さいぼう", "text": "ねんえき（粘液）を だして、い（胃）を じぶんの いえきから まもっている。\nおうえんすると げんきに なるよ！"},
 			"acid": {"title": "いえき（胃液）", "text": "たべものを とかす つよい さん。たべものと いっしょに はいってきた ばいきんも たおす。\nミクロごうは はいらないでね！"},
 		},
@@ -91,7 +90,7 @@ const STAGES: Array[Dictionary] = [
 			{"at": 15.0, "text": "みどりの ぜんだまきんは なかま。むらさきの あくだまきんは おくすりで やっつけよう。"},
 		],
 		"cards": {
-			"stage": {"title": "しょうちょう（小腸）", "text": "しょうちょうは ながーい くだ。のばすと やく 6〜7 m も ある！\nかべには じゅうもう（絨毛）という こまかい ひだが いっぱい。\nここで えいよう（栄養）を きゅうしゅうして、ちに わたすんだ。"},
+			"stage": {"title": "しょうちょう（小腸）", "text": "しょうちょうは ながーい くだ。のばすと やく 6〜7 m も ある！\nかべには じゅうもう（絨毛）という こまかい ひだが いっぱい。\nここで えいよう（栄養）を きゅうしゅうして、ち（血）に わたすんだ。"},
 			"nutrient": {"title": "えいよう（栄養）", "text": "ブドウとう（うごく ちから）、アミノさん（からだを つくる）、ビタミン（からだを ととのえる）。\nどれも からだに ひつような ものだよ。"},
 			"villus": {"title": "じゅうもう（絨毛）", "text": "しょうちょうの かべに ある、ゆびのような ひだ。\nひろげると きょうしつの はんぶんくらい（やく 30 へいほうメートル）の ひろさに なって、えいようを たくさん きゅうしゅうできる。"},
 			"zendama": {"title": "ぜんだまきん", "text": "おなかの なかに すむ いい きん。わるい きんが ふえるのを ふせいでくれる。\nヨーグルトや やさいが だいすき。"},
@@ -254,14 +253,6 @@ func stage_ids() -> Array[String]:
 	return out
 
 
-func next_stage_id(id: String) -> String:
-	var ids := stage_ids()
-	var i := ids.find(id)
-	if i < 0 or i + 1 >= ids.size():
-		return ""
-	return ids[i + 1]
-
-
 func card(stage_id: String, key: String) -> Dictionary:
 	var s := get_stage(stage_id)
 	if s.is_empty():
@@ -272,13 +263,3 @@ func card(stage_id: String, key: String) -> Dictionary:
 
 func kind_name(kind: String) -> String:
 	return KIND_NAMES.get(kind, kind)
-
-
-## ずかん用：全ステージのカードを (stage_id, key, card) の配列で返す
-func all_cards() -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	for s in STAGES:
-		for key in s["cards"].keys():
-			out.append({"stage": s["id"], "key": key, "card": s["cards"][key]})
-		out.append({"stage": s["id"], "key": "summary", "card": s["summary"]})
-	return out

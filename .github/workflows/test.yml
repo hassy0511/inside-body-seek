@@ -17,7 +17,7 @@ jobs:
           curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
           unzip -q godot.zip
           chmod +x Godot_v4.7-stable_linux.x86_64
-      - name: Import, floor probe and autopilot smoke test (all stages)
+      - name: Import, floor probe and autopilot smoke test (all episodes and places)
         run: GODOT="$PWD/Godot_v4.7-stable_linux.x86_64" tools/run_tests.sh
       - name: Upload log
         if: always()

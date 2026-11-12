@@ -1,8 +1,12 @@
 extends Control
-## ずかん：見た ものしりカードを ステージごとに ならべる。
+## ずかん：いちばん 上に カルテの 段（書いた カルテを 読みかえす）、その 下に 場所ごとの ものしりカード。
+## 場所は どれかの カルテで 行く 場所だけを 出す（まだ 行けない 場所の「？？？」で 数を ふくらませない）。
 
 const T := preload("res://src/ui/ui_theme.gd")
 const CardPopup := preload("res://src/ui/card.gd")
+
+var karte_buttons: Dictionary = {}   # ep_id -> Button（テストが 見る）
+var popup: Control = null            # いま 開いている カード（テストが 見る）
 
 
 func _ready() -> void:
@@ -39,9 +43,33 @@ func _ready() -> void:
 	var seen_total := 0
 	var total := 0
 	var first_btn: Button = null
-	for s in StageDB.STAGES:
-		var sid: String = s["id"]
-		vb.add_child(T.label("%d  %s（%s）" % [s["order"], s["name"], s["kanji"]], 28, Color(0.9, 0.35, 0.5)))
+	# 1. カルテの 段（カルテ画面で 紙を 見た 話だけ 開ける）
+	vb.add_child(T.label("カルテ", 28, Color(0.9, 0.35, 0.5)))
+	var kflow := HFlowContainer.new()
+	kflow.add_theme_constant_override("h_separation", 10)
+	kflow.add_theme_constant_override("v_separation", 10)
+	for ep in EpisodeDB.EPISODES:
+		var id: String = ep["id"]
+		var kseen := SaveData.card_seen(id, "karte")
+		total += 1
+		if kseen:
+			seen_total += 1
+		var kb := T.button(("カルテ %d　%s" % [ep["no"], ep["title"]]) if kseen else "？？？", 22)
+		if kseen:
+			T.colored_button(kb, T.CREAM, T.YELLOW)
+			kb.pressed.connect(func(): _open(EpisodeDB.karte_card(ep), "karte", id))
+		else:
+			kb.disabled = true
+			kb.focus_mode = Control.FOCUS_NONE
+		kflow.add_child(kb)
+		karte_buttons[id] = kb
+		if first_btn == null and kseen:
+			first_btn = kb
+	vb.add_child(kflow)
+	# 2. 場所の 段（どれかの カルテで 行く 場所だけ）
+	for sid in EpisodeDB.used_places():
+		var s := StageDB.get_stage(sid)
+		vb.add_child(T.label("%s（%s）" % [s["name"], s["kanji"]], 28, Color(0.9, 0.35, 0.5)))
 		var flow := HFlowContainer.new()
 		flow.add_theme_constant_override("h_separation", 10)
 		flow.add_theme_constant_override("v_separation", 10)
@@ -77,7 +105,9 @@ func _open(card: Dictionary, key: String, sid := "") -> void:
 	var p := CardPopup.new()
 	p.setup(card, key, sid)
 	Game.add_overlay(p)
+	popup = p
 	p.closed.connect(func():
+		popup = null
 		if is_instance_valid(prev):
 			prev.grab_focus())
 

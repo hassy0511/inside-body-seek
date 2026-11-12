@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # ソフトウェアレンダリング（Xvfb + Mesa llvmpipe）でスクリーンショットを撮る。
-#   使い方: GODOT=/path/to/godot tools/screenshot.sh <title|select|zukan|stage_id> <出力.png> [--play=秒] [--frames=N]
+#   使い方: GODOT=/path/to/godot tools/screenshot.sh <なにを> <出力.png> [--play=秒] [--frames=N] [--touch]
+#   <なにを> ＝ title / select / resume / opening / consult:ep03 / guess:ep03 / guess_wrong:ep01 / guess_go:ep01 /
+#               after:ep03:0 / karte:ep03[:1〜3] / ep03:1 / zukan / card / pause / model:pod / 場所の id（mouth など）
+#   くわしくは godot/tests/shot.gd の 先頭。
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="${GODOT:-godot}"

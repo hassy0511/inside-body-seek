@@ -1,9 +1,13 @@
 class_name Level
 extends Node3D
-## ステージ本体。
+## ステージ本体（カルテの 場面 1 つ、または 場所モードの 場所 1 つ）。
 ## 1. GLB（blender/ で生成）を読み、MK_ で始まる Empty をスポーン位置として使う
 ## 2. ミッションを組み立てて進行を見る
 ## 3. はじめて出会ったものの「ものしりカード」を出す
+##
+## Level は カルテ（話）を 知らない。setup() に わたされた stage 辞書だけを 読む：
+## 場所の 辞書（StageDB）か、それに 場面の 上書きを 重ねた もの（EpisodeDB.scene_stage()）。
+## 場面が 上書きできる キー：missions・intro・hints・spawn（skip／swap）・arrow・goal_say・clear_say・flow_speed・bgm など。
 ##
 ## マーカー名のきまり: MK_<種類>_<名前>[_<番号>]
 ##   MK_player            プレイヤーの開始位置
@@ -40,6 +44,11 @@ const GateScript := preload("res://src/entities/valve_gate.gd")
 const NeuronScript := preload("res://src/entities/neuron.gd")
 const LevelPathScript := preload("res://src/level/level_path.gd")
 const MissionScript := preload("res://src/level/mission.gd")
+
+## spawn の ルール（skip／swap）で かえられない マーカーの 種類（EpisodeDB.SPAWN_LOCKED と 同じ）
+const SPAWN_LOCKED := ["player", "goal", "path", "checkpoint"]
+## マーカー名に 種類の ことばが 無い ときの 種類（MK_enemy_1 → mushiba）
+const DEFAULT_KIND := {"enemy": "mushiba", "friend": "zendama", "pickup": "nutrient", "deliver": "villus"}
 
 const SIGN_TEXT := {
 	"ra": "みぎの しんぼう", "rv": "みぎの しんしつ", "la": "ひだりの しんぼう", "lv": "ひだりの しんしつ",
@@ -79,6 +88,7 @@ var _seq_input_started := 0.0
 var _seq_pending := false
 var _spawn_heading := Vector3.FORWARD
 var _sign_font: Font
+var data_warnings: Array[String] = []   # データの まちがい（テストが 失敗に する）
 
 
 func setup(s: Dictionary) -> void:
@@ -99,22 +109,22 @@ func _ready() -> void:
 	_spawn_player()
 
 
+## すぐ 遊びはじめる（場所の カードは クリアの あとに Game が 出す。遊ぶ 前の 文を へらす）
 func begin() -> void:
-	var card: Dictionary = stage["cards"].get("stage", {})
+	started = true
 	var intro: String = stage.get("intro", "")
-	var show_story: bool = stage["order"] == 1 and not SaveData.data.get("story_seen", false)
-	var after_card := func():
-		SaveData.mark_card(stage_id, "stage")
-		started = true
-		if intro != "":
-			Game.say(intro, 9.0)
-	if show_story:
-		SaveData.data["story_seen"] = true
-		SaveData.save()
-		Game.show_card({"title": "はなちゃんを たすけよう！", "text": StageDB.STORY_INTRO}, func():
-			Game.show_card(card, after_card, "stage", stage_id), "intro", "story")
-	else:
-		Game.show_card(card, after_card, "stage", stage_id)
+	if intro != "":
+		say_story(intro, 6.0)
+
+
+## 読む 時間：1 字 0.25 秒（6〜7 さいの 読む はやさ）。base より 短くは しない
+static func read_time(text: String, base: float) -> float:
+	return maxf(base, text.length() * 0.25)
+
+
+## 物語の ひとこと（intro・each_say・done_say・goal_say・clear_say）。長さに 合わせて 出し、出てから 2 秒は ほかの 文に 上書きさせない
+func say_story(text: String, base := 3.0) -> void:
+	Game.say(text, read_time(text, base), 2.0)
 
 
 # ---------------------------------------------------------------- 環境
@@ -226,14 +236,54 @@ func _ensure_collisions(n: Node) -> void:
 
 func _collect_markers() -> void:
 	markers.clear()
+	var rules: Dictionary = stage.get("spawn", {})
+	var used := {}
 	for n in env.find_children("MK_*", "Node3D", true, false):
-		var parts: PackedStringArray = (n.name as String).split("_")
+		(n as Node3D).visible = false
+		var mk_name := _apply_spawn_rules(String(n.name), rules, used)
+		if mk_name == "":
+			continue
+		var parts: PackedStringArray = mk_name.split("_")
 		if parts.size() < 2:
 			continue
 		var kind := String(parts[1])
 		var rest: Array = Array(parts.slice(2))
-		markers.append({"node": n, "kind": kind, "rest": rest, "name": String(n.name), "position": (n as Node3D).global_position, "basis": (n as Node3D).global_transform.basis})
-		(n as Node3D).visible = false
+		markers.append({"node": n, "kind": kind, "rest": rest, "name": mk_name, "position": (n as Node3D).global_position, "basis": (n as Node3D).global_transform.basis})
+	for p in rules.get("skip", []) + rules.get("swap", {}).keys():
+		if not used.has(p):
+			data_warnings.append("%s: spawn の「%s」に 合う マーカーが ない" % [stage_id, p])
+
+
+## 場面の spawn ルールを マーカー名に かける。"" を 返したら その マーカーは 出さない。
+##   "skip": ["enemy_pylori"]                       名前が この 語で 始まる マーカーを 出さない
+##   "swap": {"friend_rbc_2": "friend_wbc"}        種類を 読みかえる（番号は のこる：MK_friend_wbc_2）
+## 合わせかた：「MK_」を 取った 名前が p と 同じ、または p + "_" で 始まる（spawn_rule_matches）。
+## えいようの マーカーは 番号が 2 つ（MK_pickup_nutrient_<しゅるい>_<通し番号>）。"pickup_nutrient_1" は しゅるい 1 の 全部に 合う。
+## player・goal・path・checkpoint は かえられない（SPAWN_LOCKED）。used には 合った ルールを 書きこむ。
+static func _apply_spawn_rules(mk_name: String, rules: Dictionary, used: Dictionary) -> String:
+	var key := mk_name.substr(3)
+	if rules.is_empty() or key.get_slice("_", 0) in SPAWN_LOCKED:
+		return mk_name
+	for p in rules.get("skip", []):
+		if spawn_rule_matches(key, p):
+			used[p] = true
+			return ""
+	var swap: Dictionary = rules.get("swap", {})
+	for p in swap.keys():
+		if spawn_rule_matches(key, p):
+			used[p] = true
+			# 番号は のこす：前方一致なら のこり全部（"_2"）、ぴったり 同じなら さいごの 番号
+			var tail := key.substr(String(p).length())
+			var last := key.get_slice("_", key.get_slice_count("_") - 1)
+			if tail == "" and last.is_valid_int():
+				tail = "_" + last
+			return "MK_" + String(swap[p]) + tail
+	return mk_name
+
+
+## spawn の ルール p が マーカー（「MK_」を 取った 名前 key）に 合うか：同じ、または p + "_" で 始まる
+static func spawn_rule_matches(key: String, p: String) -> bool:
+	return key == p or key.begins_with(p + "_")
 
 
 func _markers_of(kind: String) -> Array[Dictionary]:
@@ -284,9 +334,9 @@ func _spawn_all() -> void:
 				cp.activated.connect(func(c):
 					if not path.is_valid() or path.progress_at(c.global_position) >= path.progress_at(respawn_point):
 						respawn_point = c.global_position
-					Game.say("チェックポイント！ ここから やりなおせるよ。", 2.5))
+					Game.say_soft("チェックポイント！ ここから やりなおせるよ。", 2.5))
 			"enemy":
-				spawn_enemy_at(_kind_and_index(rest, "mushiba")["kind"], pos)
+				spawn_enemy_at(_kind_and_index(rest, DEFAULT_KIND["enemy"])["kind"], pos)
 			"boss":
 				var b := BossScript.new()
 				b.level = self
@@ -295,7 +345,7 @@ func _spawn_all() -> void:
 				b.died.connect(_on_enemy_died)
 				_add_card_point("boss_virus", pos, b)
 			"friend":
-				var fk: String = _kind_and_index(rest, "zendama")["kind"]
+				var fk: String = _kind_and_index(rest, DEFAULT_KIND["friend"])["kind"]
 				var f := FriendScript.create(fk)
 				f.level = self
 				f.position = pos
@@ -303,7 +353,7 @@ func _spawn_all() -> void:
 				f.cheered.connect(_on_friend_cheered)
 				_add_card_point(fk, pos, f)
 			"pickup":
-				var ki := _kind_and_index(rest, "nutrient")
+				var ki := _kind_and_index(rest, DEFAULT_KIND["pickup"])
 				var pk: String = ki["kind"]
 				var idx: int = ki["index"]
 				var p := PickupScript.create(pk, idx)
@@ -313,7 +363,7 @@ func _spawn_all() -> void:
 				p.collected.connect(_on_pickup_collected)
 				_add_card_point(pk, pos, p)
 			"deliver":
-				var dk: String = _kind_and_index(rest, "villus")["kind"]
+				var dk: String = _kind_and_index(rest, DEFAULT_KIND["deliver"])["kind"]
 				var d := DeliverScript.new()
 				d.kind = dk
 				d.level = self
@@ -461,11 +511,44 @@ func _build_missions() -> void:
 		var m := MissionScript.from_dict(d)
 		if m.type == "sequence":
 			m.count = int(d.get("count", 3))
-		m.progressed.connect(func(_m): missions_changed.emit())
+		m.progressed.connect(_on_mission_progressed)
 		m.completed.connect(_on_mission_completed)
 		missions.append(m)
+	_fit_missions()
 	missions_changed.emit()
 	_update_goal_lock()
+
+
+## 出る マーカーの 数（種類 kind、その 中の 種類 sub）。spawn の ルールを かけた あとの markers から 数える。
+## グループからは 数えない：前の Level の ノードは queue_free しても フレームの 終わりまで グループに のこる。
+func _count_markers(kind: String, sub := "") -> int:
+	var n := 0
+	for m in markers:
+		if m["kind"] == kind and (sub == "" or _kind_and_index(m["rest"], DEFAULT_KIND.get(kind, ""))["kind"] == sub):
+			n += 1
+	return n
+
+
+## 出てこない ものを 数える ミッションが あると ゴールが 開かない。出る 数に 合わせ、0 なら 外す。
+## 合わせた ときは data_warnings に 書く（子どもは 詰まらず、テストは 失敗に なる）。
+func _fit_missions() -> void:
+	var keep: Array[Mission] = []
+	for m in missions:
+		var have := m.count
+		match m.type:
+			"defeat": have = _count_markers("enemy", m.target)
+			"boss": have = _count_markers("boss")
+			"cheer": have = _count_markers("friend", m.target)
+			"collect": have = _count_markers("pickup", m.target)
+			"deliver": have = _count_markers("pickup", "nutrient") if _count_markers("deliver") > 0 else 0
+			"gate": have = gates.size()
+			"sequence": have = m.count if neurons.size() >= 2 else 0
+		if have < m.count:
+			data_warnings.append("%s: ミッション「%s」は %d こ いるが、出るのは %d こ" % [stage_id, m.text, m.count, have])
+			m.count = have
+		if m.count > 0 or m.is_reach():
+			keep.append(m)
+	missions = keep
 
 
 func _mission(type: String, target := "") -> Mission:
@@ -475,10 +558,16 @@ func _mission(type: String, target := "") -> Mission:
 	return null
 
 
+func _on_mission_progressed(m: Mission) -> void:
+	missions_changed.emit()
+	if m.current < m.count and m.current >= 1 and m.current <= m.each_say.size():
+		say_story(m.each_say[m.current - 1], 3.0)
+
+
 func _on_mission_completed(m: Mission) -> void:
 	Sfx.play("mission")
 	if not m.is_reach() and not _non_reach_done():
-		Game.say("やったね！「%s」クリア！" % m.text, 3.0)
+		say_story(m.done_say if m.done_say != "" else "やったね！「%s」クリア！" % m.text, 3.5)
 	_update_goal_lock()
 	missions_changed.emit()
 
@@ -495,7 +584,7 @@ func _update_goal_lock() -> void:
 		var was := goal.locked
 		goal.set_locked(not _non_reach_done())
 		if was and not goal.locked and started:
-			Game.say("やったね！ ぜんぶ できた！ きいろい わっかの ゴールへ いこう！", 4.0)
+			say_story(stage.get("goal_say", "やったね！ ぜんぶ できた！ きいろい わっかの ゴールへ いこう！"), 5.0)
 
 
 func remaining_text() -> String:
@@ -527,10 +616,11 @@ func _on_pickup_collected(p: Node) -> void:
 
 
 func _on_delivered(_zone: Node, n: int) -> void:
+	# 先に 言う（m.add() の 中で 出る done_say／goal_say を 上書きしない）
+	Game.say_soft("えいようを とどけた！ からだが げんきに なるよ。", 2.5)
 	var m := _mission("deliver")
 	if m:
 		m.add(n)
-	Game.say("えいようを とどけた！ からだが げんきに なるよ。", 2.5)
 
 
 func _on_gate_passed(_g: Node) -> void:
@@ -562,7 +652,7 @@ func finish() -> void:
 	for e in get_tree().get_nodes_in_group("enemy"):
 		e.set_physics_process(false)
 	Sfx.play("clear")
-	Game.say("ステージクリア！", 3.0)
+	say_story(stage.get("clear_say", "クリア！"), 3.0)
 	var t := create_tween()
 	t.tween_interval(0.2 if Game.testing else 1.6)
 	t.tween_callback(func(): cleared.emit(stage_id, no_damage))
@@ -574,6 +664,10 @@ func respawn_position() -> Vector3:
 
 ## 矢印が指す「いま向かうところ」
 func current_target_position() -> Vector3:
+	if stage.get("arrow", "") == "nearest":
+		var near := _nearest_open_target()
+		if near != Vector3.INF:
+			return near
 	for m in missions:
 		if m.done:
 			continue
@@ -609,6 +703,31 @@ func current_target_position() -> Vector3:
 				if goal:
 					return goal.global_position
 	return Vector3.INF
+
+
+## "arrow": "nearest" の 場面：開いている ミッションの 相手の うち、いちばん 近い ものを 指す
+## （リストの 順だと、あとの ミッションの 相手を 通りすぎてから もどる ことに なる 場面で 使う）
+func _nearest_open_target() -> Vector3:
+	var best := Vector3.INF
+	var bd := INF
+	for m in missions:
+		if m.done:
+			continue
+		var t := Vector3.INF
+		match m.type:
+			"defeat":
+				t = _nearest_in_group("enemy", func(n): return n.get("kind") == m.target and n.get("alive"))
+			"cheer":
+				t = _nearest_in_group("friend", func(n): return n.get("kind") == m.target and not n.get("is_cheered"))
+			"collect":
+				t = _nearest_in_group("pickup", func(n): return n.get("kind") == m.target)
+			"deliver":
+				if player.inventory.size() > 0:
+					t = _nearest_in_group("deliver", func(_n): return true)
+		if t != Vector3.INF and t.distance_to(player.global_position) < bd:
+			bd = t.distance_to(player.global_position)
+			best = t
+	return best
 
 
 func _nearest_in_group(group: String, pred: Callable) -> Vector3:
@@ -650,10 +769,13 @@ func _physics_process(delta: float) -> void:
 	if flow_speed > 0.0 and path.is_valid() and player:
 		player.external_push += path.direction_at(player.global_position) * flow_speed
 	# ヒント
+	if _hints.size() > 0 and missions.size() > 1 and _non_reach_done():
+		_hints.clear()   # やる ことが 全部 おわったら、もう ヒントは 出さない（「さわってね」と 言われて もどって しまう）
 	if _hints.size() > 0 and elapsed >= float(_hints[0]["at"]) and not Game.hud_busy():
 		var h: Dictionary = _hints[0]
 		var on_touch: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
-		Game.say(String(h.get("text_touch", h["text"])) if on_touch else String(h["text"]), 5.0)
+		var ht := String(h.get("text_touch", h["text"])) if on_touch else String(h["text"])
+		Game.say(ht, read_time(ht, 5.0))
 		_hints.remove_at(0)
 	# なみ（しょくどう）
 	if stage_id == "esophagus":

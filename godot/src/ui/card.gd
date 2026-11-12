@@ -1,9 +1,11 @@
 extends Control
 ## ものしりカード。ゲームを止めて 1 枚見せる。「わかった！」で閉じる。
+## card に "karte"（話の id）が あれば、ずかんの カルテ：絵の 列の かわりに カルテの 紙（karte_sheet.gd）を 出す。
 
 signal closed
 
 const T := preload("res://src/ui/ui_theme.gd")
+const Sheet := preload("res://src/ui/karte_sheet.gd")
 
 var _panel: PanelContainer
 var _btn: Button
@@ -23,6 +25,7 @@ func _ready() -> void:
 				_btn.grab_focus())
 
 
+## card は {"title", "text"}（＋ 任意の "tag"：上の 小さい 見出し。無ければ「ものしりカード」）。
 ## image_kind はカードのキー（"stage"、"mushiba" など）。stage_id を渡すと、納品された挿絵
 ## res://assets/ui/cards/card_<stage_id>_<image_kind>.png があれば 3D のプレビューの代わりに出す。
 func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
@@ -58,10 +61,19 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	hb.add_theme_constant_override("separation", 24)
 	margin.add_child(hb)
 
+	# ずかんの カルテ：絵の 列を 出さず、カルテの 紙を 入れる（背が 高いので 枠も 広げる）
+	var is_karte: bool = card.has("karte")
+	if is_karte:
+		_panel.offset_left = -470
+		_panel.offset_right = 470
+		_panel.offset_top = -320
+		_panel.offset_bottom = 320
 	var sid := stage_id if stage_id != "" else Game.current_stage_id
-	var pic: Control = T.art_rect("cards/card_%s_%s" % [sid, image_kind], Vector2(260, 300)) if sid != "" else null
-	if pic == null:
-		pic = _make_picture(image_kind)
+	var pic: Control = null
+	if not is_karte:
+		pic = T.art_rect("cards/card_%s_%s" % [sid, image_kind], Vector2(260, 300)) if sid != "" else null
+		if pic == null:
+			pic = _make_picture(image_kind)
 	if pic:
 		hb.add_child(pic)
 
@@ -69,17 +81,22 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_theme_constant_override("separation", 10)
 	hb.add_child(vb)
-	var tag := T.label("ものしりカード", 18, Color(0.75, 0.5, 0.2))
+	var tag := T.label(card.get("tag", "ものしりカード"), 18, Color(0.75, 0.5, 0.2))
 	vb.add_child(tag)
 	var title_text: String = card.get("title", "")
 	var title := T.label(title_text, 40 if title_text.length() <= 11 else 32, T.INK)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(title)
-	var body := T.label(card.get("text", ""), 25, T.INK)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_font_override("font", Game.font_regular)
-	vb.add_child(body)
+	if is_karte:
+		var sheet := Sheet.build(EpisodeDB.get_episode(card["karte"]))
+		sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		vb.add_child(sheet)
+	else:
+		var body := T.label(card.get("text", ""), 25, T.INK)
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		body.add_theme_font_override("font", Game.font_regular)
+		vb.add_child(body)
 	_btn = T.button("わかった！", 30, 240)
 	_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_btn.pressed.connect(close)
@@ -148,6 +165,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("action") or event.is_action_pressed("ui_accept"):
 		close()
 		get_viewport().set_input_as_handled()
+
+
+## パネルの 高さ（テストが はみ出しを 見る）
+func panel_height() -> float:
+	return maxf(_panel.size.y, _panel.get_combined_minimum_size().y)
+
+
+## 「わかった！」の ボタン（テストが 押す）
+func button() -> Button:
+	return _btn
 
 
 func close() -> void:

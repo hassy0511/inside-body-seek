@@ -11,6 +11,7 @@ var _mission_labels: Array[Label] = []
 var _msg_panel: PanelContainer
 var _msg_label: Label
 var _msg_timer := 0.0
+var _msg_hold := 0.0     # 物語の ひとことが 出てから、ほかの 文に 上書きさせない 残り時間
 var _pocket: Label
 var _stage_label: Label
 var _pause_btn: Button
@@ -109,7 +110,7 @@ func _ready() -> void:
 
 func bind_level(l: Node) -> void:
 	level = l
-	_stage_label.text = "%d  %s（%s）" % [l.stage["order"], l.stage["name"], l.stage["kanji"]]
+	_stage_label.text = "%s（%s）" % [l.stage["name"], l.stage["kanji"]]
 	l.missions_changed.connect(_refresh_missions)
 	l.hearts_changed.connect(func(h): _hearts = h; _heart_box.queue_redraw())
 	_refresh_missions()
@@ -129,6 +130,7 @@ func _refresh_missions() -> void:
 
 
 func _process(delta: float) -> void:
+	_msg_hold = maxf(_msg_hold - delta, 0.0)
 	if _msg_timer > 0.0:
 		_msg_timer -= delta
 		if _msg_timer <= 0.0:
@@ -145,7 +147,12 @@ func is_busy() -> bool:
 	return _msg_panel.visible and _msg_timer > 0.0
 
 
-func say(text: String, seconds := 4.0) -> void:
+## ピコの ひとことを 出す。出せたら true。
+## hold > 0 は 物語の ひとこと：出てから hold 秒は、hold なしの 文（とっさの ひとこと・ヒント）に 上書きさせない。
+func say(text: String, seconds := 4.0, hold := 0.0) -> bool:
+	if hold <= 0.0 and _msg_hold > 0.0 and is_busy():
+		return false
+	_msg_hold = hold
 	_msg_label.text = text
 	_msg_panel.visible = true
 	# タッチ操作のボタンと重ならないように、タッチのときは少し細くする
@@ -157,6 +164,7 @@ func say(text: String, seconds := 4.0) -> void:
 	_msg_panel.pivot_offset = _msg_panel.size * 0.5
 	var t := create_tween()
 	t.tween_property(_msg_panel, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	return true
 
 
 func _draw_hearts() -> void:

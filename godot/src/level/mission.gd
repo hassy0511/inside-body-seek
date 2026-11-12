@@ -10,6 +10,8 @@ var count := 1
 var current := 0
 var text := ""
 var done := false
+var done_say := ""          # この ミッションが おわった ときの ピコの ひとこと（無ければ 決まり文句）
+var each_say: Array = []    # 1 つ すすむ たびの ひとこと（i ばんめ）
 
 
 static func from_dict(d: Dictionary) -> Mission:
@@ -18,6 +20,8 @@ static func from_dict(d: Dictionary) -> Mission:
 	m.target = d.get("target", "")
 	m.count = int(d.get("count", 1))
 	m.text = d.get("text", "")
+	m.done_say = d.get("done_say", "")
+	m.each_say = d.get("each_say", [])
 	return m
 
 

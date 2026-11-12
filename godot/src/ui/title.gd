@@ -47,11 +47,11 @@ func _ready() -> void:
 			add_child(hana)
 			move_child(hana, 0)
 		pv.add_child(T.label("おめでとう！ ぜんぶ クリア！", 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
-		var body := T.label(StageDB.STORY_ENDING, 26)
+		var body := T.label(EpisodeDB.ENDING, 26)
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		body.add_theme_font_override("font", Game.font_regular)
 		pv.add_child(body)
-		pv.add_child(T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), StageDB.STAGES.size() * 3], 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
+		pv.add_child(T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), EpisodeDB.EPISODES.size() * 3], 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
 		vb.add_child(p)
 		var back := T.button("タイトルへ", 30)
 		back.pressed.connect(func(): Game.show_title())
@@ -81,7 +81,7 @@ func _ready() -> void:
 
 	var start := T.button("はじめる", 36, 320)
 	start.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	start.pressed.connect(func(): Sfx.play("click"); Game.show_stage_select())
+	start.pressed.connect(func(): Sfx.play("click"); Game.show_episode_select())
 	vb.add_child(start)
 	var zukan := T.button("ずかん", 30, 320)
 	zukan.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -101,7 +101,7 @@ func _ready() -> void:
 	reset.pressed.connect(_confirm_reset)
 	hb.add_child(reset)
 	vb.add_child(hb)
-	var stars := T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), StageDB.STAGES.size() * 3], 22, Color(0.75, 0.55, 0.2), HORIZONTAL_ALIGNMENT_CENTER)
+	var stars := T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), EpisodeDB.EPISODES.size() * 3], 22, Color(0.75, 0.55, 0.2), HORIZONTAL_ALIGNMENT_CENTER)
 	if _keyvisual:
 		stars.add_theme_color_override("font_color", Color(1.0, 0.92, 0.6))
 		stars.add_theme_color_override("font_outline_color", Color(0.3, 0.15, 0.25))
