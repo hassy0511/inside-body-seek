@@ -55,10 +55,25 @@ func make_stage(bg: Color, box := Vector2(1180, 640)) -> Control:
 	return c
 
 
+## 画面の 上の 見出し（中央。40 px）
+func add_heading(text: String) -> Label:
+	var head := T.label(text, 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	head.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	head.anchor_left = 0.5
+	head.anchor_right = 0.5
+	head.offset_left = -360
+	head.offset_right = 360
+	head.offset_top = 14
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(head)
+	return head
+
+
 ## 左上の「← もどる」（ui_cancel と 同じ はたらきを on_back に わたす）
 func add_back_button(on_back: Callable) -> Button:
 	var b := T.button("← もどる", 24)
-	b.position = Vector2(24, 20)
+	b.position = Vector2(24, 16)
+	b.custom_minimum_size = Vector2(150, 60)
 	b.pressed.connect(func():
 		if not locked():
 			Sfx.play("click")
@@ -67,8 +82,8 @@ func add_back_button(on_back: Callable) -> Button:
 	return b
 
 
-## 文が 幅 width・大きさ font_size で 何行に なるか（本物の フォントで はかる。テストが 使う）
+## 文が 幅 width・大きさ font_size で 何行に なるか（本物の フォントで、画面と 同じ 折りかたで はかる。テストが 使う）
 static func lines_of(text: String, font_size: int, width: float) -> int:
 	var f: Font = Game.font_regular
-	var h := f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, width, font_size).y
+	var h := f.get_multiline_string_size(T.nobreak(text), HORIZONTAL_ALIGNMENT_LEFT, width, font_size).y
 	return int(ceil(h / f.get_height(font_size) - 0.01))

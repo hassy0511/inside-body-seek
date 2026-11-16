@@ -82,20 +82,35 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	vb.add_theme_constant_override("separation", 10)
 	hb.add_child(vb)
 	var tag := T.label(card.get("tag", "ものしりカード"), 18, Color(0.75, 0.5, 0.2))
-	vb.add_child(tag)
 	var title_text: String = card.get("title", "")
-	var title := T.label(title_text, 40 if title_text.length() <= 11 else 32, T.INK)
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vb.add_child(title)
+	var title := T.body(title_text, 40 if title_text.length() <= 11 else 32, T.INK, false)
 	if is_karte:
-		var sheet := Sheet.build(EpisodeDB.get_episode(card["karte"]))
+		# カルテの あたま：左に 番号と だいめい、右に 患者の 名前と げんきに なった 顔
+		var ep := EpisodeDB.get_episode(card["karte"])
+		var who: Dictionary = EpisodeDB.speaker(ep["patient"])
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", 12)
+		var tv := VBoxContainer.new()
+		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tv.add_theme_constant_override("separation", 0)
+		tv.add_child(tag)
+		tv.add_child(title)
+		top.add_child(tv)
+		var who_name := T.label(who["name"], 20, (who["color"] as Color).darkened(0.45))
+		who_name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		top.add_child(who_name)
+		var face := T.portrait(ep["patient"], "happy", Vector2(64, 64), who["color"])
+		face.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		top.add_child(face)
+		vb.add_child(top)
+		var sheet := Sheet.build(ep)
 		sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		vb.add_child(sheet)
 	else:
-		var body := T.label(card.get("text", ""), 25, T.INK)
-		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vb.add_child(tag)
+		vb.add_child(title)
+		var body := T.body(card.get("text", ""), 25)
 		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		body.add_theme_font_override("font", Game.font_regular)
 		vb.add_child(body)
 	_btn = T.button("わかった！", 30, 240)
 	_btn.size_flags_horizontal = Control.SIZE_SHRINK_END

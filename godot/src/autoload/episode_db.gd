@@ -350,6 +350,7 @@ static func _is_kana(u: int) -> bool:
 ## 文の きまりの 検査（文の まちがいを 文の 配列で 返す。空なら OK）。テストは 画面に 出た 文にも 使う
 static func text_problems(text: String) -> Array[String]:
 	var out: Array[String] = []
+	text = text.replace("\u2060", "")   # 画面の 文には 行の 折りかた用の 見えない しるし（ui_theme.gd の nobreak）が 入って いる
 	var k := kanji_outside_paren(text)
 	if k != "":
 		out.append("（ ）の 外に 漢字「%s」" % k)

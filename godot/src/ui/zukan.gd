@@ -29,17 +29,23 @@ func _ready() -> void:
 	add_child(head)
 	var sc := ScrollContainer.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sc.offset_top = 90
-	sc.offset_left = 40
-	sc.offset_right = -40
+	sc.offset_top = 82
+	sc.offset_left = 32
+	sc.offset_right = -32
 	sc.offset_bottom = -20
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	sc.follow_focus = true
 	add_child(sc)
+	# まわりに すきま（フォーカスの わくが スクロールの ふちで 切れない ように）
+	var pad := MarginContainer.new()
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 8)
+	sc.add_child(pad)
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_theme_constant_override("separation", 12)
-	sc.add_child(vb)
+	pad.add_child(vb)
 	var seen_total := 0
 	var total := 0
 	var first_btn: Button = null

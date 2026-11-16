@@ -23,6 +23,7 @@ const KarteScreen := preload("res://src/ui/karte.gd")
 const TitleScreen := preload("res://src/ui/title.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
 const KarteSheet := preload("res://src/ui/karte_sheet.gd")
+const T := preload("res://src/ui/ui_theme.gd")
 
 var _failures: Array[String] = []
 var _log: Array[String] = []
@@ -55,13 +56,19 @@ func _ready() -> void:
 		args_ok = false
 		_fail("--episode=%s: そんな カルテは ない（%s）" % [_only_ep, ", ".join(PackedStringArray(EpisodeDB.ids()))])
 	SaveData.use_path("user://save_test.json")
+	# 画面を いちばん せまい 形（1280×720）に する。ヘッドレスの 窓は 64×64 で、そのままだと
+	# 「expand」の 設定で 1280×1280 に 広がり、たての はみ出しが 見えない
+	get_window().content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	var main = load("res://src/main.tscn").instantiate()
 	add_child(main)
 	await get_tree().process_frame
+	if get_viewport().get_visible_rect().size != Vector2(1280, 720):
+		_fail("テストの 画面が 1280×720 で ない（%s）" % get_viewport().get_visible_rect().size)
 	_check_scripts()
 	_check_data()
 	_check_spawn_rules()
 	await _check_sheets()
+	_check_portraits()
 	_check_save()
 	SaveData.reset()
 	SaveData.set_setting("volume", 0.0)
@@ -226,19 +233,54 @@ func _check_spawn_rules() -> void:
 		_fail("spawn rules: ルールが 無い とき 名前が 変わった")
 
 
-## カルテの 紙が 入るか（カルテ画面と ずかんの ポップアップが 同じ 紙を 使う）
+## カルテの 紙が 入るか（カルテ画面と ずかんの ポップアップが 同じ 紙を 使う）。
+## 挿絵（cards/card_<ep>_karte.png）が 届いた ときの 形（文の 幅が せまく なる）も 先に はかる
 func _check_sheets() -> void:
 	for ep in EpisodeDB.EPISODES:
-		var sh := KarteSheet.build(ep)
-		sh.theme = Game.theme
-		add_child(sh)
-		await get_tree().process_frame
-		await get_tree().process_frame
-		var h := sh.get_combined_minimum_size().y
-		_info("karte sheet %s: %.0f px" % [ep["id"], h])
-		if h > KarteSheet.MAX_HEIGHT:
-			_fail("%s: カルテの 紙が 高すぎる（%.0f px。%.0f まで）" % [ep["id"], h, KarteSheet.MAX_HEIGHT])
-		sh.queue_free()
+		var hs: Array[float] = []
+		for with_pic in [false, true]:
+			var sh := KarteSheet.build(ep, with_pic)
+			sh.theme = Game.theme
+			add_child(sh)
+			await get_tree().process_frame
+			await get_tree().process_frame
+			hs.append(sh.get_combined_minimum_size().y)
+			if hs[-1] > KarteSheet.MAX_HEIGHT:
+				_fail("%s: カルテの 紙が 高すぎる（%.0f px。%.0f まで。挿絵 %s）" % [ep["id"], hs[-1], KarteSheet.MAX_HEIGHT, "あり" if with_pic else "なし"])
+			sh.queue_free()
+		_info("karte sheet %s: %.0f px (with picture %.0f px)" % [ep["id"], hs[0], hs[1]])
+
+
+## 人物の 絵の 口（T.portrait）：絵が ある 人は 絵、無い 人は コードで 描く 仮の 顔。どちらも 言われた 大きさで 返る。
+## 1〜3 話で 両方の 道を 通る こと（はなちゃん・ピコ ＝ 絵、絵の 無い 患者 ＝ 仮の 顔）も 見る
+func _check_portraits() -> void:
+	var with_art := 0
+	var drawn := 0
+	var whos: Array = EpisodeDB.PATIENTS.keys() + ["pico"]
+	for who in whos:
+		var col: Color = EpisodeDB.speaker(who)["color"]
+		for mood in ["sick", "happy", "normal"]:
+			for full in [false, true]:
+				var size := Vector2(300, 400) if full else Vector2(76, 76)
+				var c := T.portrait(who, mood, size, col, full)
+				if c == null or c.custom_minimum_size != size:
+					_fail("portrait: %s %s の 大きさが ちがう" % [who, mood])
+				elif (c is TextureRect) != (T.has_portrait_art(who, mood) or who == "pico" or (full and T.art("%s_fullbody_%s" % [who, mood]) != null)):
+					_fail("portrait: %s %s の 絵の えらびかたが ちがう" % [who, mood])
+				if c != null:
+					c.free()
+	for ep in EpisodeDB.EPISODES:
+		for mood in ["sick", "happy"]:
+			if T.has_portrait_art(ep["patient"], mood):
+				with_art += 1
+			else:
+				drawn += 1
+	if with_art == 0 or drawn == 0:
+		_info("portrait: 1〜3 話が 絵と 仮の 顔の 片方しか 通らない（絵 %d・仮 %d）" % [with_art, drawn])
+	# ことばの 途中で 折らない しるしは、文の 検査には 見えない（画面の 文も データと 同じ きまりで 調べられる）
+	var sample := "い（胃）の かべに ピロリきんが いるよ。"
+	if T.nobreak(sample).replace(T.WJ, "") != sample or not EpisodeDB.text_problems(T.nobreak(sample)).is_empty() or EpisodeDB.text_problems(T.nobreak("いが いたい")).is_empty():
+		_fail("nobreak: 文の 検査が 折りかえしの しるしで くるう")
 
 
 # ---------------------------------------------------------------- 3. セーブ
@@ -333,11 +375,37 @@ func _check_texts(root: Control, where: String) -> void:
 				_fail("%s: 画面の 文「%s」: %s" % [where, n.text, p])
 
 
+## root の 下の、見えている ラベルと ボタンが 画面（1280×720）の 中に あり、文が 切れて いないか。
+## ボタンは 指で 押せる 大きさ（高さ 56 px 以上）か。スクロールの 中は 見ない（外に 出て いて よい）
+func _check_layout(root: Control, where: String) -> void:
+	var view := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size).grow(1.0)
+	for n in root.find_children("*", "Control", true, false):
+		if not (n is Label or n is BaseButton) or not n.is_visible_in_tree():
+			continue
+		var in_scroll := false
+		var p: Node = n.get_parent()
+		while p != null and p != root:
+			if p is ScrollContainer:
+				in_scroll = true
+			p = p.get_parent()
+		if in_scroll:
+			continue
+		var what: String = String(n.text).replace(T.WJ, "").left(16) if n.text != "" else String(n.name)
+		var r: Rect2 = n.get_global_rect()
+		if not view.encloses(r):
+			_fail("%s: 「%s」が 画面の 外に 出て いる（%s）" % [where, what, r])
+		if n is Label and n.autowrap_mode != TextServer.AUTOWRAP_OFF and n.get_visible_line_count() < n.get_line_count():
+			_fail("%s: 「%s」の 文が 切れて いる（%d 行の うち %d 行だけ）" % [where, what, n.get_line_count(), n.get_visible_line_count()])
+		if n is Button and not n.disabled and n.size.y < 56.0:
+			_fail("%s: ボタン「%s」が 小さい（高さ %.0f px）" % [where, what, n.size.y])
+
+
 ## 画面の 文と、はみ出し（fits() が ある 画面）を 調べる
 func _check_screen(scr: Control, where: String) -> void:
 	_check_texts(scr, where)
+	_check_layout(scr, where)
 	if scr.has_method("fits") and not scr.fits():
-		_fail("%s: 中身が 箱から はみ出して いる" % where)
+		_fail("%s: 中身が 箱から はみ出して いる%s" % [where, ("：" + scr.overflow()) if scr.has_method("overflow") else ""])
 
 
 ## HUD に 文が 出た：場面ごとに ためる。カルテの 場面では 文の きまりも 見る（Level や てきの 決まり文句も）
@@ -535,6 +603,7 @@ func _check_title() -> void:
 		_fail("title: タイトルの ボタンに フォーカスが ない")
 		return
 	_check_texts(scr, "title")
+	_check_layout(scr, "title")
 	(fo as Button).pressed.emit()
 	await get_tree().process_frame
 	if not (Game.screen() is SelectScreen):
@@ -642,6 +711,7 @@ func _check_resume() -> void:
 	var quit: Button = null
 	if pm != null:
 		_check_texts(pm, "pause")
+		_check_layout(pm, "pause")
 		for b in pm.find_children("*", "Button", true, false):
 			if b.text.begins_with("カルテえらびへ"):
 				quit = b
@@ -690,6 +760,7 @@ func _check_zukan() -> void:
 		_fail("zukan: 画面が 出ない")
 		return
 	_check_texts(scr, "zukan")
+	_check_layout(scr, "zukan")
 	var first := true
 	for id in EpisodeDB.ids():
 		if not SaveData.card_seen(id, "karte"):
@@ -714,6 +785,7 @@ func _check_zukan() -> void:
 		if get_viewport().gui_get_focus_owner() != scr.popup.button():
 			_fail("zukan: カードの ボタンに フォーカスが ない")
 		_check_texts(scr.popup, "zukan card " + id)
+		_check_layout(scr.popup, "zukan card " + id)
 		scr.popup.button().pressed.emit()
 		t = 0.0
 		while t < 5.0 and scr.popup != null:

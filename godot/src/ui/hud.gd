@@ -89,12 +89,7 @@ func _ready() -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 16)
 	# 納品された顔（ui/pico_face_normal.png）があれば それ、なければ コードで描く仮の顔
-	var face: Control = T.art_rect("pico_face_normal", Vector2(90, 90))
-	if face == null:
-		face = Control.new()
-		face.custom_minimum_size = Vector2(90, 90)
-		face.draw.connect(func(): _draw_pico(face))
-	hb.add_child(face)
+	hb.add_child(T.portrait("pico", "normal", Vector2(90, 90), EpisodeDB.PICO["color"]))
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(T.label("ドクター・ピコ", 18, Color(0.3, 0.5, 0.7)))
@@ -123,8 +118,7 @@ func _refresh_missions() -> void:
 	if level == null:
 		return
 	for m in level.missions:
-		var l := T.label(("● " if m.done else "○ ") + m.label(), 24, Color(0.45, 0.7, 0.5) if m.done else T.INK)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var l := T.body(("● " if m.done else "○ ") + m.label(), 24, Color(0.45, 0.7, 0.5) if m.done else T.INK, false)
 		_mission_box.add_child(l)
 		_mission_labels.append(l)
 
@@ -153,7 +147,7 @@ func say(text: String, seconds := 4.0, hold := 0.0) -> bool:
 	if hold <= 0.0 and _msg_hold > 0.0 and is_busy():
 		return false
 	_msg_hold = hold
-	_msg_label.text = text
+	_msg_label.text = T.nobreak(text)   # ことばの 途中で 折らない
 	_msg_panel.visible = true
 	# タッチ操作のボタンと重ならないように、タッチのときは少し細くする
 	var touch_on: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
@@ -173,16 +167,3 @@ func _draw_hearts() -> void:
 		var col := Color(1.0, 0.35, 0.45) if i < _hearts else Color(0.85, 0.8, 0.82, 0.7)
 		T.draw_heart(_heart_box, c + Vector2(2, 3), 22, Color(0, 0, 0, 0.12))
 		T.draw_heart(_heart_box, c, 22, col)
-
-
-static func _draw_pico(ci: Control) -> void:
-	var c := Vector2(45, 48)
-	ci.draw_circle(c + Vector2(0, 2), 36, Color(0.3, 0.45, 0.6, 0.25))
-	ci.draw_circle(c, 34, Color(0.75, 0.92, 1.0))
-	ci.draw_line(c + Vector2(0, -34), c + Vector2(0, -46), Color(0.3, 0.45, 0.6), 4)
-	ci.draw_circle(c + Vector2(0, -48), 6, Color(1.0, 0.8, 0.3))
-	ci.draw_circle(c + Vector2(-12, -4), 6, Color(0.2, 0.2, 0.3))
-	ci.draw_circle(c + Vector2(12, -4), 6, Color(0.2, 0.2, 0.3))
-	ci.draw_circle(c + Vector2(-10, -6), 2, Color.WHITE)
-	ci.draw_circle(c + Vector2(14, -6), 2, Color.WHITE)
-	ci.draw_arc(c + Vector2(0, 8), 10, 0.2, PI - 0.2, 12, Color(0.2, 0.2, 0.3), 3)
