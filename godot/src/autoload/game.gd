@@ -196,6 +196,7 @@ func review_karte(ep_id: String) -> void:
 
 
 ## フェーズに 入る（切りかえは ここ 1 か所）。データが 無い フェーズは 自分で 次へ 進む。
+## 画面の finished は 1 回だけ 受ける（同じ フレームに 2 回 押されても、場面を とばさない）。
 ## back は よそうから そうだんへ もどる とき（そうだんの さいごの ページを 出す）
 func _enter(p: String, back := false) -> void:
 	phase = p
@@ -214,7 +215,7 @@ func _enter(p: String, back := false) -> void:
 				if opening:
 					SaveData.data["opening_seen"] = true   # 読みおわってから 既読に（とちゅうで もどった 子には もう一度 出す）
 					SaveData.save()
-				_enter("guess"))
+				_enter("guess"), CONNECT_ONE_SHOT)
 			t.cancelled.connect(show_episode_select)
 			_set_screen(t)
 		"guess":
@@ -225,7 +226,7 @@ func _enter(p: String, back := false) -> void:
 			g.setup(episode)
 			g.finished.connect(func(first: String):
 				first_guess = first
-				_enter("scene"))
+				_enter("scene"), CONNECT_ONE_SHOT)
 			g.cancelled.connect(func(): _enter("consult", true))   # もどる ＝ そうだんの さいごの ページへ
 			_set_screen(g)
 		"scene":
@@ -240,7 +241,7 @@ func _enter(p: String, back := false) -> void:
 			var last: bool = scene_index + 1 >= episode["scenes"].size()
 			var t := TalkScreen.new()
 			t.setup(after_lines, {"mood": "sick", "banner": a.get("banner", ""), "last_label": "つぎへ ▶" if last else "つぎへ いこう ▶"})
-			t.finished.connect(_after_done)
+			t.finished.connect(_after_done, CONNECT_ONE_SHOT)
 			_set_screen(t)
 		"karte":
 			unload_level()
@@ -251,7 +252,7 @@ func _enter(p: String, back := false) -> void:
 			var k := KarteScreen.new()
 			k.setup(episode, {"guess_hit": EpisodeDB.guess_is_hit(episode, first_guess), "review": _review})
 			k.answered.connect(func(correct: bool): SaveData.record_quiz(id, correct))
-			k.finished.connect(_on_karte_finished)
+			k.finished.connect(_on_karte_finished, CONNECT_ONE_SHOT)
 			_set_screen(k)
 		_:
 			push_error("unknown phase: %s" % p)

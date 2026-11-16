@@ -276,6 +276,8 @@ func select_line(ep: Dictionary) -> Dictionary:
 	for l in ep["consult"]:
 		if l["who"] == ep["patient"]:
 			return l
+	if ep["consult"].is_empty():   # データの まちがい（validate() が 止める）。それでも カルテえらびは 開く
+		return {"who": ep["patient"], "text": ""}
 	return ep["consult"][0]
 
 
@@ -399,6 +401,8 @@ func validate() -> Array[String]:
 		_check_text(bad, "PATTERNS %s msg" % p, PATTERNS[p]["msg"], 30)
 	# カルテで 行く 場所の ものしりカードと まとめも、同じ 文の きまりで 見る（子どもが 読むので）
 	for pid in used_places():
+		if not StageDB.stage_ids().has(pid):
+			continue   # 名前の まちがいは、下の 場面の しらべが「StageDB に ない」と 知らせる
 		var st := StageDB.get_stage(pid)
 		var cards: Dictionary = st["cards"].duplicate()
 		cards["summary"] = st["summary"]
