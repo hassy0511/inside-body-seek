@@ -14,3 +14,5 @@ Thumbs.db
 # Claude Code のワークツリー・個人設定（.claude/skills/ はコミットする）
 .claude/worktrees/
 .claude/settings.local.json
+# CI が 作る ページ（ダッシュボードと ブラウザで 遊べる 版）
+_site/

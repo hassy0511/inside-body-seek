@@ -9,6 +9,7 @@ import argparse
 import base64
 import datetime
 import html
+import os
 import pathlib
 import re
 import subprocess
@@ -192,7 +193,7 @@ def table(rows: list, cols: list) -> str:
     return '<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (head, "".join(body))
 
 
-def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str) -> str:
+def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str, play: str = "") -> str:
     e = html.escape
     st = data["stages"]
     eps = data["episodes"]
@@ -211,9 +212,13 @@ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup:
         '<button type="button" class="copy" data-i="%d">コピー</button></div><pre id="p%d">%s</pre></article>'
         % (e(p["題"]), i, i, e(p["文"])) for i, p in enumerate(data["prompts"]))
     rev_html = ' ／ <a href="%s/commit/%s">%s</a>' % (REPO_URL, e(rev), e(rev)) if rev else ""
+    # ブラウザで 遊べる 版（play は このページから 見た 相対パス。書き出して いない ときは 出さない）
+    play_html = ('<p class="play"><a class="playbtn" href="%s">▶ ブラウザで あそんで たしかめる</a>'
+                 '<span>いまの main の ゲームが そのまま 動きます（絵と 3D モデルは 仮）。キーボード：やじるしキーで うごく・スペースで 決定と アクション。'
+                 'スマホ・タブレットは よこむきで、画面の ボタンで 操作。さいしょの 読みこみは 50 MB ほど。</span></p>' % e(play)) if play else ""
     return TEMPLATE.format(
         updated=e(updated), rev=rev_html, test_line=test_line,
-        now=now_html,
+        now=now_html, play=play_html,
         story=md_html(story), story_state=e(story_state), story_tone="now" if "待ち" in story_state else "ok",
         todo=table(todo, ["やること", "だれ", "状態"]),
         prompts=cards,
@@ -263,6 +268,11 @@ h1 {{ margin: 0; font-family: var(--round); font-weight: 800; font-size: clamp(1
 h1 small {{ display: block; font-size: .9rem; font-weight: 500; color: var(--muted); letter-spacing: .04em; }}
 .now {{ margin: .25rem 0 0; padding: .75rem 1rem; background: var(--now-bg); color: var(--fg); border-radius: 12px; display: flex; gap: .75rem; align-items: baseline; flex-wrap: wrap; }}
 .now b {{ font-family: var(--round); color: var(--now); white-space: nowrap; }}
+.play {{ margin: .25rem 0 0; display: flex; gap: .6rem 1rem; align-items: center; flex-wrap: wrap; }}
+.play span {{ flex: 1 1 18rem; color: var(--muted); font-size: .85rem; }}
+a.playbtn {{ flex: none; font-family: var(--round); font-weight: 800; font-size: 1.1rem; color: #3a3340; background: var(--yellow); text-decoration: none; border-radius: 999px; padding: .6rem 1.4rem; }}
+a.playbtn:hover {{ filter: brightness(1.05); }}
+a.playbtn:focus-visible {{ outline: 2px solid var(--fg); outline-offset: 2px; }}
 .meta {{ margin: 0; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }}
 .meta b.ok {{ color: var(--ok); }} .meta b.bad {{ color: var(--bad); }}
 a {{ color: inherit; }}
@@ -318,6 +328,7 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
 <div class="wrap">
 <header>
   <h1><small>開発ダッシュボード</small>からだのなか だいぼうけん</h1>
+  {play}
   {now}
   <p class="meta">{test_line} ／ 更新 {updated}{rev}</p>
   <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
@@ -402,6 +413,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--html", required=True, help="書き出す HTML のパス")
     ap.add_argument("--test-log", default="", help="tools/run_tests.sh の LOG（無ければ自動テストの列は —）")
+    ap.add_argument("--play-dir", default="", help="tools/export_web.sh の 出力フォルダ（index.html が あれば「あそんで たしかめる」の ボタンを 出す）")
     a = ap.parse_args()
     md = (ROOT / "docs/dashboard.md").read_text(encoding="utf-8")
     gd = (ROOT / "godot/src/autoload/stage_db.gd").read_text(encoding="utf-8")
@@ -426,7 +438,10 @@ def main() -> None:
     updated = datetime.datetime.now(jst).strftime("%Y-%m-%d %H:%M")
     out = pathlib.Path(a.html)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup), encoding="utf-8")
+    play = ""
+    if a.play_dir and (pathlib.Path(a.play_dir) / "index.html").is_file():
+        play = os.path.relpath(pathlib.Path(a.play_dir).resolve(), out.parent.resolve()).replace(os.sep, "/") + "/"
+    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup, play), encoding="utf-8")
     print("wrote %s（%s）" % (out, ", ".join("%s %d" % (k, len(v)) for k, v in data.items())))
 
 
