@@ -5,6 +5,7 @@ extends Node
 ## 書きかたの きまり（tools/build_dashboard.py が 正規表現で 読む）：
 ## - 各話の 1 行目は「\t\t"id": "epNN", "no": N, "title": "…", "patient": "…", "pattern": "…", "difficulty": N,」
 ## - 場面は 4 タブで「"place": "<場所 id>",」を 1 行に 単独で 書く（よそうの choices は「{"place": …}」と 波かっこから 始める）
+## - PATIENTS と PATTERNS は「"キー": {"name": "…"」の 形で 1 行に 書く（患者の 名前と、げんいんの タイプの 名前を 読む）
 ## - 文は ひらがな・カタカナ・わかち書き。漢字は「い（胃）」の ように（ ）の 中だけ（validate() が 調べる）
 ## - 大事な 種あかしは HUD（intro・goal_say など。時間で 消える）に 書かない。after（ボタンで 進む）と karte に 書く
 

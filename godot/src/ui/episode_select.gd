@@ -23,7 +23,7 @@ var _right: VBoxContainer
 
 func _ready() -> void:
 	var box := make_stage(Color(0.93, 0.95, 1.0))
-	add_back_button(Game.show_title)
+	var back := add_back_button(Game.show_title)
 	add_heading("きょうの カルテ")
 
 	# 左：カルテの 行（話が ふえても スクロールで 入る）
@@ -43,6 +43,14 @@ func _ready() -> void:
 	pad.add_child(list)
 	for ep in EpisodeDB.EPISODES:
 		list.add_child(_make_row(ep))
+	# 行の ひだりは 行の まま（まかせると 左上の「もどる」に とんで、もどる ときに えらんだ 話が 変わる）。
+	# いちばん 上の 行の うえ ＝「もどる」、「もどる」の した ＝ いちばん 上の 行
+	var first_row: Button = rows[EpisodeDB.ids()[0]]
+	for id in rows.keys():
+		rows[id].focus_neighbor_left = NodePath(".")
+	first_row.focus_neighbor_top = first_row.get_path_to(back)
+	back.focus_neighbor_bottom = back.get_path_to(first_row)
+	back.focus_neighbor_right = back.get_path_to(first_row)
 	if not EpisodeDB.SEASON_COMPLETE:
 		list.add_child(T.label("つづきの カルテは じゅんびちゅう！", 22, T.GREY))
 	# 左下：あつめた ほしの 数
@@ -214,7 +222,11 @@ func _select(id: String, go_to_start: bool) -> void:
 	bubble.add_theme_stylebox_override("panel", T.rounded(Color.WHITE, 22, 4, EpisodeDB.speaker(line["who"])["color"]))
 	bubble.add_child(T.body(line["text"], 22))
 	_right.add_child(bubble)
-	# むずかしさと ほし（1 行に ならべる）
+	# むずかしさと ほし（1 行に ならべる）。上と 下に のびる すきまを 入れて、あいた 所の まん中に 置く
+	# （ボタンが 少ない 話で、下だけ 大きく 空かない ように）
+	var sp0 := Control.new()
+	sp0.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_right.add_child(sp0)
 	var info := HBoxContainer.new()
 	info.add_theme_constant_override("separation", 20)
 	var diff := T.label("むずかしさ： " + DIFFICULTY[clampi(int(ep["difficulty"]), 1, 3)], 22)
@@ -251,10 +263,24 @@ func _select(id: String, go_to_start: bool) -> void:
 		_right.add_child(sub)
 	else:
 		sub.free()   # 使わなかった 入れ物を のこさない
-	# ゲームパッド：行 → みぎ で 主ボタン、主ボタン → ひだり で えらんだ 行
+	# ゲームパッド：行 → みぎ で 主ボタン、主ボタン → ひだり で えらんだ 行、主ボタン → した で 小さい ボタン。
+	# となりを 自分で 決める（まかせると「クイズに もういちど」の ひだりが 主ボタンに なり、「さいしょから」に 行けない）
 	main_btn.focus_neighbor_left = main_btn.get_path_to(rows[id])
+	main_btn.focus_neighbor_top = NodePath(".")
+	main_btn.focus_neighbor_right = NodePath(".")
 	for k in rows.keys():
 		rows[k].focus_neighbor_right = rows[k].get_path_to(main_btn)
+	var subs: Array[Button] = []
+	for b in [restart_btn, quiz_btn]:
+		if b != null:
+			subs.append(b)
+	for i in subs.size():
+		var b := subs[i]
+		b.focus_neighbor_top = b.get_path_to(main_btn)
+		b.focus_neighbor_bottom = NodePath(".")
+		b.focus_neighbor_left = b.get_path_to(subs[i - 1] if i > 0 else rows[id])
+		b.focus_neighbor_right = b.get_path_to(subs[i + 1]) if i + 1 < subs.size() else NodePath(".")
+	main_btn.focus_neighbor_bottom = main_btn.get_path_to(subs[0]) if not subs.is_empty() else NodePath(".")
 	focus_target = main_btn
 	if go_to_start:
 		main_btn.grab_focus()

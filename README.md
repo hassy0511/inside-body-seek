@@ -1,15 +1,17 @@
 # からだのなか だいぼうけん（inside-body-seek）
 
-ちいさくなって ともだちの体の中に入り、臓器をひとつずつ たすけながら 体のしくみを学ぶ、子ども向けの 3D ゲームです。
+ちいさくなって 体の中に入り、ぐあいのわるいところを さがして なおしながら 体のしくみを学ぶ、子ども向けの 3D ゲームです。
 Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリプトで生成しています（試作版）。
 
-- 口 → 食道 → 胃 → 小腸 → 血管 → 心臓（右） → 肺 → 心臓（左） → 脳 → 鼻（くしゃみで脱出）の全 10 ステージ（血の流れの順）
-- ミッションは「やっつける」だけでなく「あつめる」「とどける」「おうえん」「たどりつく」「じゅんばんをおぼえる」
-- ステージ開始・はじめて出会った生き物・クリア後に「ものしりカード」が出て、見たカードは「ずかん」にたまる
-- クリア後のクイズに正解すると星がもらえる（各ステージ 3 つ）
-- 操作はボタン 2 つ（うごく＋おくすり。ダッシュはおまけ）。ゲームオーバーはなく、チェックポイントから何度でも
+- きみは「ミクロしんりょうじょ」の見習いのおいしゃさん。毎回だれかが相談に来る、**1 話ごとの「カルテ」形式**（いま 1〜3 話。全 10 話の予定）
+- 1 話の流れ：そうだん（患者さんの話を聞く）→ よそう（からだの地図で「どこが あやしいか」をえらぶ。はずれても しかられない）→ 体の中を 1〜3 か所めぐる → カルテ（なにが おきていた／どうして／これからは の 3 行とクイズ）
+- 体の中の「場所」は 口・食道・胃・小腸・血管・心臓（右）・肺・心臓（左）・脳・鼻 の 10 こ。話ごとに、出てくるものとミッションが変わる
+- ミッションは「やっつける」だけでなく「あつめる」「とどける」「おうえん（しらべる）」「たどりつく」「じゅんばんをおぼえる」
+- はじめて出会った生き物・場所の「ものしりカード」と、解いた「カルテ」が「ずかん」にたまる
+- 星は 1 話に 3 つ（カルテ かんせい／ハートをへらさずに／クイズにせいかい）。別々の回で取ってもよい
+- 操作はボタン 2 つ（うごく＋おくすり。ダッシュはおまけ）。ゲームオーバーはなく、チェックポイントから何度でも。とちゅうでやめても「つづきから」入れる
 
-企画・設計の詳細は [docs/design.md](docs/design.md) にあります。
+企画は [docs/design.md](docs/design.md)、物語は [docs/story.md](docs/story.md)、カルテ形式のつくり（データの形・画面・テスト）は [docs/episodes.md](docs/episodes.md) にあります。
 開発の進み具合（ダッシュボード）：https://hassy0511.github.io/inside-body-seek/
 
 ## 遊び方
@@ -25,32 +27,39 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 | ダッシュ | Shift / X | B | 右の小さいボタン |
 | ポーズ | Esc / P | Start | ⏸ |
 
+そうだん・よそう・カルテの画面は、えらんで決定（スペース / Z / Enter / A）、もどるは Esc / X / B。タッチやマウスならボタンを直接おします。
+
 カメラは自動で追いかけるので、カメラ操作はいりません。船は臓器の「ゆか」の上を浮いて進みます。
 おくすりは近くの敵を自動でねらい、なかまはさわるだけで応援できます。
 タッチ操作はタッチ画面があると自動で出ます（タイトル画面やポーズ画面で切りかえ可能）。
 
-進み具合（星・ずかん）は `user://save.json` に自動保存されます。
+進み具合（星・とちゅうのカルテ・ずかん）は `user://save.json` に自動保存されます。
 
 ## ファイル構成
 
 | 場所 | 中身 |
 | --- | --- |
 | `godot/project.godot` | Godot プロジェクト本体 |
-| `godot/src/autoload/stage_db.gd` | **ステージ定義**（ミッション・文章・ものしりカード・クイズ）。文章を直すならここ |
-| `godot/src/autoload/game.gd` | 画面の流れ（タイトル → ステージえらび → ステージ → けっか）と入力の設定 |
-| `godot/src/level/level.gd` | ステージの読み込み・スポーン・ミッション進行・カード表示 |
+| `godot/src/autoload/episode_db.gd` | **カルテ（1 話）の定義**：そうだん・よそう・場面ごとの上書き（ミッション・文・出すもの）・カルテの 3 行・クイズ。話の文を直すならここ |
+| `godot/src/autoload/stage_db.gd` | **場所（臓器）の定義**：既定のミッション・ものしりカード・まとめ。カードの文を直すならここ |
+| `godot/src/autoload/game.gd` | 画面の流れ（タイトル → カルテえらび → そうだん → よそう → 場面 → カルテ）と入力の設定 |
+| `godot/src/autoload/save_data.gd` | セーブ（カルテごとの星・とちゅうのカルテ・見たカード・設定） |
+| `godot/src/level/level.gd` | 場面（場所 1 つ）の読み込み・スポーン・ミッション進行・カード表示。話のことは知らず、わたされた辞書だけを読む |
 | `godot/src/player/` | プレイヤー（ホバー船）・カメラ・おくすりの弾 |
 | `godot/src/entities/` | 敵・ボス・なかま・アイテム・ゴール・チェックポイント・いえきの池・ぜん動の波・弁・神経 |
-| `godot/src/ui/` | HUD・ものしりカード・タイトル・ステージえらび・けっか・ずかん・ポーズ・タッチ操作 |
+| `godot/src/ui/` | カルテえらび（`episode_select.gd`）・はなし（`talk.gd`）・よそう（`guess.gd`）・カルテ（`karte.gd`、紙は `karte_sheet.gd`）と、その土台（`flow_screen.gd`）。HUD・ものしりカード・タイトル・ずかん・ポーズ・タッチ操作・テーマと絵の差しかえ口（`ui_theme.gd`） |
 | `godot/assets/models/characters/*.glb` | キャラクターの 3D モデル（Blender スクリプトの出力） |
-| `godot/assets/models/stages/*.glb` | ステージの地形＋スポーン位置（Blender スクリプトの出力） |
+| `godot/assets/models/stages/*.glb` | 場所の地形＋スポーン位置（Blender スクリプトの出力） |
+| `godot/assets/ui/*.png` | 納品された絵（顔・全身など）。同じ名前で置くと自動で使われる |
 | `godot/assets/audio/*.wav` | 効果音と BGM（`tools/gen_audio.py` の出力） |
 | `blender/characters.py` | キャラクターを作る bpy スクリプト |
 | `blender/stages.py` | ステージの地形とマーカーを作る bpy スクリプト |
 | `blender/common.py` | 共通ヘルパー（マテリアル・形・書き出し） |
 | `tools/gen_audio.py` | 効果音・BGM を合成 |
-| `tools/run_tests.sh` | Godot ヘッドレスで全ステージを自動プレイするテスト |
-| `godot/tests/smoke.gd` | その中身（自動操縦でミッション達成までを確認） |
+| `tools/run_tests.sh` | Godot ヘッドレスのテスト（全カルテ ＋ 全部の場所 ＋ ダッシュボードの試し作り） |
+| `godot/tests/smoke.gd` | その中身（画面はボタンを押して進め、場面は自動操縦でクリアまで） |
+| `tools/screenshot.sh`、`godot/tests/shot.gd` | 画面・場面・モデルのスクリーンショット（Xvfb + Mesa） |
+| `tools/build_dashboard.py` | 進み具合のページ（GitHub Pages）を作る。CI が main への push ごとに回す |
 
 ## 3D モデルの作り直し（Blender）
 
@@ -93,16 +102,31 @@ Godot は GLB の中の Empty の名前を見てスポーンします（`MK_<種
 | `MK_sign_ra` | かんばん（文字は `level.gd` の `SIGN_TEXT`） |
 | `MK_card_food` | 近づくとカードが出るだけの点（カードは `stage_db.gd`） |
 
-## ステージを増やすには
+## カルテ（話）を増やすには
 
-1. `godot/src/autoload/stage_db.gd` の `STAGES` に 1 つ追加する（id・名前・ミッション・カード・クイズ・色）。
+話はデータだけで足せます（くわしい形は [docs/episodes.md](docs/episodes.md) 2.2、4〜10 話の手順は同 8 章）。
+
+1. `godot/src/autoload/episode_db.gd` の `EPISODES` に 1 件追加する。先頭のコメントの「書きかたの きまり」を守る（ダッシュボードが読みます）。
+   - `consult`（そうだん 1〜3 ページ）、`guess`（よそう 2〜3 たく。出発できるえらびに `go`、原因に当たっているえらびに `hit`）
+   - `scenes`（1〜3 こ）：`place`（場所の id）＋ その場面の `missions`・`intro`・`hints`、出すものを変える `spawn`（`skip`／`swap`）、場面のあとの会話 `after`（さいごの場面には必ず）
+   - `karte`（なにが おきていた／どうして／これからは）と `quiz`
+2. 新しい患者なら `PATIENTS` に足す（絵が無いあいだは仮の顔が出ます）。
+3. `tools/run_tests.sh --episode=epNN` を通す。データのまちがい・文の長さ・文のきまり（ひらがな、わかち書き、「い（胃）」）・文が画面に入るかを、テストが調べます。
+4. `tools/screenshot.sh consult:epNN /tmp/a.png`（`guess:`、`after:epNN:0`、`karte:epNN:1` など）で画面を見る。
+
+原因の種あかしや学びは、ボタンで進む画面（`after` とカルテ）に書きます。遊んでいるあいだの HUD の文は時間で消えるので、「いま何をするか」だけにします。
+
+## 場所（臓器）を増やすには
+
+1. `godot/src/autoload/stage_db.gd` の `STAGES` に 1 つ追加する（id・名前・既定のミッション・カード・まとめ・クイズ・色）。
 2. `blender/stages.py` に `build_<id>()` を書いて `BUILDERS` に登録し、`stage_<id>.glb` を書き出す。
    くだ型なら `tube()` と `path_markers()`、広場型なら `ellipsoid_room()` を使えば短く書けます。
-3. `godot/src/ui/stage_select.gd` の `ORGAN_POS` に、からだの絵の中での位置を足す。
-4. `tools/run_tests.sh --stage=<id>` で自動プレイが通るか確かめる。
+3. よそうの地図に出すなら、`godot/src/autoload/episode_db.gd` の `ORGAN_POS` に、からだの絵の中での位置を足す。
+4. `tools/run_tests.sh --stage=<id>` で、場所だけの自動プレイ（既定のミッション）が通るか確かめる。
+5. どれかのカルテの `scenes` から使う（使われた場所だけが「ずかん」に出ます）。
 
-ミッションの種類は `defeat` / `collect` / `deliver` / `cheer` / `reach` / `boss` / `gate` / `sequence`。
-新しい敵やなかまを増やすときは `entities/enemy.gd` や `entities/friend.gd` の `CONFIG` に 1 行足し、同じ名前の GLB を置きます。
+ミッションの種類は `defeat` / `collect` / `deliver` / `cheer` / `reach` / `boss` / `gate` / `sequence`（増やさず、文と種類で言いかえる方針）。
+新しい敵やなかまを増やすときは `entities/enemy.gd` や `entities/friend.gd` の `CONFIG` に 1 行足し、同じ名前の GLB を置きます。ものしりカードは場所の `cards` に足します。
 
 ## 絵と 3D モデルの発注（Codex）
 
@@ -116,12 +140,16 @@ Godot は GLB の中の Empty の名前を見てスポーンします（`MK_<種
 ## 自動テスト
 
 ```bash
-GODOT=/path/to/godot tools/run_tests.sh              # 全ステージ
-GODOT=/path/to/godot tools/run_tests.sh --stage=lungs # 1 ステージ
+GODOT=/path/to/godot tools/run_tests.sh                # 全部
+GODOT=/path/to/godot tools/run_tests.sh --episode=ep03 # カルテ 1 本
+GODOT=/path/to/godot tools/run_tests.sh --stage=lungs  # 場所 1 つ（既定のミッション）
+GODOT=/path/to/godot tools/screenshot.sh guess:ep03 /tmp/guess.png   # スクリーンショット（Xvfb + Mesa が必要）
 ```
 
-Godot をヘッドレスで起動し、全スクリプトを読み込んでから、自動操縦で各ステージをクリアまで動かします
-（エラーが出たり、時間内にクリアできなければ失敗）。
+Godot をヘッドレスで起動し、①インポート ②床プローブ（全部の場所の GLB）③全スクリプトの読み込みとデータの検査 ④全カルテを
+カルテえらびからカルテまで（画面はフォーカス中のボタンを押して進め、場面は自動操縦）⑤つづきから・ずかん・キー操作 ⑥全部の場所を
+既定のミッションで ⑦ダッシュボードの試し作り、の順に動かします。`PROBE RESULT: OK`・`RESULT: OK`・`DASHBOARD: OK` が出て、
+`SCRIPT ERROR` が 1 つも無ければ合格です。テストは別のセーブファイルを使うので、手元のセーブは変わりません。
 
 ## 効果音・BGM
 

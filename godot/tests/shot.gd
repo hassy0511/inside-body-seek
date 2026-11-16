@@ -13,10 +13,10 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ##   consult:ep03      そうだん
 ##   guess:ep03        よそう
 ##   guess_wrong:ep01  はずれを 1 回 えらんだ あと
-##   guess_go:ep01     go の えらびを 押した あと（しゅっぱつの 箱）
+##   guess_go:ep01     go の えらびを 押した あと（しゅっぱつの 箱）。+hit で「あたり」の えらびを 押す
 ##   after:ep03:0      場面 0 の あとの はなし
 ##   karte:ep03[:n]    カルテ画面の 段 0（n ＝ 1 紙／2 クイズ／3 ほし）
-##   review:ep02       クリアずみの カルテの 読みかえし（紙から）
+##   review:ep02[:n]   クリアずみの カルテの 読みかえし（紙から。n ＝ 1 クイズ／2 ほし）
 ##   zukan_karte:ep02  ずかんで カルテを 開いた ところ
 ##   ep03:1            3 話の 2 つめの 場面（＋ --play=秒）
 ##   <場所 id>         場所だけを 既定の ミッションで（＋ --play=秒）
@@ -140,8 +140,9 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 		Game.start_episode(ep_id, "guess")
 		if mode != "guess":
 			await _wait_unlocked()
+			# guess_go+hit は「あたり」の えらび（3 話の しょうちょう：あたりだが、先に い（胃）を 見に 行く）
 			for c in EpisodeDB.get_episode(ep_id)["guess"]["choices"]:
-				if c.get("go", false) == (mode == "guess_go"):
+				if c.get("go", false) == (mode == "guess_go") and (guess == "" or c["place"] == guess):
 					Game.screen().choose(c["place"])
 					break
 	elif mode == "after":

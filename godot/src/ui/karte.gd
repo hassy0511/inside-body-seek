@@ -2,7 +2,7 @@ extends "res://src/ui/flow_screen.gd"
 ## カルテの 画面：かいけつ → カルテの 紙 → クイズ → ほし。段ごとに 中身を 作りなおし、主ボタンへ フォーカスを 入れる。
 ## setup() の opts：
 ##   "guess_hit"  さいしょの よそうが あたり だった（かいけつの 段に ひとこと 出す）
-##   "review"     クリアずみの カルテの 読みかえし（紙から 始まり、「つぎの カルテへ」は 出さない）
+##   "review"     クリアずみの カルテの 読みかえし（紙から 始まり、「つぎの カルテへ」は 出さない。「もどる」で カルテえらびへ）
 ## クリアの 記録は Game が する（この 画面に 入った とき）。クイズの 結果は answered で Game に わたす。
 ## ほしは 回を またいで たまる：ここでは SaveData.star_flags() を 読んで 出すだけ。
 
@@ -12,7 +12,7 @@ signal finished(go_next: bool)
 const Sheet := preload("res://src/ui/karte_sheet.gd")
 const PANEL_SIZE := Vector2(940, 640)
 const MARKS := ["Ａ", "Ｂ", "Ｃ"]
-const GREY := Color(0.6, 0.55, 0.58)
+const GREY := Color(0.47, 0.42, 0.45)   # まだの ほしの 行。「ばめん 2 が まだ」を 読める こさに
 const GREEN := Color(0.3, 0.62, 0.42)
 const PICO_BLUE := Color(0.3, 0.5, 0.75)
 
@@ -22,6 +22,7 @@ var step := 0                # 0 かいけつ ／ 1 カルテの 紙 ／ 2 ク�
 var panel: PanelContainer
 var quiz_buttons: Array[Button] = []   # クイズの えらび（出した 順。テストが 見る）
 var quiz_answer := -1                  # quiz_buttons の 中の 正解の 番号
+var back_btn: Button = null            # 読みかえしの「もどる」（ふつうの カルテ画面には 無い）
 var _vb: VBoxContainer
 var _correct := false
 
@@ -45,11 +46,19 @@ func _ready() -> void:
 	_vb.add_theme_constant_override("separation", 8)
 	margin.add_child(_vb)
 	step = 1 if opts.get("review", false) else 0   # 読みかえしは 紙から
+	# 読みかえしは カルテえらびから 来るので、いつでも もどれる（まちがえて 押した 子が クイズを やらされない）。
+	# ふつうの カルテ画面には「もどる」が 無い（もどる 先が 無い。クリアは もう 記録して ある）
+	if opts.get("review", false):
+		back_btn = add_back_button(func(): finished.emit(false))
+		back_btn.position = Vector2(12, 16)                 # 紙（左の ふちは x＝170）に かからない 所
+		back_btn.custom_minimum_size = Vector2(140, 60)
 	_show()
 
 
-## 中身が パネルに 入って いるか（テストが 段ごとに 見る）
+## 中身が パネルに 入って いるか、「もどる」が 紙に かかって いないか（テストが 段ごとに 見る）
 func fits() -> bool:
+	if back_btn != null and back_btn.get_global_rect().grow(4.0).intersects(panel.get_global_rect()):
+		return false
 	return panel.get_combined_minimum_size().y <= PANEL_SIZE.y
 
 
@@ -272,6 +281,14 @@ func _show_stars() -> void:
 	stars.pivot_offset = stars.custom_minimum_size * 0.5
 	stars.scale = Vector2(0.6, 0.6)
 	create_tween().tween_property(stars, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if opts.get("review", false) and not locked():
+			Sfx.play("click")
+			finished.emit(false)
+		get_viewport().set_input_as_handled()
 
 
 func _star_row(got: bool, text: String, todo: String) -> Label:

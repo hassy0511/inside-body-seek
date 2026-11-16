@@ -80,6 +80,7 @@ def episodes(ep_gd: str, gd: str, test_log: str) -> list:
     cleared = {m.group(1): float(m.group(2))
                for m in re.finditer(r"cleared (\w+) in ([\d.]+)s \(sim\)", test_log)}
     patients = dict(re.findall(r'"(\w+)": \{"name": "([^"]+)"', ep_gd))
+    pattern_names = dict(re.findall(r'"([A-Z])": \{"name": "([^"]+)"', ep_gd))   # PATTERNS（げんいんの タイプ）
     place_names = {m.group(1): "%s（%s）" % (m.group(2), m.group(3))
                    for m in re.finditer(r'"id": "(\w+)", "order": \d+, "name": "([^"]+)", "kanji": "([^"]+)"', gd)}
     body = ep_gd.split("const EPISODES", 1)[1].split("\n]\n", 1)[0]
@@ -95,7 +96,8 @@ def episodes(ep_gd: str, gd: str, test_log: str) -> list:
             test = "OK（%.0f 秒）" % cleared[eid] if eid in cleared else "クリアできず"
         out.append({
             "話": int(g("no")), "だいめい": g("title"), "患者": patients.get(g("patient"), g("patient")),
-            "場所": " → ".join(place_names.get(p, p) for p in places), "パターン": g("pattern"),
+            "場所": " → ".join(place_names.get(p, p) for p in places),
+            "パターン": " ＋ ".join(("%s %s" % (k, pattern_names.get(k, ""))).strip() for k in g("pattern").split("・")),
             "むずかしさ": "★" * int(g("difficulty")), "自動テスト": test,
         })
     return sorted(out, key=lambda e: e["話"])

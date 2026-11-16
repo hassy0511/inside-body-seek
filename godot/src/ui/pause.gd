@@ -25,6 +25,8 @@ func _ready() -> void:
 	panel.offset_right = 260
 	panel.offset_top = -245
 	panel.offset_bottom = 245
+	# すきとおらない 白（テーマの パネルは 少し すけるので、下の HUD の 文が ボタンの 間に うつる）
+	panel.add_theme_stylebox_override("panel", T.rounded(Color.WHITE, 28, 4, T.PINK))
 	add_child(panel)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 14)

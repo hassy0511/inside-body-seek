@@ -6,7 +6,8 @@ extends Node
 ## 3. セーブを 調べる（v1 からの 移行・こわれた ファイル・ほし・つづき）
 ## 4. 全カルテを カルテえらび → そうだん → よそう → 場面 → カルテ まで 通す
 ##    （画面は フォーカス中の ボタンを 押す ＝「いつも フォーカスが ある」ことも 見る。場面は 自動操縦）
-## 5. タイトル、よそうの「もどる」、あたりの よそう、つづきから（場面の やりなおし・ポーズから やめる）、クイズの やりなおし、ずかん
+## 5. タイトル、よそうの「もどる」、あたりの よそう、つづきから（場面の やりなおし・ポーズから やめる）、クイズの やりなおし、ずかん、
+##    本物の 入力（矢印・決定・もどる の アクション）で 4 つの 画面を 動かす
 ## 6. 全部の 場所を 既定の ミッションで 自動操縦（カルテで まだ 使わない 場所も ここで 守る）
 ## --episode= は 4 を その 話だけ、--stage= は 6 を その 場所だけ 回す（5 は 全部 回す ときだけ）。
 ## セーブは user://save_test.json を 使う（本物の セーブを さわらない）。
@@ -97,6 +98,7 @@ func _ready() -> void:
 			await _check_hit()
 			await _check_resume()
 			await _check_zukan()
+			await _check_keys()
 		if _only_ep == "":
 			for id in StageDB.stage_ids():
 				if _only_place == "" or id == _only_place:
@@ -795,6 +797,230 @@ func _check_zukan() -> void:
 			_fail("zukan: カードを 閉じた あと フォーカスが もどらない（%s）" % id)
 	if first:
 		_fail("zukan: 見た カルテが 1 つも ない")
+
+
+## アクションを 1 回 押して はなす（キーボード・ゲームパッドと 同じ 道：Input → Viewport → フォーカス中の Control）
+func _tap(action: String) -> void:
+	for down in [true, false]:
+		var ev := InputEventAction.new()
+		ev.action = action
+		ev.pressed = down
+		Input.parse_input_event(ev)
+		Input.flush_buffered_events()
+		await get_tree().process_frame
+
+
+## 失敗の 文に 書く ボタンの 名前（c は 作りなおされて 消えた ボタンの ことも ある。だから 型を 書かない）
+func _ctl_name(c) -> String:
+	if c == null or not is_instance_valid(c):
+		return "なし"
+	return String(c.text).replace(T.WJ, "").left(14) if c is Button and c.text != "" else String(c.name)
+
+
+## action を 押した あと、フォーカスが want に ある こと
+func _tap_expect(action: String, want, where: String) -> void:
+	await _tap(action)
+	var fo := get_viewport().gui_get_focus_owner()
+	if fo != want:
+		_fail("keys: %s：%s の あと フォーカスが「%s」（「%s」の はず）" % [where, action, _ctl_name(fo), _ctl_name(want)])
+
+
+## 本物の 入力（ui_up／ui_down／ui_left／ui_right／ui_accept／ui_cancel）で 4 つの 画面を 動かす。
+## ほかの 検査は ボタンの pressed を 直接 出すので、「矢印で 行ける」「決定で 押せる」「もどるで もどれる」は ここで 守る
+func _check_keys() -> void:
+	_info("=== keys ===")
+	var ids := EpisodeDB.ids()
+	var id := ""
+	for e in EpisodeDB.EPISODES:
+		if id == "" and e["scenes"].size() >= 2 and e.has("guess"):
+			id = e["id"]
+	if id == "":
+		return
+	var ep := EpisodeDB.get_episode(id)
+	# ---- カルテえらび：ボタンが いちばん 多い 形（つづきから・さいしょから・クイズに もういちど）
+	for prev in ids:
+		SaveData.record_clear(prev)
+		if prev == id:
+			break
+	SaveData.data["episodes"][id]["quiz"] = false
+	SaveData.set_resume(id, 1, "")
+	Game.show_episode_select()
+	await _wait_focus()
+	var s := Game.screen()
+	if not (s is SelectScreen) or s.restart_btn == null or s.quiz_btn == null or get_viewport().gui_get_focus_owner() != s.main_btn:
+		_fail("keys: カルテえらびの 形が ちがう")
+		return
+	var row: Button = s.rows[id]
+	await _tap_expect("ui_down", s.restart_btn, "カルテえらび 主ボタン")
+	await _tap_expect("ui_right", s.quiz_btn, "カルテえらび さいしょから")
+	await _tap_expect("ui_right", s.quiz_btn, "カルテえらび クイズに もういちど")
+	await _tap_expect("ui_down", s.quiz_btn, "カルテえらび クイズに もういちど")
+	await _tap_expect("ui_left", s.restart_btn, "カルテえらび クイズに もういちど")
+	await _tap_expect("ui_up", s.main_btn, "カルテえらび さいしょから")
+	await _tap_expect("ui_up", s.main_btn, "カルテえらび 主ボタン")
+	await _tap_expect("ui_right", s.main_btn, "カルテえらび 主ボタン")
+	await _tap_expect("ui_left", row, "カルテえらび 主ボタン")
+	await _tap_expect("ui_left", row, "カルテえらび 行")
+	var at := ids.find(id)
+	if at > 0:
+		# 行の 上下：フォーカスと いっしょに えらんだ 話が 変わり、右の パネルが その 話に なる
+		await _tap_expect("ui_up", s.rows[ids[at - 1]], "カルテえらび 行")
+		if s.selected_id != ids[at - 1] or s.main_is_resume:
+			_fail("keys: カルテえらび：行を 上に 動かしても えらんだ 話が 変わらない（%s）" % s.selected_id)
+		await _tap_expect("ui_right", s.main_btn, "カルテえらび 行")
+		# 小さい ボタンが 無い 話では 下を 押しても 主ボタンの まま。ある 話では そこへ 行って、上で もどる
+		var below: Button = s.restart_btn if s.restart_btn != null else (s.quiz_btn if s.quiz_btn != null else s.main_btn)
+		await _tap_expect("ui_down", below, "カルテえらび 主ボタン")
+		await _tap_expect("ui_up", s.main_btn, "カルテえらび 主ボタンの 下")
+		await _tap_expect("ui_left", s.rows[ids[at - 1]], "カルテえらび 主ボタン")
+		await _tap_expect("ui_down", row, "カルテえらび 行")
+	if s.selected_id != id or not s.main_is_resume:
+		_fail("keys: カルテえらび：行を もどしても えらんだ 話が もどらない（%s）" % s.selected_id)
+	# 行を 決定で 押す → 主ボタンへ。さいしょから（決定）→ そうだん
+	await _tap("ui_accept")
+	await _wait_focus()
+	if get_viewport().gui_get_focus_owner() != s.main_btn:
+		_fail("keys: カルテえらび：行を 押しても 主ボタンに フォーカスが 行かない")
+	await _tap_expect("ui_down", s.restart_btn, "カルテえらび 主ボタン")
+	await _tap("ui_accept")
+	await _wait_focus()
+	# ---- そうだん：決定で 次の ページ、もどるで 前の ページ。矢印を 押しても ボタンから 外れない
+	var t := Game.screen()
+	if not (t is TalkScreen) or Game.episode.get("id", "") != id or Game.phase != "consult":
+		_fail("keys: 「さいしょから」を 決定で 押しても そうだんが 始まらない（%s）" % Game.phase)
+		return
+	if t.lines.size() >= 2:
+		await _tap("ui_accept")
+		await _wait_focus()
+		if t.page != 1:
+			_fail("keys: そうだん：決定で 次の ページに 行かない")
+		await _tap("ui_cancel")
+		await _wait_focus()
+		if t.page != 0:
+			_fail("keys: そうだん：もどるで 前の ページに もどらない")
+	for a in ["ui_down", "ui_right", "ui_left", "ui_up", "ui_down"]:
+		await _tap(a)
+		if _focused_button(t) == null:
+			_fail("keys: そうだん：%s の あと フォーカスが ボタンに ない" % a)
+	t.focus_target.grab_focus()   # 矢印で「もどる」に 行って いても、ここからは「つぎへ」を 押す
+	if not await _key_until(func(): return Game.phase == "guess", "ui_accept"):
+		_fail("keys: そうだん：決定で よそうに 進めない")
+		return
+	# ---- よそう：上下で えらぶ。ひだり・みぎ では 動かない。はずれ → のこりへ、go → しゅっぱつ、もどる → そうだん
+	await _wait_focus()
+	var g := Game.screen()
+	var places: Array[String] = []
+	var wrong := ""
+	var go := ""
+	for c in ep["guess"]["choices"]:
+		places.append(c["place"])
+		if c.get("go", false) and go == "":
+			go = c["place"]
+		if not c.get("go", false) and wrong == "":
+			wrong = c["place"]
+	if get_viewport().gui_get_focus_owner() != g.buttons[places[0]]:
+		_fail("keys: よそう：最初の フォーカスが 1 つめの えらびに ない")
+	await _tap_expect("ui_left", g.buttons[places[0]], "よそう 1 つめ")
+	await _tap_expect("ui_right", g.buttons[places[0]], "よそう 1 つめ")
+	for i in range(1, places.size()):
+		await _tap_expect("ui_down", g.buttons[places[i]], "よそう %d つめ" % i)
+	await _tap_expect("ui_down", g.buttons[places[-1]], "よそう いちばん 下")
+	for i in range(places.size() - 2, -1, -1):
+		await _tap_expect("ui_up", g.buttons[places[i]], "よそう %d つめ" % (i + 2))
+	if wrong != "":
+		for i in places.find(wrong):
+			await _tap("ui_down")
+		await _wait_focus()
+		await _tap("ui_accept")
+		await _wait_focus()
+		var rest := ""
+		for p in places:
+			if rest == "" and p != wrong:
+				rest = p
+		if not g.buttons[wrong].disabled or get_viewport().gui_get_focus_owner() != g.buttons[rest]:
+			_fail("keys: よそう：はずれを 決定で えらんでも、のこりの 1 つめに フォーカスが 行かない")
+	# go の えらびまで 下へ（押せない ボタンは とばされる）
+	for i in places.size():
+		if get_viewport().gui_get_focus_owner() != g.buttons[go]:
+			await _tap("ui_down")
+	if get_viewport().gui_get_focus_owner() != g.buttons[go]:
+		_fail("keys: よそう：go の えらびに 矢印で 行けない")
+		g.set_focus(g.buttons[go])
+	await _wait_focus()
+	await _tap("ui_accept")
+	await _wait_focus()
+	var go_btn := get_viewport().gui_get_focus_owner()
+	if not (go_btn is Button) or not go_btn.text.begins_with("しゅっぱつ") or not go_btn.is_visible_in_tree():
+		_fail("keys: よそう：go を 決定で えらんでも「しゅっぱつ」に フォーカスが 行かない")
+	else:
+		for a in ["ui_left", "ui_right", "ui_down"]:
+			await _tap_expect(a, go_btn, "よそう しゅっぱつ")
+	await _tap("ui_cancel")
+	await _wait_focus()
+	t = Game.screen()
+	if Game.phase != "consult" or not (t is TalkScreen) or t.page != t.lines.size() - 1:
+		_fail("keys: よそう：もどるで そうだんの さいごの ページに もどらない")
+	elif not await _key_until(func(): return Game.screen() is SelectScreen, "ui_cancel"):
+		_fail("keys: そうだん：もどるを つづけても カルテえらびに もどらない")
+	# ---- カルテ：もどるは 何も しない。決定で 段を 進む。クイズは 上下、ほしの 段は 左右
+	Game.start_episode(id, "karte")
+	await _wait_focus()
+	var k := Game.screen()
+	await _tap("ui_cancel")
+	if Game.screen() != k or not (k is KarteScreen) or k.step != 0:
+		_fail("keys: カルテ：もどるで 画面が 変わった")
+		return
+	if not await _key_until(func(): return k.step == 2, "ui_accept"):
+		_fail("keys: カルテ：決定で クイズまで 進めない")
+		return
+	if get_viewport().gui_get_focus_owner() != k.quiz_buttons[0]:
+		_fail("keys: カルテ：クイズの 1 つめに フォーカスが ない")
+	for i in range(1, k.quiz_buttons.size()):
+		await _tap_expect("ui_down", k.quiz_buttons[i], "クイズ %d つめ" % i)
+	await _tap_expect("ui_down", k.quiz_buttons[-1], "クイズ いちばん 下")
+	await _tap_expect("ui_left", k.quiz_buttons[-1], "クイズ いちばん 下")
+	await _wait_focus()
+	await _tap("ui_accept")
+	await _wait_focus()
+	var main_b := get_viewport().gui_get_focus_owner()
+	if k.step != 3 or not (main_b is Button):
+		_fail("keys: カルテ：クイズを 決定で 答えても ほしの 段に 行かない")
+		return
+	if EpisodeDB.next_id(id) != "":
+		# 主ボタン（つぎの カルテへ）の ひだりに「カルテえらびへ」
+		await _tap("ui_left")
+		var other := get_viewport().gui_get_focus_owner()
+		if other == main_b or not (other is Button) or not other.text.begins_with("カルテえらびへ"):
+			_fail("keys: カルテ：ほしの 段の ひだりが「カルテえらびへ」で ない（%s）" % _ctl_name(other))
+		await _tap_expect("ui_right", main_b, "ほしの 段 カルテえらびへ")
+	for a in ["ui_up", "ui_down", "ui_right"]:
+		await _tap_expect(a, main_b, "ほしの 段 主ボタン")
+	# ---- カルテの 読みかえし（クイズに もういちど）：こちらは もどるで カルテえらびへ。記録は 変わらない
+	var stars_before := SaveData.stars(id)
+	Game.review_karte(id)
+	await _wait_focus()
+	k = Game.screen()
+	if not (k is KarteScreen) or k.step != 1:
+		_fail("keys: 読みかえしが カルテの 紙から 始まらない")
+	else:
+		_check_screen(k, "読みかえし")
+		await _tap("ui_cancel")
+		await _wait_focus()
+		if not (Game.screen() is SelectScreen) or SaveData.stars(id) != stars_before or not SaveData.is_cleared(id):
+			_fail("keys: 読みかえし：もどるで カルテえらびに もどらない、または 記録が 変わった")
+	SaveData.clear_resume()
+	Game.show_episode_select()
+	await get_tree().process_frame
+
+
+## cond が true に なる まで、フォーカスが ボタンに 入る たびに action を 押す
+func _key_until(cond: Callable, action: String) -> bool:
+	for i in 12:
+		if cond.call():
+			return true
+		await _wait_focus()
+		await _tap(action)
+	return cond.call()
 
 
 # ---------------------------------------------------------------- 6. 場所

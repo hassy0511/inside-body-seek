@@ -135,7 +135,7 @@ static func colored_button(b: Button, bg: Color, border: Color) -> Button:
 
 
 ## 納品された絵（res://assets/ui/<name>.png）があれば そのテクスチャ、なければ null。
-## Codex から届いた UI・カードの挿絵・顔アイコンは、同じ名前で置くだけで ここから拾われる（docs/art_orders/取り込み手順.md）。
+## 届いた UI・カードの挿絵・顔アイコンは、同じ名前で置くだけで ここから拾われる（docs/art_orders/取り込み手順.md）。
 static func art(name: String) -> Texture2D:
 	var path := "res://assets/ui/%s.png" % name
 	if ResourceLoader.exists(path):

@@ -72,10 +72,12 @@ func _ready() -> void:
 	_bubble.add_child(hb)
 	_face_box = Control.new()
 	_face_box.custom_minimum_size = Vector2(90, 90)
-	_face_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_face_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hb.add_child(_face_box)
 	_set_face("normal")
+	# 顔と 文は ふきだしの まん中に そろえる（問いは 1 行なので、上に よせると 下が がらんと 空く）
 	var vb := VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_theme_constant_override("separation", 2)
 	hb.add_child(vb)
 	vb.add_child(T.label(EpisodeDB.PICO["name"], 18, Color(0.3, 0.5, 0.75)))
@@ -101,6 +103,9 @@ func _ready() -> void:
 		b.focus_entered.connect(func(): _highlight(place))
 		b.focus_exited.connect(func(): _highlight(""))
 		b.mouse_entered.connect(func(): _highlight(place))
+		# たて 1 列：ひだり・みぎ では 動かない（まかせると 左上の「もどる」に とぶ。「もどる」へは いちばん 上から うえ）
+		b.focus_neighbor_left = NodePath(".")
+		b.focus_neighbor_right = NodePath(".")
 		box.add_child(b)
 		buttons[place] = b
 		_add_mark(place, MARKS[i % MARKS.size()], col)
@@ -116,6 +121,9 @@ func _ready() -> void:
 	_go.size = Vector2(360, 82)
 	T.colored_button(_go, T.YELLOW, T.YELLOW_DARK)
 	_go.visible = false
+	_go.focus_neighbor_left = NodePath(".")
+	_go.focus_neighbor_right = NodePath(".")
+	_go.focus_neighbor_bottom = NodePath(".")
 	_go.pressed.connect(func():
 		if not locked():
 			Sfx.play("click")
@@ -330,7 +338,7 @@ func choose(place: String) -> void:
 		marks[place].scale = Vector2.ONE
 		marks[place].z_index = 0
 		# もう かんがえた しるし。ボタンの 文には 足さない（「い（胃）（…）」と かっこが ならぶと 読みにくい）
-		var done := T.label("かんがえたよ", 20, Color(0.55, 0.52, 0.54), HORIZONTAL_ALIGNMENT_RIGHT)
+		var done := T.label("かんがえたよ", 20, Color(0.42, 0.38, 0.41), HORIZONTAL_ALIGNMENT_RIGHT)   # 灰色の ボタンの 上でも 読める こさ
 		done.position = Vector2(500, 26)
 		done.size = Vector2(176, 32)
 		done.mouse_filter = Control.MOUSE_FILTER_IGNORE
