@@ -21,6 +21,7 @@
 - 本線は `main`。Claude はセッションの作業ブランチで直し、テストが通ったら `main` にも push する（fast-forward）。Codex の依頼文も `main` を見る。
 - Codex の納品は `art/<波>` ブランチ。`main` には spec の md と「そのまま使う PNG」だけ取り込む（`docs/art_orders/取り込み手順.md`）。
 - ブックマーク用のページ（GitHub Pages）：https://hassy0511.github.io/inside-body-seek/ 。main に push すると CI がテストのあと `tools/build_dashboard.py` で `docs/dashboard.md` から作りなおして `gh-pages` に出す。手で更新しない（dashboard.md 8 章）。
+- ブラウザで 遊べる 版も 同じ CI が 出す：`play/`（いまの main。`tools/export_web.sh`）。ページの 先頭の ボタンから 開く。`compare/a`・`compare/b` と `tools/compare/` は、作りかたの 分担を 決める ための 一時的な くらべもの（決まったら 消す）。
 
 ## 絵と 3D モデルは Codex に発注する
 
@@ -40,6 +41,7 @@ export GODOT=/path/to/Godot_v4.7-stable_linux.x86_64
 tools/run_tests.sh                 # 全部：インポート → 床プローブ → 全カルテ（画面は ボタンを 押して 進む）→ 全部の 場所 → ダッシュボードの 試し作り
 tools/run_tests.sh --episode=ep03  # カルテ 1 本だけ
 tools/run_tests.sh --stage=mouth   # 場所 1 つだけ（既定の ミッション）
+tools/export_web.sh /tmp/web       # ブラウザ版を 書き出す（「WEB EXPORT: OK」。テンプレートの 入れかたは test.yml。見る ときは http で 出す）
 tools/screenshot.sh mouth /tmp/a.png --play=3   # Xvfb + Mesa でスクリーンショット（見た目の確認）
 tools/screenshot.sh model:pod /tmp/b.png        # キャラクター 1 体だけ
 tools/screenshot.sh guess:ep03 /tmp/c.png       # カルテの 画面（select／consult:ep03／guess_go:ep01／after:ep03:0／karte:ep03:1／ep03:1 …）
@@ -67,3 +69,5 @@ tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # �
 - 数は グループから 数えない（`queue_free` した 前の Level の ノードが フレームの 終わりまで のこる）。マーカーの 配列から 数える。
 - ヘッドレスの 窓は 64×64。画面の はみ出しを 見る テストは 1280×720 に 固定して から（`smoke.gd` の 先頭）。
 - セーブの JSON は 数や 文字が まざる。`== true` で くらべず 型を 見る（`SaveData._yes()`）。
+- ブラウザ版（Web）には、パソコンの フォントの 代わりが 無い。入れて ある フォントに 無い 字は 四角に 化ける（場面の 一時停止ボタンの 絵が そう）。記号を 足したら ブラウザ版でも 見る。
+- 同じ サイトに 置いた Godot の ブラウザ版は、どれも 同じ 入れ物（IndexedDB の `/userfs`）に セーブを 書く。版を ならべる ときは 名前を 分ける（`tools/compare/build.sh`）。

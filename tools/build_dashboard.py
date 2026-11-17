@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ブックマーク用のダッシュボード（GitHub Pages：https://hassy0511.github.io/inside-body-seek/）を 1 枚の HTML で作る。
 
-元にするもの：docs/dashboard.md の 1〜4・7 章、docs/story.md、godot/src/autoload/episode_db.gd（カルテ）と stage_db.gd（場所）、テストのログ（あれば）。
+元にするもの：docs/dashboard.md の 1〜4・6・7 章、docs/story.md（5 章の 表は 予定の 話数にも 使う）、godot/src/autoload/episode_db.gd（カルテ）と stage_db.gd（場所）、テストのログ（あれば）。
     python3 tools/build_dashboard.py --html _site/index.html --test-log /tmp/inside-body-seek-test.log
 main に push されると GitHub Actions（.github/workflows/test.yml）がテストのあとに作りなおし、gh-pages ブランチへ出す。
 """
@@ -45,6 +45,23 @@ def first_table(text: str) -> list:
     split = lambda l: [clean(c) for c in l.strip().strip("|").split("|")]
     head = split(rows[0])
     return [dict(zip(head, split(r))) for r in rows[2:]]
+
+
+def planned_episodes(story: str) -> list:
+    """docs/story.md の「## 5. カルテ一覧」の 表から、予定の 話（番号と 題）を 読む。"""
+    m = re.search(r"^## 5\. .*?$(.*?)(?=^## |\Z)", story, re.M | re.S)
+    out = []
+    for l in (m.group(1) if m else "").splitlines():
+        c = [clean(x) for x in l.strip().strip("|").split("|")]
+        no = re.match(r"\d+", c[0]) if l.startswith("|") and len(c) > 1 else None   # 「1（実装ずみ）」の ような 書きかたも ある
+        if no:
+            out.append({"話": int(no.group()), "だいめい": c[1]})
+    return out
+
+
+def records(text: str, n: int = 4) -> list:
+    """6 章（記録）の 新しい ほうから n 件。"""
+    return [clean(l[2:]) for l in text.splitlines() if re.match(r"- \d{4}-", l)][:n]
 
 
 def prompts(text: str) -> list:
@@ -193,6 +210,85 @@ def table(rows: list, cols: list) -> str:
     return '<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (head, "".join(body))
 
 
+def art_state(r: dict) -> str:
+    """3 章の 1 行（発注書）を 5 つの 状態に 分ける。"""
+    if r.get("納品", "—") != "—":
+        return "確認ずみ" if r.get("確認", "").startswith("済") else "納品ずみ"
+    sent = r.get("出した日", "")
+    if sent.startswith("済"):
+        return "納品待ち"
+    return "いま 出せる" if "いま" in sent else "あとで"
+
+
+def model_state(r: dict) -> str:
+    """4 章の 1 行（モデルの 種類）を 5 つの 状態に 分ける。"""
+    v = r.get("状態", "")
+    if v.startswith("本番"):
+        return "本番"
+    if "本番" in v:
+        return "一部 本番"
+    if v.startswith("まだ"):
+        return "まだ 無い"
+    return "絵が 届いた" if "届いた" in v else "仮"
+
+
+ART_MARK = {"確認ずみ": ("済", "done"), "納品ずみ": ("届", "now"), "納品待ち": ("待", "now"), "いま 出せる": ("今", "now"), "あとで": ("後", "")}
+
+
+def progress(data: dict, tested: bool) -> str:
+    """ページの 先頭の「進みぐあい」。数は 元の 表と データから 数える（手で 書かない）。
+    状態は 色だけで なく、ます目の 中の 字（済・今 など）でも 分かる ように する。"""
+    e = html.escape
+    eps = {x["話"]: x for x in data["episodes"]}
+    plan = data["planned"] or [{"話": n, "だいめい": x["だいめい"]} for n, x in sorted(eps.items())]
+    segs = []
+    for pl in plan:
+        ep = eps.get(pl["話"])
+        failed = bool(ep) and tested and not ep["自動テスト"].startswith("OK")
+        cls, mark, word = ("bad", "×", "テストで 止まる") if failed else (("done", "済", "できた") if ep else ("", "・", "これから"))
+        segs.append('<li class="seg %s" title="%d 話 %s：%s"><b>%d</b><span>%s</span></li>'
+                    % (cls, pl["話"], e((ep or pl)["だいめい"]), word, pl["話"], mark))
+    ep_card = ('<div class="card prog"><h3>カルテ（話）</h3><p class="big"><b>%d</b> / %d 話が 遊べる</p><ol class="segs">%s</ol>'
+               '<p class="note">済 ＝ 作って あり、最後まで 遊べる。・ ＝ これから。</p></div>' % (len(eps), len(plan), "".join(segs)))
+
+    arts = [(r, art_state(r)) for r in data["art"]]
+    count = lambda rows, key: sum(1 for _, st in rows if st == key)
+    asegs = "".join('<li class="seg %s" title="%s：%s"><b>%s</b><span>%s</span></li>'
+                    % (ART_MARK[st][1], e(r.get("発注書", "")), st, e(r.get("波", "")), ART_MARK[st][0]) for r, st in arts)
+    rest = "、".join("%s %d" % (k, count(arts, k)) for k in ["納品ずみ", "納品待ち", "いま 出せる", "あとで"] if count(arts, k))
+    art_card = ('<div class="card prog"><h3>絵の 発注（Codex）</h3><p class="big"><b>%d</b> / %d 本が 納品・確認ずみ</p><ol class="segs">%s</ol>'
+                '<p class="note">%s。済 ＝ 確認ずみ、今 ＝ いま 出せる、後 ＝ あとで 出す。</p></div>'
+                % (count(arts, "確認ずみ"), len(arts), asegs, e(rest) if rest else "のこりは ありません"))
+
+    models = [(r, model_state(r)) for r in data["models"]]
+    mlist = "".join("<li><span>%s</span><b>%d</b></li>" % (k, count(models, k))
+                    for k in ["本番", "一部 本番", "絵が 届いた", "仮", "まだ 無い"] if count(models, k))
+    model_card = ('<div class="card prog"><h3>3D モデルと 絵</h3><p class="big"><b>%d</b> / %d 種類が 本番</p><ul class="tally">%s</ul>'
+                  '<p class="note">いまは ほとんどが 仮の 見た目。届いた 絵から 作りなおして 差しかえる。</p></div>'
+                  % (count(models, "本番"), len(models), mlist))
+
+    st = data["stages"]
+    ok_ep = sum(1 for x in data["episodes"] if x["自動テスト"].startswith("OK"))
+    ok_st = sum(1 for x in st if x["自動テスト"].startswith("OK"))
+    if tested:
+        all_ok = ok_ep == len(eps) and ok_st == len(st)
+        test_big = '<p class="big"><b class="%s">%s</b></p>' % ("ok" if all_ok else "bad", "ぜんぶ 通る" if all_ok else "止まる ものが ある")
+        test_list = '<ul class="tally"><li><span>カルテ</span><b>%d / %d</b></li><li><span>場所</span><b>%d / %d</b></li></ul>' % (ok_ep, len(eps), ok_st, len(st))
+    else:
+        test_big, test_list = '<p class="big"><b>—</b></p>', '<p class="note">まだ 結果が ありません。</p>'
+    test_card = ('<div class="card prog"><h3>自動テスト</h3>%s%s<p class="note">自動操縦が、そうだんから カルテまで 遊びとおせるかを 毎回 確かめる。場所は %d か所。</p></div>'
+                 % (test_big, test_list, len(st)))
+
+    phases = "".join('<li><b>%s</b><span class="chip %s">%s</span></li>'
+                     % (e(r.get("段階", "")), tone(r.get("状態", "")), e(re.split(r"[（。]", r.get("状態", ""))[0]))
+                     for r in data["phases"])
+    recs = "".join("<li>%s</li>" % e(x) for x in data["records"])
+    return ('<section id="progress"><h2>進みぐあい</h2><div class="progs">%s%s%s%s</div>'
+            '<div class="grid"><div class="card"><h3>段階ごと</h3><ul class="phases">%s</ul></div>'
+            '<div class="card"><h3>さいきんの 記録</h3><ul class="recs">%s</ul></div></div></section>'
+            % (ep_card, art_card, model_card, test_card, phases, recs))
+
+
 def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str, play: str = "",
            compare: str = "", compare_page: str = "") -> str:
     e = html.escape
@@ -226,11 +322,11 @@ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup:
                         '<a class="cmpbtn" href="%sb/" target="_blank" rel="noopener">B を あそぶ</a>%s'
                         '<span>同じ 指示文で 別々に 作られた 2 つの 実装（カルテ形式の 土台と 1〜3 話、第 1 段階の 結果）。'
                         '画面の 下に「くらべる 版 A／B」の ふだが 出ます。セーブは A・B・いまの 版で 別々。'
-                        '上の「あそんで たしかめる」は、B を その後 さらに 進めた いまの 版です。</span></p>'
+                        '上の「あそんで たしかめる」は いまの ゲームで、くらべる 対象では ありません。</span></p>'
                         % (e(compare), e(compare), page))
     return TEMPLATE.format(
         updated=e(updated), rev=rev_html, test_line=test_line,
-        now=now_html, play=play_html + compare_html,
+        now=now_html, play=play_html + compare_html, progress=progress(data, tested),
         story=md_html(story), story_state=e(story_state), story_tone="now" if "待ち" in story_state else "ok",
         todo=table(todo, ["やること", "だれ", "状態"]),
         prompts=cards,
@@ -289,6 +385,22 @@ a.cmpbtn {{ flex: none; font-family: var(--round); font-weight: 800; color: var(
 a.cmpbtn:hover {{ border-color: var(--fg); }}
 a.cmpbtn:focus-visible {{ outline: 2px solid var(--fg); outline-offset: 2px; }}
 a.playbtn:focus-visible {{ outline: 2px solid var(--fg); outline-offset: 2px; }}
+.progs {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; }}
+.prog .big {{ margin: 0; font-family: var(--round); font-weight: 500; }}
+.prog .big b {{ font-size: 1.9rem; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }}
+.prog .big b.ok {{ color: var(--ok); font-size: 1.4rem; }} .prog .big b.bad {{ color: var(--bad); font-size: 1.4rem; }}
+.segs {{ list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(1.9rem, 1fr)); gap: 3px; }}
+.seg {{ display: grid; justify-items: center; padding: .2rem 0; border-radius: 6px; border: 1.5px dashed var(--line); color: var(--muted); font-size: .72rem; line-height: 1.35; }}
+.seg b {{ font-size: .82rem; color: var(--fg); font-variant-numeric: tabular-nums; }}
+.seg.done {{ border: 1.5px solid var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--panel)); color: var(--fg); }}
+.seg.now {{ border: 1.5px solid transparent; background: var(--now-bg); color: var(--fg); }}
+.seg.bad {{ border: 1.5px solid var(--bad); color: var(--fg); }}
+ul.tally, ul.phases, ul.recs {{ list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }}
+ul.tally li, ul.phases li {{ display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }}
+ul.tally li:last-child, ul.phases li:last-child {{ border-bottom: 0; }}
+ul.tally b {{ font-variant-numeric: tabular-nums; }}
+ul.phases b {{ font-family: var(--round); white-space: nowrap; }}
+ul.recs {{ gap: .6rem; font-size: .92rem; }}
 .meta {{ margin: 0; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }}
 .meta b.ok {{ color: var(--ok); }} .meta b.bad {{ color: var(--bad); }}
 a {{ color: inherit; }}
@@ -347,8 +459,10 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
   {play}
   {now}
   <p class="meta">{test_line} ／ 更新 {updated}{rev}</p>
-  <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
+  <nav><a href="#progress">進みぐあい</a><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
 </header>
+
+{progress}
 
 <section id="todo">
   <h2>いま やること</h2>
@@ -448,8 +562,11 @@ def main() -> None:
         "episodes": episodes(ep_gd, gd, log),
         "prompts": prompts(sec[7]),
     }
+    # 進みぐあい用（空でも ページは 作れる）
+    planned, recent = planned_episodes(story), records(sec.get(6, ""))
     for name, rows in data.items():
         assert rows, "%s が空（dashboard.md の章の形を確かめる）" % name
+    data["planned"], data["records"] = planned, recent
     lineup = "data:image/jpeg;base64," + base64.b64encode((ROOT / "tools/dashboard_lineup.jpg").read_bytes()).decode()
     jst = datetime.timezone(datetime.timedelta(hours=9))
     updated = datetime.datetime.now(jst).strftime("%Y-%m-%d %H:%M")
