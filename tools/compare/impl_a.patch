@@ -1,0 +1,4061 @@
+diff --git a/godot/assets/ui/hana_face_happy.png.import b/godot/assets/ui/hana_face_happy.png.import
+new file mode 100644
+index 0000000..4ffde51
+--- /dev/null
++++ b/godot/assets/ui/hana_face_happy.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://b6fm3ar0lyx1t"
++path="res://.godot/imported/hana_face_happy.png-25f798c3aa03d90d60abc7409a77b433.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/hana_face_happy.png"
++dest_files=["res://.godot/imported/hana_face_happy.png-25f798c3aa03d90d60abc7409a77b433.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/hana_face_sick.png.import b/godot/assets/ui/hana_face_sick.png.import
+new file mode 100644
+index 0000000..38d1316
+--- /dev/null
++++ b/godot/assets/ui/hana_face_sick.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://bypobqvvrryqo"
++path="res://.godot/imported/hana_face_sick.png-3f80ba94194894ac2356a891b79672a1.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/hana_face_sick.png"
++dest_files=["res://.godot/imported/hana_face_sick.png-3f80ba94194894ac2356a891b79672a1.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/hana_face_sneeze.png.import b/godot/assets/ui/hana_face_sneeze.png.import
+new file mode 100644
+index 0000000..91c00a2
+--- /dev/null
++++ b/godot/assets/ui/hana_face_sneeze.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://bwl4e573i0jbl"
++path="res://.godot/imported/hana_face_sneeze.png-09396120315e1e9412128e3204c28bd3.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/hana_face_sneeze.png"
++dest_files=["res://.godot/imported/hana_face_sneeze.png-09396120315e1e9412128e3204c28bd3.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/hana_fullbody_happy.png.import b/godot/assets/ui/hana_fullbody_happy.png.import
+new file mode 100644
+index 0000000..563ca7c
+--- /dev/null
++++ b/godot/assets/ui/hana_fullbody_happy.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://cx8edoepxgvqq"
++path="res://.godot/imported/hana_fullbody_happy.png-60657984a90a9c7e640e68cfb33409fa.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/hana_fullbody_happy.png"
++dest_files=["res://.godot/imported/hana_fullbody_happy.png-60657984a90a9c7e640e68cfb33409fa.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/hana_fullbody_sick.png.import b/godot/assets/ui/hana_fullbody_sick.png.import
+new file mode 100644
+index 0000000..8ffc27e
+--- /dev/null
++++ b/godot/assets/ui/hana_fullbody_sick.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://dstsjbscylvl8"
++path="res://.godot/imported/hana_fullbody_sick.png-760f6379e0a574e872352c3b8bb49c20.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/hana_fullbody_sick.png"
++dest_files=["res://.godot/imported/hana_fullbody_sick.png-760f6379e0a574e872352c3b8bb49c20.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pico_face_happy.png.import b/godot/assets/ui/pico_face_happy.png.import
+new file mode 100644
+index 0000000..4f3e05c
+--- /dev/null
++++ b/godot/assets/ui/pico_face_happy.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://baawxr1cdxp45"
++path="res://.godot/imported/pico_face_happy.png-73a0531203677683af398db6206955b9.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pico_face_happy.png"
++dest_files=["res://.godot/imported/pico_face_happy.png-73a0531203677683af398db6206955b9.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pico_face_normal.png.import b/godot/assets/ui/pico_face_normal.png.import
+new file mode 100644
+index 0000000..f5361f4
+--- /dev/null
++++ b/godot/assets/ui/pico_face_normal.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://ckht2ofhiv5a0"
++path="res://.godot/imported/pico_face_normal.png-9c5c2b2abdca2356edd9a7b3e9aaa175.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pico_face_normal.png"
++dest_files=["res://.godot/imported/pico_face_normal.png-9c5c2b2abdca2356edd9a7b3e9aaa175.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pico_face_surprised.png.import b/godot/assets/ui/pico_face_surprised.png.import
+new file mode 100644
+index 0000000..6192237
+--- /dev/null
++++ b/godot/assets/ui/pico_face_surprised.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://cy658t7vfhilt"
++path="res://.godot/imported/pico_face_surprised.png-c950b0b7e38ed042a7dea848c5656253.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pico_face_surprised.png"
++dest_files=["res://.godot/imported/pico_face_surprised.png-c950b0b7e38ed042a7dea848c5656253.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pico_face_worried.png.import b/godot/assets/ui/pico_face_worried.png.import
+new file mode 100644
+index 0000000..845ecc7
+--- /dev/null
++++ b/godot/assets/ui/pico_face_worried.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://bpe4yenpmc6gf"
++path="res://.godot/imported/pico_face_worried.png-3d44ead0fbbce581550d49bbaa5925be.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pico_face_worried.png"
++dest_files=["res://.godot/imported/pico_face_worried.png-3d44ead0fbbce581550d49bbaa5925be.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pilot_face_happy.png.import b/godot/assets/ui/pilot_face_happy.png.import
+new file mode 100644
+index 0000000..26cbfd0
+--- /dev/null
++++ b/godot/assets/ui/pilot_face_happy.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://dugtwb2mlcs61"
++path="res://.godot/imported/pilot_face_happy.png-648969c38d70ad39b9704f0224a1f01d.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pilot_face_happy.png"
++dest_files=["res://.godot/imported/pilot_face_happy.png-648969c38d70ad39b9704f0224a1f01d.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pilot_face_hurt.png.import b/godot/assets/ui/pilot_face_hurt.png.import
+new file mode 100644
+index 0000000..9471ed1
+--- /dev/null
++++ b/godot/assets/ui/pilot_face_hurt.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://bhlldfu5tsm7a"
++path="res://.godot/imported/pilot_face_hurt.png-f62f4cba3f1ef61a404eb497c69fef5c.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pilot_face_hurt.png"
++dest_files=["res://.godot/imported/pilot_face_hurt.png-f62f4cba3f1ef61a404eb497c69fef5c.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pilot_face_normal.png.import b/godot/assets/ui/pilot_face_normal.png.import
+new file mode 100644
+index 0000000..9aaf101
+--- /dev/null
++++ b/godot/assets/ui/pilot_face_normal.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://c2pk7ukdd422"
++path="res://.godot/imported/pilot_face_normal.png-5aba35cce76b8865678252a4c82832a2.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pilot_face_normal.png"
++dest_files=["res://.godot/imported/pilot_face_normal.png-5aba35cce76b8865678252a4c82832a2.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/assets/ui/pilot_face_surprised.png.import b/godot/assets/ui/pilot_face_surprised.png.import
+new file mode 100644
+index 0000000..7a1b701
+--- /dev/null
++++ b/godot/assets/ui/pilot_face_surprised.png.import
+@@ -0,0 +1,40 @@
++[remap]
++
++importer="texture"
++type="CompressedTexture2D"
++uid="uid://dj7iu87yxftg5"
++path="res://.godot/imported/pilot_face_surprised.png-d53a13f026be7b2cf588a2c7897a402d.ctex"
++metadata={
++"vram_texture": false
++}
++
++[deps]
++
++source_file="res://assets/ui/pilot_face_surprised.png"
++dest_files=["res://.godot/imported/pilot_face_surprised.png-d53a13f026be7b2cf588a2c7897a402d.ctex"]
++
++[params]
++
++compress/mode=0
++compress/high_quality=false
++compress/lossy_quality=0.7
++compress/uastc_level=0
++compress/rdo_quality_loss=0.0
++compress/hdr_compression=1
++compress/normal_map=0
++compress/channel_pack=0
++mipmaps/generate=false
++mipmaps/limit=-1
++roughness/mode=0
++roughness/src_normal=""
++process/channel_remap/red=0
++process/channel_remap/green=1
++process/channel_remap/blue=2
++process/channel_remap/alpha=3
++process/fix_alpha_border=true
++process/premult_alpha=false
++process/normal_map_invert_y=false
++process/hdr_as_srgb=false
++process/hdr_clamp_exposure=false
++process/size_limit=0
++detect_3d/compress_to=1
+diff --git a/godot/project.godot b/godot/project.godot
+index 1ca2ef8..91ad6a7 100644
+--- a/godot/project.godot
++++ b/godot/project.godot
+@@ -19,6 +19,7 @@ config/icon="res://assets/icon.svg"
+ [autoload]
+ 
+ StageDB="*res://src/autoload/stage_db.gd"
++EpisodeDB="*res://src/autoload/episode_db.gd"
+ SaveData="*res://src/autoload/save_data.gd"
+ Sfx="*res://src/autoload/sfx.gd"
+ Game="*res://src/autoload/game.gd"
+diff --git a/godot/src/autoload/episode_db.gd b/godot/src/autoload/episode_db.gd
+new file mode 100644
+index 0000000..4ae1e26
+--- /dev/null
++++ b/godot/src/autoload/episode_db.gd
+@@ -0,0 +1,505 @@
++extends Node
++## カルテ（1 話）の 定義。場所（GLB・マーカー・ものしりカード・既定の ミッション）は StageDB.STAGES。
++## ここには 話の 文と、場面（scene）ごとの 上書きだけを 書く。設計は docs/episodes.md。
++##
++## 書きかたの きまり（tools/build_dashboard.py が 正規表現で 読む）：
++## - 各話の 1 行目は「\t\t"id": "epNN", "no": N, "title": "…", "patient": "…", "pattern": "…", "difficulty": N,」
++## - 場面は 4 タブで「"place": "<場所 id>",」を 1 行に 単独で 書く（よそうの choices は「{"place": …}」と 波かっこから 始める）
++## - 文は ひらがな・カタカナ・わかち書き。漢字は「い（胃）」の ように（ ）の 中だけ（validate() が 調べる）
++## - 大事な 種あかしは HUD（intro・goal_say など。時間で 消える）に 書かない。after（ボタンで 進む）と karte に 書く
++
++const SEASON_COMPLETE := false   # 10 話 そろったら true（さいごの カルテの あとに エンディングを 出す）
++
++const PATIENTS := {
++	"hana": {"name": "はなちゃん", "color": Color(1.0, 0.72, 0.8)},
++	"kenta": {"name": "けんたくん", "color": Color(0.62, 0.86, 1.0)},
++	"papa": {"name": "おとうさん", "color": Color(0.6, 0.9, 0.75)},
++	"jiji": {"name": "おじいちゃん", "color": Color(1.0, 0.86, 0.35)},
++}
++const PICO := {"name": "ドクター・ピコ", "color": Color(0.75, 0.92, 1.0)}
++
++## 不調の パターン（story.md 3 章）。カルテの 紙に「げんいんの タイプ」として 出る
++const PATTERNS := {
++	"A": {"name": "ばいきん・ウイルス", "msg": "てあらい・うがい・はみがきで ふせごう"},
++	"B": {"name": "けが", "msg": "きずは あらって きれいに しよう"},
++	"C": {"name": "まいにちの くせ", "msg": "まいにちの つみかさねが だいじ"},
++	"D": {"name": "からだの まちがい", "msg": "てきを たおすだけが なおす ことじゃ ないよ"},
++	"E": {"name": "ばしょ ちがい", "msg": "きめつけないで しらべよう"},
++	"F": {"name": "おおきな びょうき", "msg": "がまんしないで はやく おとなと おいしゃさんへ"},
++}
++
++## からだの地図の 中での 位置（0〜1）。よそうの 画面が 使う
++const ORGAN_POS := {
++	"brain": Vector2(0.50, 0.085), "nose": Vector2(0.62, 0.17), "mouth": Vector2(0.50, 0.23),
++	"esophagus": Vector2(0.50, 0.33), "lungs": Vector2(0.34, 0.42), "heart": Vector2(0.58, 0.40), "heart2": Vector2(0.72, 0.47),
++	"stomach": Vector2(0.58, 0.54), "intestine": Vector2(0.50, 0.66), "vessel": Vector2(0.20, 0.58),
++}
++
++## はじめて カルテを ひらいた ときだけ、そうだんの 前に 出す（1 ページ）
++const OPENING := [
++	{"who": "pico", "text": "ようこそ、ミクロしんりょうじょへ！ ぼくは ドクター・ピコ。\nきみは みならいの ちいさな おいしゃさん。からだの なかから みんなを なおしてあげよう！"},
++]
++const ENDING := "みんな げんきに なった！\nミクロしんりょうじょは きょうも あいているよ。\nまた そうだんに きてね！"
++
++const MISSION_TYPES := ["defeat", "boss", "cheer", "collect", "deliver", "gate", "sequence", "reach"]
++const SPAWN_LOCKED := ["player", "goal", "path", "checkpoint"]
++## 文の 長さの 上限（字）。HUD に 出る 文（intro〜clear_say）は 短く：子どもは 操縦しながら 読む
++const MAX := {
++	"title": 24, "line": 90, "q": 40, "say": 70, "depart": 40, "label": 20,
++	"intro": 45, "goal_say": 45, "clear_say": 30, "hint": 60, "mission": 30, "each_say": 30, "done_say": 30,
++	"banner": 20, "thanks": 60, "exit": 60, "karte": 62, "quiz_q": 40, "quiz_choice": 20, "explain": 90,
++}
++## 「い」「は」「ち」＋ 助詞 に 見えるが 臓器では ない ことば（_check_text が 見のがす）
++const OK_WORDS := ["はは", "いも", "はで"]
++
++const EPISODES: Array[Dictionary] = [
++	{
++		"id": "ep01", "no": 1, "title": "は（歯）が ズキズキ", "patient": "hana", "pattern": "A・C", "difficulty": 1,
++		"consult": [
++			{"who": "hana", "text": "おくの は（歯）が ズキズキ いたいよう。\nきのうの よる、チョコを たべて そのまま ねちゃったの。"},
++			{"who": "pico", "text": "ピコッ。それは つらいね。\nミクロごうで ちいさくなって、からだの なかを しらべに いこう！"},
++		],
++		"guess": {
++			"q": "どこが あやしいと おもう？",
++			"choices": [
++				{"place": "stomach", "say": "いい かんがえだね！ チョコは い（胃）にも いくよ。\nでも いたいのは は（歯）。は（歯）が あるのは どこかな？"},
++				{"place": "mouth", "go": true, "hit": true, "say": "うん、くち（口）が あやしいね！\nは（歯）が あるのは くちの なか。しらべに いこう！"},
++				{"place": "nose", "say": "いい かんがえだね！ はな（鼻）は くちの おとなり。\nでも いたいのは は（歯）。は（歯）が あるのは どこかな？"},
++			],
++			"depart": "はなちゃん、おおきく あーん！ ミクロごう、くちから はっしん！",
++		},
++		"scenes": [
++			{
++				"place": "mouth",
++				"intro": "おくの は（歯）に むしばきんが いるよ。やっつけよう！",
++				"hints": [
++					{"at": 1.0, "text": "やじるしキー（または スティック）で うごけるよ。", "text_touch": "ひだりの まるを ゆびで うごかすと すすめるよ。"},
++					{"at": 9.0, "text": "スペースキー（Aボタン）で おくすりを だすよ。ちかくの むしばきんを じどうで ねらうんだ！", "text_touch": "みぎの「おくすり」ボタンで うつよ。ちかくの むしばきんを じどうで ねらうんだ！"},
++				],
++				"missions": [
++					{"type": "defeat", "target": "mushiba", "count": 4, "text": "むしばきんを やっつけよう"},
++					{"type": "reach", "text": "のどの おくの ゴールへ いこう"},
++				],
++				"goal_say": "むしばきんを ぜんぶ やっつけた！ のどの おくの ゴールへ いこう！",
++				"clear_say": "むしばきんを やっつけた！",
++				"after": {"banner": "ピコッと はっけん！", "lines": [
++					{"who": "pico", "text": "むしばきんが「さん」を だして、おくの は（歯）を とかしていたんだ。\nあまい ものの のこりかすが だいすきなんだよ。"},
++				]},
++			},
++		],
++		"karte": {
++			"thanks": "ズキズキが らくに なったよ。ありがとう！ はいしゃさんにも いってくるね。",
++			"exit": "のどの おくで まわれみぎ！ ガラガラ うがいの おみずに のって、くちから そとへ ぴゅーっ！",
++			"what": "むしばきんが「さん」を だして、おくの は（歯）を とかしていた。",
++			"why": "あまい ものを たべた あと、はみがきを しないで ねてしまった。",
++			"next": "ねる まえは かならず はみがき。あなの あいた は（歯）は、はいしゃさんに なおしてもらおう。",
++		},
++		"quiz": {"q": "むしばきんが だいすきな ものは どれ？", "choices": ["あまい ものの のこりかす", "おみず", "はブラシ"], "answer": 0, "explain": "むしばきんは あまい ものの のこりかすを たべて、は（歯）を とかす「さん」を だすよ。たべたら はみがき！"},
++	},
++	{
++		"id": "ep02", "no": 2, "title": "おとうさんの い（胃）が しくしく", "patient": "papa", "pattern": "A・C", "difficulty": 1,
++		"consult": [
++			{"who": "papa", "text": "ごはんの あと、い（胃）の あたりが しくしく いたいんだ。\nしごとが いそがしくて、いつも はやぐいでね。"},
++			{"who": "pico", "text": "ピコッ。はやぐいは きに なるね。\nたべものと おなじ みちを とおって、しらべてみよう！"},
++		],
++		"guess": {
++			"q": "どこが あやしいと おもう？",
++			"choices": [
++				{"place": "lungs", "say": "いい かんがえだね！ はい（肺）は いきを する ところ。\nたべた ごはんが たまるのは どこかな？"},
++				{"place": "mouth", "say": "いい かんがえだね！ くち（口）は たべものの いりぐち。\nのみこんだ ごはんが たまるのは どこかな？"},
++				{"place": "stomach", "go": true, "hit": true, "say": "うん、ごはんが たまる い（胃）が あやしいね！\nのどから しょくどう（食道）を とおって いこう。"},
++			],
++			"depart": "おとうさん、おみずと いっしょに ごくん！ ミクロごう、はっしん！",
++		},
++		"scenes": [
++			{
++				"place": "esophagus",
++				"intro": "よく かまずに のみこんだ かたまりが ごろごろ！ よけて い（胃）まで くだろう。",
++				"hints": [
++					{"at": 1.0, "text": "ピンクの なみ（ぜんどううんどう）に のると はやく すすめるよ。"},
++					{"at": 12.0, "text": "たべものの かたまりは よけてね。はたの ところが チェックポイントだよ。"},
++				],
++				"missions": [
++					{"type": "reach", "text": "かたまりを よけて い（胃）へ いこう"},
++				],
++				"clear_say": "い（胃）の いりぐちに ついた！",
++				"after": {"banner": "てがかり はっけん！", "lines": [
++					{"who": "pico", "text": "おおきな かたまりが いっぱい だったね。\nよく かまないと、い（胃）は たくさん はたらかないと いけないんだ。"},
++					{"who": "pico", "text": "つぎは い（胃）の なかを しらべよう！"},
++				]},
++			},
++			{
++				"place": "stomach",
++				"intro": "ピロリきんが い（胃）の かべを いじめている！ やっつけよう。",
++				"hints": [
++					{"at": 1.0, "text": "きいろい いけ（いえき）に はいると ハートが へるよ。きをつけて！"},
++					{"at": 14.0, "text": "なかまには さわるだけで おうえんできるよ。"},
++				],
++				"missions": [
++					{"type": "defeat", "target": "pylori", "count": 4, "text": "ピロリきんを やっつけよう", "done_say": "ピロリきんが へった！ かべの さいぼうも おうえんしよう。"},
++					{"type": "cheer", "target": "wallcell", "count": 3, "text": "い（胃）の かべの さいぼうを おうえんしよう", "done_say": "かべが げんきに なった！ ピロリきんも やっつけよう。"},
++					{"type": "reach", "text": "ゴールの わっかへ いこう"},
++				],
++				"goal_say": "やったね！ い（胃）の かべが げんきに なった。ゴールの わっかへ いこう！",
++				"clear_say": "おとうさんの い（胃）、もう だいじょうぶ！",
++				"after": {"banner": "ピコッと はっけん！", "lines": [
++					{"who": "pico", "text": "はやぐいの かたまりと、ピロリきん。\nふたつが い（胃）を つかれさせていたんだね。"},
++				]},
++			},
++		],
++		"karte": {
++			"thanks": "おなかが らくに なってきたよ。ありがとう！ これからは ゆっくり たべるね。",
++			"exit": "い（胃）の いりぐちまで もどって、げっぷに のって くちから そとへ ぽーん！",
++			"what": "い（胃）の かべに ピロリきんが すみついていた。おおきな かたまりも い（胃）を つかれさせていた。",
++			"why": "いそいで たべて、よく かんでいなかった。ピロリきんは、きづかない うちに い（胃）に ながく すんでいる ことが ある。",
++			"next": "ひとくち 30かい、よく かんで たべよう。ピロリきんは びょういんで しらべて、おくすりで なおせるよ。",
++		},
++		"quiz": {"q": "い（胃）が らくに なる たべかたは どれ？", "choices": ["よく かんで ゆっくり たべる", "かまずに のみこむ", "はしりながら たべる"], "answer": 0, "explain": "よく かむと たべものが こまかくなって、い（胃）が とかしやすく なるよ。"},
++	},
++	{
++		"id": "ep03", "no": 3, "title": "おなかが いたい…どこ？", "patient": "hana", "pattern": "E・C", "difficulty": 1,
++		"consult": [
++			{"who": "hana", "text": "おなかが いたいよう。\nきのう アイスを 3こ たべたから、きっと い（胃）だよ。"},
++			{"who": "pico", "text": "ピコッ。おなかの なかには、い（胃）の ほかにも いろいろ あるよ。\nきめつけないで、しらべてみよう！"},
++		],
++		"guess": {
++			"q": "どこが あやしいと おもう？",
++			"choices": [
++				{"place": "stomach", "go": true, "say": "はなちゃんと おなじ よそうだね。\nじゃあ まず い（胃）を みに いこう！"},
++				{"place": "intestine", "go": true, "hit": true, "say": "いい よそうだね！ おぼえておこう。\nたべものが とおる じゅんばんに、まず い（胃）から しらべるよ。"},
++				{"place": "brain", "say": "いい かんがえだね！ でも のう（脳）は あたまの なか。\nいたいのは おなか。おなかに あるのは どこかな？"},
++			],
++			"depart": "はなちゃん、おみずと いっしょに ごくん！ ミクロごう、はっしん！",
++		},
++		"scenes": [
++			{
++				"place": "stomach",
++				"spawn": {"skip": ["enemy_pylori"]},
++				"intro": "ここは はなちゃんの い（胃）。かべの さいぼうに さわって しらべよう！",
++				"hints": [
++					{"at": 1.0, "text": "やじるしの さきに かべの さいぼうが いるよ。さわると しらべられるんだ。"},
++					{"at": 14.0, "text": "きいろい いけ（いえき）に はいると ハートが へるよ。きをつけて！"},
++				],
++				"missions": [
++					{"type": "cheer", "target": "wallcell", "count": 3, "text": "い（胃）の かべの さいぼうを しらべよう", "each_say": ["この さいぼうは げんき いっぱい！", "ここも だいじょうぶ。ねんえきも たっぷり！"]},
++					{"type": "reach", "text": "でぐちから もっと おくへ すすもう"},
++				],
++				"goal_say": "あれれ？ みんな げんき。ばいきんも いない……。でぐちの わっかへ いこう！",
++				"clear_say": "い（胃）を しらべおわった！",
++				"after": {"banner": "い（胃）は げんき！", "lines": [
++					{"who": "pico", "text": "はなちゃんは「きっと い（胃）」と いっていたけど、い（胃）は どこも わるくなかったね。"},
++					{"who": "pico", "text": "いたい ところと わるい ところは、ちがう ことが あるんだ。\nいい しらべかた だったよ！ つぎは もっと おくの ちょう（腸）を しらべよう！"},
++				], "lines_hit": [
++					{"who": "pico", "text": "い（胃）は どこも わるくなかったね。\nいたい ところと わるい ところは、ちがう ことが あるんだ。"},
++					{"who": "pico", "text": "きみの よそうどおり、もっと おくが あやしいね！\nつぎは ちょう（腸）を しらべよう！"},
++				]},
++			},
++			{
++				"place": "intestine",
++				"arrow": "nearest",
++				"intro": "みつけた！ ちょう（腸）で あくだまきんが ふえて、ぜんだまきんが こまっている！",
++				"hints": [
++					{"at": 1.0, "text": "ひかる えいようを ひろって、みどりの おおきな じゅうもうに とどけよう。"},
++					{"at": 15.0, "text": "みどりの ぜんだまきんにも さわって おうえんしてね。やじるしが おしえてくれるよ。"},
++				],
++				"missions": [
++					{"type": "collect", "target": "nutrient", "count": 6, "text": "えいようを あつめよう"},
++					{"type": "deliver", "target": "villus", "count": 6, "text": "えいようを じゅうもうに とどけよう"},
++					{"type": "cheer", "target": "zendama", "count": 3, "text": "ぜんだまきんを おうえんしよう", "done_say": "ぜんだまきんが げんきに なった！"},
++					{"type": "reach", "text": "ちょうの おくの ゴールへ いこう"},
++				],
++				"goal_say": "やったね！ おなかの なかが げんきに なってきた。おくの ゴールへ いこう！",
++				"clear_say": "おなかの なかが げんきに なった！",
++				"after": {"banner": "ピコッと はっけん！", "lines": [
++					{"who": "pico", "text": "わるかったのは い（胃）じゃなくて、その おくの ちょう（腸）だったね。\nあくだまきんが ふえて、おなかの ちょうしが わるくなっていたんだ。"},
++				]},
++			},
++		],
++		"karte": {
++			"thanks": "おなかが いたくなくなってきた！ ありがとう！ やさいも たべてみるね。",
++			"exit": "かえりは…… うんちと いっしょに ぽとん！ ちゃんと あらうから だいじょうぶ。",
++			"what": "ちょう（腸）で あくだまきんが ふえて、おなかの ちょうしが わるくなっていた。い（胃）は げんき だった。",
++			"why": "あまい もの ばかりで、やさいが たりなかった。",
++			"next": "やさいと ヨーグルトも たべよう。おなかが すごく いたい ときや ずっと いたい ときは、すぐ おとなに いおう。",
++		},
++		"quiz": {"q": "おなかが いたい とき、わるい ところは いつも い（胃）？", "choices": ["ちがう ところの ことも ある", "かならず い（胃）", "かならず は（歯）"], "answer": 0, "explain": "いたい ところと わるい ところは ちがう ことが あるよ。だから きめつけないで、じゅんばんに しらべるんだ。"},
++	},
++]
++
++
++func get_episode(id: String) -> Dictionary:
++	for e in EPISODES:
++		if e["id"] == id:
++			return e
++	push_error("unknown episode: %s" % id)
++	return {}
++
++
++func ids() -> Array[String]:
++	var out: Array[String] = []
++	for e in EPISODES:
++		out.append(e["id"])
++	return out
++
++
++func next_id(id: String) -> String:
++	var a := ids()
++	var i := a.find(id)
++	return a[i + 1] if i >= 0 and i + 1 < a.size() else ""
++
++
++func scene_count(id: String) -> int:
++	for e in EPISODES:
++		if e["id"] == id:
++			return e["scenes"].size()
++	return 0
++
++
++## どれかの 話が 使う 場所（はじめて 出てくる 順）。ずかんが 使う
++func used_places() -> Array[String]:
++	var out: Array[String] = []
++	for e in EPISODES:
++		for sc in e["scenes"]:
++			if not out.has(sc["place"]):
++				out.append(sc["place"])
++	return out
++
++
++## 話す 人の 名前と 色（"pico" か PATIENTS の キー）
++func speaker(who: String) -> Dictionary:
++	return PICO if who == "pico" else PATIENTS.get(who, PICO)
++
++
++## カルテえらびに 出す ひとこと：患者が 話す 最初の ページ（無ければ 1 ページ目）
++func select_line(ep: Dictionary) -> Dictionary:
++	for l in ep["consult"]:
++		if l["who"] == ep["patient"]:
++			return l
++	return ep["consult"][0]
++
++
++## パターンの 記号の 配列（"A・C" → ["A", "C"]）
++func patterns(ep: Dictionary) -> PackedStringArray:
++	return String(ep["pattern"]).split("・", false)
++
++
++## よそうの えらびの 表示名：label が あれば それ、無ければ 場所の「なまえ（漢字）」
++func place_label(choice: Dictionary) -> String:
++	if choice.has("label"):
++		return choice["label"]
++	if StageDB.stage_ids().has(choice["place"]):
++		var s := StageDB.get_stage(choice["place"])
++		return "%s（%s）" % [s["name"], s["kanji"]]
++	return ""
++
++
++## さいしょの よそう（place）が「あたり」（hit: true の えらび）だったか
++func guess_is_hit(ep: Dictionary, first_guess: String) -> bool:
++	for c in ep.get("guess", {}).get("choices", []):
++		if c["place"] == first_guess:
++			return c.get("hit", false)
++	return false
++
++
++## あとの はなしの ページ：さいしょの よそうが あたりで lines_hit が あれば それ
++func after_lines(ep: Dictionary, i: int, first_guess: String) -> Array:
++	var a: Dictionary = ep["scenes"][i].get("after", {})
++	if a.has("lines_hit") and guess_is_hit(ep, first_guess):
++		return a["lines_hit"]
++	return a.get("lines", [])
++
++
++## 場面 i を Level.setup() に わたす 辞書に する：場所の 辞書の 写し ＋ 場面の 上書き。
++## "id" は 場所の id の まま（カードの キー・挿絵の 名前・しょくどうの なみ が そのまま 動く）。
++func scene_stage(ep: Dictionary, i: int) -> Dictionary:
++	var sc: Dictionary = ep["scenes"][i]
++	var st: Dictionary = StageDB.get_stage(sc["place"]).duplicate(true)   # const は 読み取り専用。かならず 写しに 書く
++	for k in sc.keys():
++		if k != "place" and k != "after":
++			st[k] = sc[k]
++	st["ep"] = ep["id"]
++	st["scene"] = i
++	return st
++
++
++## ずかんで 読みかえす カルテ（CardPopup が "karte" を 見て カルテの 紙を 出す）
++func karte_card(ep: Dictionary) -> Dictionary:
++	return {"tag": "カルテ %d" % ep["no"], "title": ep["title"], "karte": ep["id"]}
++
++
++## （ ）の 外に ある 漢字を 1 文字 返す（無ければ ""）
++static func kanji_outside_paren(text: String) -> String:
++	var depth := 0
++	for i in text.length():
++		var ch := text[i]
++		if ch == "（":
++			depth += 1
++		elif ch == "）":
++			depth = maxi(depth - 1, 0)
++		elif depth == 0:
++			var u := text.unicode_at(i)
++			if (u >= 0x4E00 and u <= 0x9FFF) or u == 0x3005:
++				return ch
++	return ""
++
++
++static func _is_kana(u: int) -> bool:
++	return (u >= 0x3041 and u <= 0x3096) or (u >= 0x30A1 and u <= 0x30FA) or u == 0x30FC
++
++
++## 文の きまりの 検査（文の まちがいを 文の 配列で 返す。空なら OK）。テストは 画面に 出た 文にも 使う
++static func text_problems(text: String) -> Array[String]:
++	var out: Array[String] = []
++	var k := kanji_outside_paren(text)
++	if k != "":
++		out.append("（ ）の 外に 漢字「%s」" % k)
++	# わかち書き：かなが 13 字 以上 つづいたら 空白の 入れわすれ
++	var run := 0
++	for i in text.length():
++		run = run + 1 if _is_kana(text.unicode_at(i)) else 0
++		if run == 13:
++			out.append("かなが 13 字 つづく（わかち書き）：…%s" % text.substr(i - 12, 13))
++	# 一文字の 臓器名（い・は・ち）は 漢字を そえる：「いが」「はを」「ちの」の ような 語を さがす
++	var words := text.replace("\n", " ").replace("「", " ").replace("」", " ").replace("、", " ").replace("。", " ").replace("！", " ").replace("？", " ").split(" ", false)
++	for w in words:
++		if w.length() == 2 and w[0] in ["い", "は", "ち"] and w[1] in ["が", "の", "を", "に", "は", "も", "で", "へ", "と", "や"] and not OK_WORDS.has(w):
++			out.append("「%s」：一文字の 臓器名は「い（胃）」の ように 書く" % w)
++	return out
++
++
++func _check_text(bad: Array[String], where: String, text: String, max_len: int) -> void:
++	if text.strip_edges() == "":
++		bad.append("%s: 文が 空" % where)
++	if text.length() > max_len:
++		bad.append("%s: 長すぎる（%d 字。%d 字まで）" % [where, text.length(), max_len])
++	for p in text_problems(text):
++		bad.append("%s: %s" % [where, p])
++
++
++func _check_lines(bad: Array[String], where: String, lines: Array) -> void:
++	if lines.size() < 1 or lines.size() > 3:
++		bad.append("%s: 1〜3 ページに する（いま %d）" % [where, lines.size()])
++	for l in lines:
++		if l["who"] != "pico" and not PATIENTS.has(l["who"]):
++			bad.append("%s: who「%s」が いない" % [where, l["who"]])
++		_check_text(bad, where, l["text"], MAX["line"])
++
++
++## データの まちがいを 文の 配列で 返す（空なら OK）。tests/smoke.gd が 呼ぶ
++func validate() -> Array[String]:
++	var bad: Array[String] = []
++	_check_lines(bad, "OPENING", OPENING)
++	_check_text(bad, "ENDING", ENDING, 200)
++	for p in PATIENTS.keys():
++		_check_text(bad, "PATIENTS " + p, PATIENTS[p]["name"], 12)
++	for p in PATTERNS.keys():
++		_check_text(bad, "PATTERNS %s name" % p, PATTERNS[p]["name"], 12)
++		_check_text(bad, "PATTERNS %s msg" % p, PATTERNS[p]["msg"], 30)
++	# カルテで 行く 場所の ものしりカードと まとめも、同じ 文の きまりで 見る（子どもが 読むので）
++	for pid in used_places():
++		var st := StageDB.get_stage(pid)
++		var cards: Dictionary = st["cards"].duplicate()
++		cards["summary"] = st["summary"]
++		for key in cards.keys():
++			for t in [cards[key]["title"], cards[key]["text"]]:
++				for p in text_problems(t):
++					bad.append("場所 %s の カード %s: %s" % [pid, key, p])
++	var no := 0
++	for ep in EPISODES:
++		no += 1
++		var id: String = ep["id"]
++		if id != "ep%02d" % no or int(ep["no"]) != no:
++			bad.append("%s: id と no は ep01 から 順番に" % id)
++		if not PATIENTS.has(ep["patient"]):
++			bad.append("%s: patient が PATIENTS に ない" % id)
++		if patterns(ep).size() < 1 or patterns(ep).size() > 2:
++			bad.append("%s: pattern は 1〜2 こ（「A・C」の ように 書く）" % id)
++		for p in patterns(ep):
++			if not PATTERNS.has(p):
++				bad.append("%s: pattern「%s」が PATTERNS に ない" % [id, p])
++		_check_text(bad, id + " title", ep["title"], MAX["title"])
++		_check_lines(bad, id + " consult", ep.get("consult", []))
++		if ep.has("guess"):
++			var g: Dictionary = ep["guess"]
++			var go := 0
++			var seen_places: Array = []
++			_check_text(bad, id + " guess.q", g["q"], MAX["q"])
++			_check_text(bad, id + " guess.depart", g["depart"], MAX["depart"])
++			if g["choices"].size() < 2 or g["choices"].size() > 3:
++				bad.append("%s: guess.choices は 2〜3 こ" % id)
++			for c in g["choices"]:
++				if seen_places.has(c["place"]):
++					bad.append("%s: guess の 場所「%s」が 2 回 ある" % [id, c["place"]])
++				seen_places.append(c["place"])
++				if not ORGAN_POS.has(c["place"]):
++					bad.append("%s: guess の 場所「%s」が ORGAN_POS に ない" % [id, c["place"]])
++				if place_label(c) == "":
++					bad.append("%s: guess の 場所「%s」に label が いる" % [id, c["place"]])
++				else:
++					_check_text(bad, id + " guess.label", place_label(c), MAX["label"])
++				_check_text(bad, id + " guess.say", c["say"], MAX["say"])
++				if c.get("go", false):
++					go += 1
++				elif c.get("hit", false):
++					bad.append("%s: guess の「%s」は hit なのに go で ない（はずれと 言った あとで あたりと 言う ことに なる）" % [id, c["place"]])
++			if go == 0:
++				bad.append("%s: guess に go: true の えらびが ない（行き止まりに なる）" % id)
++		var n: int = ep["scenes"].size()
++		if n < 1 or n > 3:
++			bad.append("%s: scenes は 1〜3 こ" % id)
++		for i in n:
++			var sc: Dictionary = ep["scenes"][i]
++			var where := "%s scene %d" % [id, i]
++			if not StageDB.stage_ids().has(sc.get("place", "")):
++				bad.append("%s: place「%s」が StageDB に ない" % [where, sc.get("place", "")])
++				continue
++			_check_text(bad, where + " intro", sc.get("intro", ""), MAX["intro"])
++			for key in ["goal_say", "clear_say"]:
++				if sc.has(key):
++					_check_text(bad, where + " " + key, sc[key], MAX[key])
++			if not (sc.get("hints") is Array):
++				bad.append("%s: hints を 書く（無ければ []。場所の ヒントは 引きつがない）" % where)
++			for h in sc.get("hints", []):
++				_check_text(bad, where + " hints", h.get("text", ""), MAX["hint"])
++				if h.has("text_touch"):
++					_check_text(bad, where + " hints", h["text_touch"], MAX["hint"])
++				if not h.has("at"):
++					bad.append("%s: hints に at が ない" % where)
++			if sc.has("arrow") and sc["arrow"] != "nearest":
++				bad.append("%s: arrow は \"nearest\" だけ" % where)
++			var ms: Array = sc.get("missions", [])
++			if ms.is_empty() or ms[ms.size() - 1].get("type", "") != "reach":
++				bad.append("%s: missions の さいごは reach に する" % where)
++			for m in ms:
++				if not MISSION_TYPES.has(m.get("type", "")):
++					bad.append("%s: 知らない ミッション type「%s」" % [where, m.get("type", "")])
++				_check_text(bad, where + " mission.text", m.get("text", ""), MAX["mission"])
++				for t in m.get("each_say", []):
++					_check_text(bad, where + " each_say", t, MAX["each_say"])
++				if m.has("done_say"):
++					_check_text(bad, where + " done_say", m["done_say"], MAX["done_say"])
++			var spawn: Dictionary = sc.get("spawn", {})
++			for key in spawn.keys():
++				if not ["skip", "swap"].has(key):
++					bad.append("%s: spawn の 知らない キー「%s」" % [where, key])
++			for p in spawn.get("skip", []) + spawn.get("swap", {}).keys():
++				if SPAWN_LOCKED.has(String(p).get_slice("_", 0)):
++					bad.append("%s: spawn で %s は かえられない" % [where, p])
++			if sc.has("after"):
++				_check_text(bad, where + " after.banner", sc["after"].get("banner", "—"), MAX["banner"])
++				_check_lines(bad, where + " after", sc["after"].get("lines", []))
++				if sc["after"].has("lines_hit"):
++					_check_lines(bad, where + " after.lines_hit", sc["after"]["lines_hit"])
++		for key in ["what", "why", "next"]:
++			_check_text(bad, "%s karte.%s" % [id, key], ep["karte"].get(key, ""), MAX["karte"])
++		for key in ["thanks", "exit"]:
++			if ep["karte"].has(key):
++				_check_text(bad, "%s karte.%s" % [id, key], ep["karte"][key], MAX[key])
++		var q: Dictionary = ep["quiz"]
++		_check_text(bad, id + " quiz.q", q["q"], MAX["quiz_q"])
++		_check_text(bad, id + " quiz.explain", q["explain"], MAX["explain"])
++		if q["choices"].size() != 3 or int(q["answer"]) < 0 or int(q["answer"]) > 2:
++			bad.append("%s: quiz は 3 たく、answer は 0〜2" % id)
++		for c in q["choices"]:
++			_check_text(bad, id + " quiz.choices", c, MAX["quiz_choice"])
++	return bad
+diff --git a/godot/src/autoload/episode_db.gd.uid b/godot/src/autoload/episode_db.gd.uid
+new file mode 100644
+index 0000000..5e9b133
+--- /dev/null
++++ b/godot/src/autoload/episode_db.gd.uid
+@@ -0,0 +1 @@
++uid://6o885whdqttf
+diff --git a/godot/src/autoload/game.gd b/godot/src/autoload/game.gd
+index 51bdd38..2ef25e2 100644
+--- a/godot/src/autoload/game.gd
++++ b/godot/src/autoload/game.gd
+@@ -1,14 +1,19 @@
+ extends Node
+-## ゲーム全体の進行（タイトル → ステージえらび → ステージ → けっか）。
++## ゲーム全体の進行（タイトル → カルテえらび → そうだん → よそう → 場面 1〜3 こ → カルテ）。
+ ## 画面は src/ui/ の Control をコードで組み立てて UILayer に置く。
+ 
+ signal stage_started(stage_id: String)
+ signal stage_finished(stage_id: String, stars: int)
++signal episode_finished(ep_id: String, stars: int)
++signal phase_changed(phase: String, index: int)
++signal said(text: String)      # HUD に 文が 出た（テストが 見る）
+ 
+ const UiThemeBuilder := preload("res://src/ui/ui_theme.gd")
+ const TitleScreen := preload("res://src/ui/title.gd")
+-const StageSelectScreen := preload("res://src/ui/stage_select.gd")
+-const ResultScreen := preload("res://src/ui/result.gd")
++const EpisodeSelectScreen := preload("res://src/ui/episode_select.gd")
++const TalkScreen := preload("res://src/ui/talk.gd")
++const GuessScreen := preload("res://src/ui/guess.gd")
++const KarteScreen := preload("res://src/ui/karte.gd")
+ const ZukanScreen := preload("res://src/ui/zukan.gd")
+ const CardPopup := preload("res://src/ui/card.gd")
+ const PauseMenu := preload("res://src/ui/pause.gd")
+@@ -32,6 +37,13 @@ var touch_controls: Control = null
+ var _screen: Control = null
+ var _popup_open := false
+ 
++## いまの カルテ（空なら「場所だけ」モード：テストと 撮影用）
++var episode: Dictionary = {}
++var scene_index := 0
++var phase := ""            # "consult" / "guess" / "scene" / "after" / "karte" / ""
++var first_guess := ""
++var _review := false       # クリアずみの カルテを 読みかえして いる（クリアの 記録を しない）
++
+ ## 自動テスト用：true のとき カードやメッセージの待ちを短くする
+ var testing := false
+ 
+@@ -103,9 +115,15 @@ func _set_screen(c: Control) -> void:
+ 	_clear_screen()
+ 	_screen = c
+ 	c.theme = theme
++	if touch_controls and is_instance_valid(touch_controls):
++		touch_controls.visible = false   # OverlayLayer は 画面より 上。出た ままだと 下の ボタンを 押せない
+ 	ui_layer.add_child(c)
+ 
+ 
++func screen() -> Control:
++	return _screen if _screen != null and is_instance_valid(_screen) else null
++
++
+ ## CanvasLayer の下に置く Control にはテーマが引き継がれないので、ここで付けてから足す
+ func add_overlay(c: Control) -> void:
+ 	c.theme = theme
+@@ -118,21 +136,142 @@ func show_title() -> void:
+ 	_set_screen(TitleScreen.new())
+ 
+ 
+-func show_stage_select() -> void:
++func show_episode_select() -> void:
+ 	unload_level()
++	episode = {}
++	phase = ""
+ 	Sfx.play_bgm("bgm_title")
+-	_set_screen(StageSelectScreen.new())
++	_set_screen(EpisodeSelectScreen.new())
+ 
+ 
+ func show_zukan() -> void:
+ 	_set_screen(ZukanScreen.new())
+ 
+ 
+-func start_stage(stage_id: String) -> void:
++# ---------------------------------------------------------------- カルテの 流れ
++## カルテを 始める。from_phase / from_scene / guess は「つづきから」と テスト・撮影用（とちゅうから 入る）
++func start_episode(ep_id: String, from_phase := "consult", from_scene := 0, guess := "") -> void:
++	var ep := EpisodeDB.get_episode(ep_id)
++	if ep.is_empty():
++		show_episode_select()
++		return
++	unload_level()
++	episode = ep
++	scene_index = clampi(from_scene, 0, ep["scenes"].size() - 1)
++	first_guess = guess
++	_review = false
++	Sfx.play_bgm("bgm_title")
++	_enter(from_phase)
++
++
++## 「つづきから」：さいごに おえた 場面の「あとの はなし」から 入る（おさらいに なる）。無ければ 次の 場面か カルテへ
++func resume_episode() -> void:
++	var r := SaveData.resume()
++	if r.is_empty():
++		show_episode_select()
++		return
++	start_episode(r["ep"], "after", int(r["cleared"]) - 1, r.get("guess", ""))
++
++
++## クリアずみの カルテの 紙と クイズだけ もういちど（クイズの ほしを 取りなおせる）
++func review_karte(ep_id: String) -> void:
++	if not SaveData.is_cleared(ep_id):
++		show_episode_select()
++		return
++	unload_level()
++	episode = EpisodeDB.get_episode(ep_id)
++	scene_index = 0
++	first_guess = ""
++	_review = true
++	_enter("karte")
++
++
++func _enter(p: String, back := false) -> void:
++	phase = p
++	match p:
++		"consult":
++			var lines: Array = episode["consult"]
++			var opening: bool = not SaveData.data["opening_seen"]
++			if opening:
++				lines = EpisodeDB.OPENING + lines
++			var t := TalkScreen.new()
++			t.setup(lines, {"mood": "sick", "can_cancel": true, "start_page": lines.size() - 1 if back else 0, "last_label": "よそうする ▶" if episode.has("guess") else "しゅっぱつ！ ▶"})
++			t.finished.connect(func():
++				if opening:
++					SaveData.data["opening_seen"] = true   # 読みおわってから 既読に（とちゅうで もどった 子には もう一度 出す）
++					SaveData.save()
++				_enter("guess"))
++			t.cancelled.connect(show_episode_select)
++			_set_screen(t)
++		"guess":
++			if not episode.has("guess"):
++				_enter("scene")
++				return
++			var g := GuessScreen.new()
++			g.setup(episode)
++			g.finished.connect(func(first: String):
++				first_guess = first
++				_enter("scene"))
++			g.cancelled.connect(func(): _enter("consult", true))   # もどる ＝ そうだんの さいごの ページへ
++			_set_screen(g)
++		"scene":
++			_start_level(EpisodeDB.scene_stage(episode, scene_index))
++		"after":
++			var a: Dictionary = episode["scenes"][scene_index].get("after", {})
++			if a.is_empty():
++				_after_done()
++				return
++			unload_level()
++			var last: bool = scene_index + 1 >= episode["scenes"].size()
++			var t := TalkScreen.new()
++			t.setup(EpisodeDB.after_lines(episode, scene_index, first_guess), {"mood": "sick", "banner": a.get("banner", ""), "last_label": "つぎへ ▶" if last else "つぎへ いこう ▶"})
++			t.finished.connect(_after_done)
++			_set_screen(t)
++		"karte":
++			unload_level()
++			var id: String = episode["id"]
++			if not _review:
++				SaveData.record_clear(id)   # カルテを とちゅうで やめても クリアは のこる
++				SaveData.clear_resume(id)
++			var k := KarteScreen.new()
++			k.setup(episode, {"guess_hit": EpisodeDB.guess_is_hit(episode, first_guess), "review": _review})
++			k.answered.connect(func(correct: bool): SaveData.record_quiz(id, correct))
++			k.finished.connect(_on_karte_finished)
++			_set_screen(k)
++	phase_changed.emit(p, scene_index)
++
++
++func _after_done() -> void:
++	if scene_index + 1 < episode["scenes"].size():
++		scene_index += 1
++		_enter("scene")
++	else:
++		_enter("karte")
++
++
++func _on_karte_finished(go_next: bool) -> void:
++	var id: String = episode["id"]
++	episode_finished.emit(id, SaveData.stars(id))
++	var next := EpisodeDB.next_id(id)
++	if go_next and next != "":
++		start_episode(next)
++	elif go_next and EpisodeDB.SEASON_COMPLETE:
++		show_ending()
++	else:
++		show_episode_select()
++
++
++## 場所だけを 既定の ミッションで 開く（テスト・スクリーンショット用。子どもの 画面からは 来ない）
++func start_stage(place_id: String) -> void:
++	episode = {}
++	phase = ""
++	_start_level(StageDB.get_stage(place_id))
++
++
++func _start_level(stage: Dictionary) -> void:
+ 	unload_level()
+ 	_clear_screen()
+-	current_stage_id = stage_id
+-	var stage := StageDB.get_stage(stage_id)
++	current_stage_id = stage["id"]
+ 	level = LevelScene.instantiate()
+ 	level.setup(stage)
+ 	world.add_child(level)
+@@ -141,8 +280,8 @@ func start_stage(stage_id: String) -> void:
+ 	ui_layer.add_child(hud)
+ 	hud.bind_level(level)
+ 	_ensure_touch_controls()
+-	Sfx.play_bgm("bgm_boss" if stage["difficulty"] >= 3 else "bgm_stage")
+-	stage_started.emit(stage_id)
++	Sfx.play_bgm(stage.get("bgm", "bgm_boss" if stage["difficulty"] >= 3 else "bgm_stage"))
++	stage_started.emit(current_stage_id)
+ 	level.cleared.connect(_on_level_cleared)
+ 	level.begin()
+ 
+@@ -166,30 +305,28 @@ func _ensure_touch_controls() -> void:
+ 	touch_controls.visible = touch_controls.should_show()
+ 
+ 
++## ポーズの「この ばめんを やりなおす」：いまの 場面だけ 最初から（そうだんへは もどらない）
+ func retry_stage() -> void:
+-	var id := current_stage_id
+-	start_stage(id)
++	if episode.is_empty():
++		start_stage(current_stage_id)
++	else:
++		_enter("scene")
+ 
+ 
+-func _on_level_cleared(stage_id: String, no_damage: bool) -> void:
+-	SaveData.record_clear(stage_id, 1)  # けっか画面を とちゅうで やめても クリアは のこる
+-	var stage := StageDB.get_stage(stage_id)
+-	var r := ResultScreen.new()
+-	r.setup(stage, no_damage)
+-	if touch_controls:
+-		touch_controls.visible = false
+-	_set_screen(r)
+-	r.finished.connect(func(stars: int, go_next: bool):
+-		SaveData.record_clear(stage_id, stars)
+-		stage_finished.emit(stage_id, stars)
+-		var next := StageDB.next_stage_id(stage_id)
+-		if go_next and next != "":
+-			start_stage(next)
+-		elif go_next and next == "":
+-			show_ending()
+-		else:
+-			show_stage_select()
+-	)
++func _on_level_cleared(place_id: String, no_damage: bool) -> void:
++	stage_finished.emit(place_id, 0)
++	if episode.is_empty():
++		show_episode_select()
++		return
++	var id: String = episode["id"]
++	SaveData.record_scene(id, scene_index, no_damage)          # ハートの 印は 場面ごと・回を またいで たまる
++	SaveData.set_resume(id, scene_index + 1, first_guess)      # ここまでは「つづきから」で もどれる
++	SaveData.mark_card(place_id, "summary")                    # 場所の「まとめ」は クリアで ずかんに 入る
++	# 場所の ものしりカードは、はじめて クリアした あとに 1 回（遊ぶ 前の 文を へらす）
++	var card: Dictionary = {} if SaveData.card_seen(place_id, "stage") else StageDB.card(place_id, "stage")
++	show_card(card, func():
++		SaveData.mark_card(place_id, "stage")
++		_enter("after"), "stage", place_id)
+ 
+ 
+ func show_ending() -> void:
+@@ -253,9 +390,16 @@ func _unhandled_input(event: InputEvent) -> void:
+ 
+ 
+ ## HUD のメッセージ（ドクター・ピコ）
+-func say(text: String, seconds := 4.0) -> void:
+-	if hud and is_instance_valid(hud):
+-		hud.say(text, seconds)
++## hold > 0 は 物語の ひとこと（出てから hold 秒は とっさの ひとことに 上書きされない）。Level.say_story() が 使う
++func say(text: String, seconds := 4.0, hold := 0.0) -> void:
++	if hud and is_instance_valid(hud) and hud.say(text, seconds, hold):
++		said.emit(text)
++
++
++## おまけの ひとこと（チェックポイント など）：ほかの 文が 出ている あいだは 出さない（ヒントと 同じ きまり）
++func say_soft(text: String, seconds := 4.0) -> void:
++	if not hud_busy():
++		say(text, seconds)
+ 
+ 
+ ## タッチ操作が いま 有効か（設定が auto のときは タッチ画面の有無で決まる）
+diff --git a/godot/src/autoload/save_data.gd b/godot/src/autoload/save_data.gd
+index f416316..c09046a 100644
+--- a/godot/src/autoload/save_data.gd
++++ b/godot/src/autoload/save_data.gd
+@@ -1,8 +1,7 @@
+ extends Node
+-## セーブデータ（user://save.json）。星・クリア・見たカード・設定。
+-
+-const PATH := "user://save.json"
++## セーブデータ（user://save.json）。カルテごとの ほし・つづき・見た カード・設定。version 2。
+ 
++var path := "user://save.json"
+ var data: Dictionary = {}
+ 
+ 
+@@ -13,32 +12,74 @@ func _ready() -> void:
+ 
+ func _defaults() -> Dictionary:
+ 	return {
+-		"version": 1,
+-		"stars": {},          # stage_id -> int(0..3)
+-		"cleared": [],        # stage_id の配列
+-		"cards_seen": [],     # "stage_id/key" の配列
+-		"story_seen": false,
++		"version": 2,
++		"episodes": {},        # ep_id -> {"clear": bool, "quiz": bool, "nd": [bool, …]}（nd[i] ＝ 場面 i を ハートを へらさずに クリアした ことが ある）
++		"resume": {},          # とちゅうの カルテ：{"ep": id, "cleared": おえた 場面の 数（1〜）, "guess": さいしょの よそう}。無ければ 空
++		"cards_seen": [],      # "場所id/key" と "epNN/karte"
++		"opening_seen": false,
+ 		"settings": {"volume": 0.8, "touch": "auto", "unlock_all": false},
+ 	}
+ 
+ 
++## テスト・撮影用：べつの ファイルを 使う（本物の セーブを さわらない）
++func use_path(p: String) -> void:
++	path = p
++	load_data()
++
++
+ func load_data() -> void:
+ 	data = _defaults()
+-	if FileAccess.file_exists(PATH):
+-		var f := FileAccess.open(PATH, FileAccess.READ)
+-		if f:
+-			var parsed = JSON.parse_string(f.get_as_text())
+-			if parsed is Dictionary:
+-				for k in parsed.keys():
+-					if k == "settings" and parsed[k] is Dictionary:
+-						for sk in parsed[k].keys():
+-							data["settings"][sk] = parsed[k][sk]
+-					else:
+-						data[k] = parsed[k]
++	if not FileAccess.file_exists(path):
++		return
++	var f := FileAccess.open(path, FileAccess.READ)
++	if f == null:
++		return
++	var json := JSON.new()
++	var err := json.parse(f.get_as_text())
++	f.close()
++	if err != OK or not (json.data is Dictionary):
++		return   # こわれた ファイル：既定値で 始める（つぎの save() で 上書き）
++	var parsed: Dictionary = json.data
++	var ver := int(parsed["version"]) if typeof(parsed.get("version")) in [TYPE_INT, TYPE_FLOAT] else 1
++	# どの 版でも 引きつぐ：設定と 見た カード（カードの キーは v1 から「場所id/key」の まま）
++	if parsed.get("settings") is Dictionary:
++		for k in data["settings"].keys():
++			if typeof(parsed["settings"].get(k)) == typeof(data["settings"][k]):
++				data["settings"][k] = parsed["settings"][k]
++	if parsed.get("cards_seen") is Array:
++		for c in parsed["cards_seen"]:
++			if c is String and not data["cards_seen"].has(c):
++				data["cards_seen"].append(c)
++	if ver != 2:
++		# v1（ステージごとの ほし）や 知らない 版：ほしと クリアは 引きつがない。元の ファイルは 写して のこす
++		DirAccess.copy_absolute(path, "%s.v%d.json" % [path.get_basename(), ver])
++		save()
++		return
++	if parsed.get("opening_seen") is bool:
++		data["opening_seen"] = parsed["opening_seen"]
++	if parsed.get("episodes") is Dictionary:
++		for id in parsed["episodes"].keys():
++			var e = parsed["episodes"][id]
++			if e is Dictionary:
++				var nd: Array = []
++				if e.get("nd") is Array:
++					for v in e["nd"]:
++						nd.append(_yes(v))
++				data["episodes"][String(id)] = {"clear": _yes(e.get("clear")), "quiz": _yes(e.get("quiz")), "nd": nd}
++	var r = parsed.get("resume")
++	if r is Dictionary and r.get("ep") is String and typeof(r.get("cleared")) in [TYPE_INT, TYPE_FLOAT]:
++		var n := EpisodeDB.scene_count(r["ep"])   # 知らない 話なら 0
++		if int(r["cleared"]) >= 1 and int(r["cleared"]) <= n:
++			data["resume"] = {"ep": r["ep"], "cleared": int(r["cleared"]), "guess": r["guess"] if r.get("guess") is String else ""}
++
++
++## true の ときだけ true（JSON の 数や 文字と「== true」で くらべると 型の エラーに なる）
++static func _yes(v) -> bool:
++	return v is bool and v
+ 
+ 
+ func save() -> void:
+-	var f := FileAccess.open(PATH, FileAccess.WRITE)
++	var f := FileAccess.open(path, FileAccess.WRITE)
+ 	if f:
+ 		f.store_string(JSON.stringify(data, "  "))
+ 
+@@ -48,48 +89,102 @@ func reset() -> void:
+ 	save()
+ 
+ 
+-func stars(stage_id: String) -> int:
+-	return int(data["stars"].get(stage_id, 0))
++func _entry(ep_id: String) -> Dictionary:
++	if not data["episodes"].has(ep_id):
++		data["episodes"][ep_id] = {"clear": false, "quiz": false, "nd": []}
++	var e: Dictionary = data["episodes"][ep_id]
++	e["nd"].resize(EpisodeDB.scene_count(ep_id))
++	for i in e["nd"].size():
++		e["nd"][i] = _yes(e["nd"][i])
++	return e
++
++
++## 場面ごと：ハートを へらさずに クリアした ことが あるか
++func scene_flags(ep_id: String) -> Array[bool]:
++	var out: Array[bool] = []
++	var nd: Array = data["episodes"].get(ep_id, {}).get("nd", [])
++	for i in EpisodeDB.scene_count(ep_id):
++		out.append(i < nd.size() and _yes(nd[i]))
++	return out
++
++
++## [カルテ かんせい, 全部の 場面で ハートを へらさずに, クイズ せいかい]。2 つめ・3 つめは クリアして はじめて つく
++func star_flags(ep_id: String) -> Array[bool]:
++	var e: Dictionary = data["episodes"].get(ep_id, {})
++	var clear: bool = e.get("clear", false)
++	var sf := scene_flags(ep_id)
++	return [clear, clear and not sf.is_empty() and not sf.has(false), clear and e.get("quiz", false)]
++
++
++func stars(ep_id: String) -> int:
++	return star_flags(ep_id).count(true)
++
++
++func is_cleared(ep_id: String) -> bool:
++	return data["episodes"].get(ep_id, {}).get("clear", false)
++
++
++## 場面を クリアした（ほしの 印は 回を またいで たまる。1 回 とった 印は 消えない）
++func record_scene(ep_id: String, scene: int, no_damage: bool) -> void:
++	var e := _entry(ep_id)
++	if scene >= 0 and scene < e["nd"].size():
++		e["nd"][scene] = e["nd"][scene] or no_damage
++	save()
++
++
++func record_clear(ep_id: String) -> void:
++	_entry(ep_id)["clear"] = true
++	save()
+ 
+ 
+-func record_clear(stage_id: String, star_count: int) -> void:
+-	if not data["cleared"].has(stage_id):
+-		data["cleared"].append(stage_id)
+-	data["stars"][stage_id] = max(stars(stage_id), star_count)
++func record_quiz(ep_id: String, correct: bool) -> void:
++	var e := _entry(ep_id)
++	e["quiz"] = e["quiz"] or correct
+ 	save()
+ 
+ 
+-func is_cleared(stage_id: String) -> bool:
+-	return data["cleared"].has(stage_id)
++## とちゅうの カルテ（無ければ 空の 辞書）
++func resume() -> Dictionary:
++	return data["resume"]
+ 
+ 
+-func is_unlocked(stage_id: String) -> bool:
++func set_resume(ep_id: String, cleared: int, guess: String) -> void:
++	data["resume"] = {"ep": ep_id, "cleared": cleared, "guess": guess}
++	save()
++
++
++## ep_id の つづきを 消す（"" なら どの 話でも）
++func clear_resume(ep_id := "") -> void:
++	if not data["resume"].is_empty() and (ep_id == "" or data["resume"].get("ep", "") == ep_id):
++		data["resume"] = {}
++		save()
++
++
++func is_unlocked(ep_id: String) -> bool:
+ 	if data["settings"].get("unlock_all", false):
+ 		return true
+-	var ids: Array[String] = StageDB.stage_ids()
+-	var i := ids.find(stage_id)
+-	if i <= 0:
+-		return true
+-	return is_cleared(ids[i - 1])
++	var ids: Array[String] = EpisodeDB.ids()
++	var i := ids.find(ep_id)
++	return i <= 0 or is_cleared(ids[i - 1])
+ 
+ 
+ func total_stars() -> int:
+ 	var t := 0
+-	for v in data["stars"].values():
+-		t += int(v)
++	for id in EpisodeDB.ids():
++		t += stars(id)
+ 	return t
+ 
+ 
+-func card_key(stage_id: String, key: String) -> String:
+-	return stage_id + "/" + key
++func card_key(owner_id: String, key: String) -> String:
++	return owner_id + "/" + key
+ 
+ 
+-func card_seen(stage_id: String, key: String) -> bool:
+-	return data["cards_seen"].has(card_key(stage_id, key))
++func card_seen(owner_id: String, key: String) -> bool:
++	return data["cards_seen"].has(card_key(owner_id, key))
+ 
+ 
+-func mark_card(stage_id: String, key: String) -> void:
+-	var k := card_key(stage_id, key)
++func mark_card(owner_id: String, key: String) -> void:
++	var k := card_key(owner_id, key)
+ 	if not data["cards_seen"].has(k):
+ 		data["cards_seen"].append(k)
+ 		save()
+diff --git a/godot/src/autoload/stage_db.gd b/godot/src/autoload/stage_db.gd
+index 432ab9f..ad36988 100644
+--- a/godot/src/autoload/stage_db.gd
++++ b/godot/src/autoload/stage_db.gd
+@@ -1,10 +1,8 @@
+ extends Node
+-## ステージ定義（データ駆動）。
++## 場所（臓器）の 定義（データ駆動）。GLB・霧の色・既定の ミッション・ものしりカード・まとめ・クイズ。
+ ## 文章は ひらがな・カタカナ中心。臓器名は「い（胃）」のように ひらがな＋漢字。
+ ## レベルの形（ゆか・かべ・スポーン位置）は blender/ で生成した GLB 側にある。
+-
+-const STORY_INTRO := "ともだちの はなちゃんが かぜを ひいて、おなかも いたいんだって。\nミクロごうで ちいさくなって、からだの なかから たすけよう！\nジュースと いっしょに のみこんで もらうよ。……ごくん！"
+-const STORY_ENDING := "はなちゃん、すっかり げんきに なった！\n「……ハックション！」\nミクロごうは くしゃみに のって、はなから そとへ とびだした。\nからだの なかの ぼうけん、これで おしまい。また あそんでね！"
++## カルテ（1 話）の 文と、場面ごとの 上書きは EpisodeDB（episode_db.gd）。ミッションは カルテの 場面が 上書きする。
+ 
+ const STAGES: Array[Dictionary] = [
+ 	{
+@@ -68,7 +66,7 @@ const STAGES: Array[Dictionary] = [
+ 		],
+ 		"cards": {
+ 			"stage": {"title": "い（胃）", "text": "い（胃）は たべものを ためて、いえき（胃液）で どろどろに とかす ふくろ。\nいえきは とても つよい「さん」。でも い（胃）の かべは ねんえき（粘液）で まもられているから だいじょうぶ。\nたべものは 2〜4じかん ここに いるよ。"},
+-			"pylori": {"title": "ピロリきん", "text": "いの かべに すみついて、かべを よわらせる ばいきん。\nらせんの からだで、しっぽ（べんもう）を くるくる まわして およぐよ。"},
++			"pylori": {"title": "ピロリきん", "text": "い（胃）の かべに すみついて、かべを よわらせる ばいきん。\nらせんの からだで、しっぽ（べんもう）を くるくる まわして およぐよ。"},
+ 			"wallcell": {"title": "い（胃）の かべの さいぼう", "text": "ねんえき（粘液）を だして、い（胃）を じぶんの いえきから まもっている。\nおうえんすると げんきに なるよ！"},
+ 			"acid": {"title": "いえき（胃液）", "text": "たべものを とかす つよい さん。たべものと いっしょに はいってきた ばいきんも たおす。\nミクロごうは はいらないでね！"},
+ 		},
+@@ -91,7 +89,7 @@ const STAGES: Array[Dictionary] = [
+ 			{"at": 15.0, "text": "みどりの ぜんだまきんは なかま。むらさきの あくだまきんは おくすりで やっつけよう。"},
+ 		],
+ 		"cards": {
+-			"stage": {"title": "しょうちょう（小腸）", "text": "しょうちょうは ながーい くだ。のばすと やく 6〜7 m も ある！\nかべには じゅうもう（絨毛）という こまかい ひだが いっぱい。\nここで えいよう（栄養）を きゅうしゅうして、ちに わたすんだ。"},
++			"stage": {"title": "しょうちょう（小腸）", "text": "しょうちょうは ながーい くだ。のばすと やく 6〜7 m も ある！\nかべには じゅうもう（絨毛）という こまかい ひだが いっぱい。\nここで えいよう（栄養）を きゅうしゅうして、ち（血）に わたすんだ。"},
+ 			"nutrient": {"title": "えいよう（栄養）", "text": "ブドウとう（うごく ちから）、アミノさん（からだを つくる）、ビタミン（からだを ととのえる）。\nどれも からだに ひつような ものだよ。"},
+ 			"villus": {"title": "じゅうもう（絨毛）", "text": "しょうちょうの かべに ある、ゆびのような ひだ。\nひろげると きょうしつの はんぶんくらい（やく 30 へいほうメートル）の ひろさに なって、えいようを たくさん きゅうしゅうできる。"},
+ 			"zendama": {"title": "ぜんだまきん", "text": "おなかの なかに すむ いい きん。わるい きんが ふえるのを ふせいでくれる。\nヨーグルトや やさいが だいすき。"},
+@@ -254,14 +252,6 @@ func stage_ids() -> Array[String]:
+ 	return out
+ 
+ 
+-func next_stage_id(id: String) -> String:
+-	var ids := stage_ids()
+-	var i := ids.find(id)
+-	if i < 0 or i + 1 >= ids.size():
+-		return ""
+-	return ids[i + 1]
+-
+-
+ func card(stage_id: String, key: String) -> Dictionary:
+ 	var s := get_stage(stage_id)
+ 	if s.is_empty():
+@@ -273,12 +263,3 @@ func card(stage_id: String, key: String) -> Dictionary:
+ func kind_name(kind: String) -> String:
+ 	return KIND_NAMES.get(kind, kind)
+ 
+-
+-## ずかん用：全ステージのカードを (stage_id, key, card) の配列で返す
+-func all_cards() -> Array[Dictionary]:
+-	var out: Array[Dictionary] = []
+-	for s in STAGES:
+-		for key in s["cards"].keys():
+-			out.append({"stage": s["id"], "key": key, "card": s["cards"][key]})
+-		out.append({"stage": s["id"], "key": "summary", "card": s["summary"]})
+-	return out
+diff --git a/godot/src/level/level.gd b/godot/src/level/level.gd
+index 82b4b9d..e2a4de9 100644
+--- a/godot/src/level/level.gd
++++ b/godot/src/level/level.gd
+@@ -79,6 +79,7 @@ var _seq_input_started := 0.0
+ var _seq_pending := false
+ var _spawn_heading := Vector3.FORWARD
+ var _sign_font: Font
++var data_warnings: Array[String] = []   # データの まちがい（テストが 失敗に する）
+ 
+ 
+ func setup(s: Dictionary) -> void:
+@@ -99,22 +100,22 @@ func _ready() -> void:
+ 	_spawn_player()
+ 
+ 
++## すぐ 遊びはじめる（場所の カードは クリアの あとに Game が 出す。遊ぶ 前の 文を へらす）
+ func begin() -> void:
+-	var card: Dictionary = stage["cards"].get("stage", {})
++	started = true
+ 	var intro: String = stage.get("intro", "")
+-	var show_story: bool = stage["order"] == 1 and not SaveData.data.get("story_seen", false)
+-	var after_card := func():
+-		SaveData.mark_card(stage_id, "stage")
+-		started = true
+-		if intro != "":
+-			Game.say(intro, 9.0)
+-	if show_story:
+-		SaveData.data["story_seen"] = true
+-		SaveData.save()
+-		Game.show_card({"title": "はなちゃんを たすけよう！", "text": StageDB.STORY_INTRO}, func():
+-			Game.show_card(card, after_card, "stage", stage_id), "intro", "story")
+-	else:
+-		Game.show_card(card, after_card, "stage", stage_id)
++	if intro != "":
++		say_story(intro, 6.0)
++
++
++## 読む 時間：1 字 0.25 秒（6〜7 さいの 読む はやさ）。base より 短くは しない
++static func read_time(text: String, base: float) -> float:
++	return maxf(base, text.length() * 0.25)
++
++
++## 物語の ひとこと（intro・each_say・done_say・goal_say・clear_say）。長さに 合わせて 出し、出てから 2 秒は ほかの 文に 上書きさせない
++func say_story(text: String, base := 3.0) -> void:
++	Game.say(text, read_time(text, base), 2.0)
+ 
+ 
+ # ---------------------------------------------------------------- 環境
+@@ -226,14 +227,52 @@ func _ensure_collisions(n: Node) -> void:
+ 
+ func _collect_markers() -> void:
+ 	markers.clear()
++	var rules: Dictionary = stage.get("spawn", {})
++	var used := {}
+ 	for n in env.find_children("MK_*", "Node3D", true, false):
+-		var parts: PackedStringArray = (n.name as String).split("_")
++		(n as Node3D).visible = false
++		var mk_name := _apply_spawn_rules(String(n.name), rules, used)
++		if mk_name == "":
++			continue
++		var parts: PackedStringArray = mk_name.split("_")
+ 		if parts.size() < 2:
+ 			continue
+ 		var kind := String(parts[1])
+ 		var rest: Array = Array(parts.slice(2))
+-		markers.append({"node": n, "kind": kind, "rest": rest, "name": String(n.name), "position": (n as Node3D).global_position, "basis": (n as Node3D).global_transform.basis})
+-		(n as Node3D).visible = false
++		markers.append({"node": n, "kind": kind, "rest": rest, "name": mk_name, "position": (n as Node3D).global_position, "basis": (n as Node3D).global_transform.basis})
++	for p in rules.get("skip", []) + rules.get("swap", {}).keys():
++		if not used.has(p):
++			data_warnings.append("%s: spawn の「%s」に 合う マーカーが ない" % [stage_id, p])
++
++
++## 場面の spawn ルールを マーカー名に かける。"" を 返したら その マーカーは 出さない。
++##   "skip": ["enemy_pylori"]                       名前が この 語で 始まる マーカーを 出さない
++##   "swap": {"friend_rbc_2": "friend_wbc"}        種類を 読みかえる（のこりの 番号は そのまま）
++## 合わせかた：「MK_」を 取った 名前が p と 同じ、または p + "_" で 始まる。
++static func _apply_spawn_rules(mk_name: String, rules: Dictionary, used: Dictionary) -> String:
++	var key := mk_name.substr(3)
++	if rules.is_empty() or key.get_slice("_", 0) in ["player", "goal", "path", "checkpoint"]:
++		return mk_name
++	for p in rules.get("skip", []):
++		if spawn_rule_matches(key, p):
++			used[p] = true
++			return ""
++	var swap: Dictionary = rules.get("swap", {})
++	for p in swap.keys():
++		if spawn_rule_matches(key, p):
++			used[p] = true
++			# 番号は のこす：前方一致なら のこり全部（"_2"）、ぴったり 同じなら さいごの 番号
++			var tail := key.substr(String(p).length())
++			var last := key.get_slice("_", key.get_slice_count("_") - 1)
++			if tail == "" and last.is_valid_int():
++				tail = "_" + last
++			return "MK_" + String(swap[p]) + tail
++	return mk_name
++
++
++## spawn の ルール p が マーカー（「MK_」を 取った 名前 key）に 合うか：同じ、または p + "_" で 始まる
++static func spawn_rule_matches(key: String, p: String) -> bool:
++	return key == p or key.begins_with(p + "_")
+ 
+ 
+ func _markers_of(kind: String) -> Array[Dictionary]:
+@@ -284,7 +323,7 @@ func _spawn_all() -> void:
+ 				cp.activated.connect(func(c):
+ 					if not path.is_valid() or path.progress_at(c.global_position) >= path.progress_at(respawn_point):
+ 						respawn_point = c.global_position
+-					Game.say("チェックポイント！ ここから やりなおせるよ。", 2.5))
++					Game.say_soft("チェックポイント！ ここから やりなおせるよ。", 2.5))
+ 			"enemy":
+ 				spawn_enemy_at(_kind_and_index(rest, "mushiba")["kind"], pos)
+ 			"boss":
+@@ -461,13 +500,43 @@ func _build_missions() -> void:
+ 		var m := MissionScript.from_dict(d)
+ 		if m.type == "sequence":
+ 			m.count = int(d.get("count", 3))
+-		m.progressed.connect(func(_m): missions_changed.emit())
++		m.progressed.connect(_on_mission_progressed)
+ 		m.completed.connect(_on_mission_completed)
+ 		missions.append(m)
++	_fit_missions()
+ 	missions_changed.emit()
+ 	_update_goal_lock()
+ 
+ 
++func _count_markers(kind: String, sub := "") -> int:
++	var n := 0
++	for m in markers:
++		if m["kind"] == kind and (sub == "" or _kind_and_index(m["rest"], "")["kind"] == sub):
++			n += 1
++	return n
++
++
++## 出てこない ものを 数える ミッションが あると ゴールが 開かない。出る 数に 合わせ、0 なら 外す。
++func _fit_missions() -> void:
++	var keep: Array[Mission] = []
++	for m in missions:
++		var have := m.count
++		match m.type:
++			"defeat": have = _count_markers("enemy", m.target)
++			"boss": have = _count_markers("boss")
++			"cheer": have = _count_markers("friend", m.target)
++			"collect": have = _count_markers("pickup", m.target)
++			"deliver": have = _count_markers("pickup", "nutrient") if _count_markers("deliver") > 0 else 0
++			"gate": have = gates.size()
++			"sequence": have = m.count if neurons.size() >= 2 else 0
++		if have < m.count:
++			data_warnings.append("%s: ミッション「%s」は %d こ いるが、出るのは %d こ" % [stage_id, m.text, m.count, have])
++			m.count = have
++		if m.count > 0 or m.is_reach():
++			keep.append(m)
++	missions = keep
++
++
+ func _mission(type: String, target := "") -> Mission:
+ 	for m in missions:
+ 		if m.type == type and (target == "" or m.target == target or m.target == ""):
+@@ -475,10 +544,16 @@ func _mission(type: String, target := "") -> Mission:
+ 	return null
+ 
+ 
++func _on_mission_progressed(m: Mission) -> void:
++	missions_changed.emit()
++	if m.current < m.count and m.current >= 1 and m.current <= m.each_say.size():
++		say_story(m.each_say[m.current - 1], 3.0)
++
++
+ func _on_mission_completed(m: Mission) -> void:
+ 	Sfx.play("mission")
+ 	if not m.is_reach() and not _non_reach_done():
+-		Game.say("やったね！「%s」クリア！" % m.text, 3.0)
++		say_story(m.done_say if m.done_say != "" else "やったね！「%s」クリア！" % m.text, 3.5)
+ 	_update_goal_lock()
+ 	missions_changed.emit()
+ 
+@@ -495,7 +570,7 @@ func _update_goal_lock() -> void:
+ 		var was := goal.locked
+ 		goal.set_locked(not _non_reach_done())
+ 		if was and not goal.locked and started:
+-			Game.say("やったね！ ぜんぶ できた！ きいろい わっかの ゴールへ いこう！", 4.0)
++			say_story(stage.get("goal_say", "やったね！ ぜんぶ できた！ きいろい わっかの ゴールへ いこう！"), 5.0)
+ 
+ 
+ func remaining_text() -> String:
+@@ -527,10 +602,11 @@ func _on_pickup_collected(p: Node) -> void:
+ 
+ 
+ func _on_delivered(_zone: Node, n: int) -> void:
++	# 先に 言う（m.add() の 中で 出る done_say／goal_say を 上書きしない）
++	Game.say_soft("えいようを とどけた！ からだが げんきに なるよ。", 2.5)
+ 	var m := _mission("deliver")
+ 	if m:
+ 		m.add(n)
+-	Game.say("えいようを とどけた！ からだが げんきに なるよ。", 2.5)
+ 
+ 
+ func _on_gate_passed(_g: Node) -> void:
+@@ -562,7 +638,7 @@ func finish() -> void:
+ 	for e in get_tree().get_nodes_in_group("enemy"):
+ 		e.set_physics_process(false)
+ 	Sfx.play("clear")
+-	Game.say("ステージクリア！", 3.0)
++	say_story(stage.get("clear_say", "クリア！"), 3.0)
+ 	var t := create_tween()
+ 	t.tween_interval(0.2 if Game.testing else 1.6)
+ 	t.tween_callback(func(): cleared.emit(stage_id, no_damage))
+@@ -574,6 +650,10 @@ func respawn_position() -> Vector3:
+ 
+ ## 矢印が指す「いま向かうところ」
+ func current_target_position() -> Vector3:
++	if stage.get("arrow", "") == "nearest":
++		var near := _nearest_open_target()
++		if near != Vector3.INF:
++			return near
+ 	for m in missions:
+ 		if m.done:
+ 			continue
+@@ -611,6 +691,31 @@ func current_target_position() -> Vector3:
+ 	return Vector3.INF
+ 
+ 
++## "arrow": "nearest" の 場面：開いている ミッションの 相手の うち、いちばん 近い ものを 指す
++## （リストの 順だと、あとの ミッションの 相手を 通りすぎてから もどる ことに なる 場面で 使う）
++func _nearest_open_target() -> Vector3:
++	var best := Vector3.INF
++	var bd := INF
++	for m in missions:
++		if m.done:
++			continue
++		var t := Vector3.INF
++		match m.type:
++			"defeat":
++				t = _nearest_in_group("enemy", func(n): return n.get("kind") == m.target and n.get("alive"))
++			"cheer":
++				t = _nearest_in_group("friend", func(n): return n.get("kind") == m.target and not n.get("is_cheered"))
++			"collect":
++				t = _nearest_in_group("pickup", func(n): return n.get("kind") == m.target)
++			"deliver":
++				if player.inventory.size() > 0:
++					t = _nearest_in_group("deliver", func(_n): return true)
++		if t != Vector3.INF and t.distance_to(player.global_position) < bd:
++			bd = t.distance_to(player.global_position)
++			best = t
++	return best
++
++
+ func _nearest_in_group(group: String, pred: Callable) -> Vector3:
+ 	var best := Vector3.INF
+ 	var bd := INF
+@@ -650,10 +755,13 @@ func _physics_process(delta: float) -> void:
+ 	if flow_speed > 0.0 and path.is_valid() and player:
+ 		player.external_push += path.direction_at(player.global_position) * flow_speed
+ 	# ヒント
++	if _hints.size() > 0 and missions.size() > 1 and _non_reach_done():
++		_hints.clear()   # やる ことが 全部 おわったら、もう ヒントは 出さない（「さわってね」と 言われて もどって しまう）
+ 	if _hints.size() > 0 and elapsed >= float(_hints[0]["at"]) and not Game.hud_busy():
+ 		var h: Dictionary = _hints[0]
+ 		var on_touch: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
+-		Game.say(String(h.get("text_touch", h["text"])) if on_touch else String(h["text"]), 5.0)
++		var ht := String(h.get("text_touch", h["text"])) if on_touch else String(h["text"])
++		Game.say(ht, read_time(ht, 5.0))
+ 		_hints.remove_at(0)
+ 	# なみ（しょくどう）
+ 	if stage_id == "esophagus":
+diff --git a/godot/src/level/mission.gd b/godot/src/level/mission.gd
+index d64daea..0f8de54 100644
+--- a/godot/src/level/mission.gd
++++ b/godot/src/level/mission.gd
+@@ -10,6 +10,8 @@ var count := 1
+ var current := 0
+ var text := ""
+ var done := false
++var done_say := ""          # この ミッションが おわった ときの ピコの ひとこと（無ければ 決まり文句）
++var each_say: Array = []    # 1 つ すすむ たびの ひとこと（i ばんめ）
+ 
+ 
+ static func from_dict(d: Dictionary) -> Mission:
+@@ -18,6 +20,8 @@ static func from_dict(d: Dictionary) -> Mission:
+ 	m.target = d.get("target", "")
+ 	m.count = int(d.get("count", 1))
+ 	m.text = d.get("text", "")
++	m.done_say = d.get("done_say", "")
++	m.each_say = d.get("each_say", [])
+ 	return m
+ 
+ 
+diff --git a/godot/src/ui/card.gd b/godot/src/ui/card.gd
+index 1790326..a404380 100644
+--- a/godot/src/ui/card.gd
++++ b/godot/src/ui/card.gd
+@@ -4,6 +4,7 @@ extends Control
+ signal closed
+ 
+ const T := preload("res://src/ui/ui_theme.gd")
++const Sheet := preload("res://src/ui/karte_sheet.gd")
+ 
+ var _panel: PanelContainer
+ var _btn: Button
+@@ -58,10 +59,18 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
+ 	hb.add_theme_constant_override("separation", 24)
+ 	margin.add_child(hb)
+ 
++	var is_karte: bool = card.has("karte")   # ずかんの カルテ：絵の 列を 出さず、カルテの 紙を 入れる（背が 高いので 枠も 広げる）
++	if is_karte:
++		_panel.offset_left = -470
++		_panel.offset_right = 470
++		_panel.offset_top = -320
++		_panel.offset_bottom = 320
+ 	var sid := stage_id if stage_id != "" else Game.current_stage_id
+-	var pic: Control = T.art_rect("cards/card_%s_%s" % [sid, image_kind], Vector2(260, 300)) if sid != "" else null
+-	if pic == null:
+-		pic = _make_picture(image_kind)
++	var pic: Control = null
++	if not is_karte:
++		pic = T.art_rect("cards/card_%s_%s" % [sid, image_kind], Vector2(260, 300)) if sid != "" else null
++		if pic == null:
++			pic = _make_picture(image_kind)
+ 	if pic:
+ 		hb.add_child(pic)
+ 
+@@ -69,17 +78,22 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
+ 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ 	vb.add_theme_constant_override("separation", 10)
+ 	hb.add_child(vb)
+-	var tag := T.label("ものしりカード", 18, Color(0.75, 0.5, 0.2))
++	var tag := T.label(card.get("tag", "ものしりカード"), 18, Color(0.75, 0.5, 0.2))
+ 	vb.add_child(tag)
+ 	var title_text: String = card.get("title", "")
+ 	var title := T.label(title_text, 40 if title_text.length() <= 11 else 32, T.INK)
+ 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ 	vb.add_child(title)
+-	var body := T.label(card.get("text", ""), 25, T.INK)
+-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+-	body.add_theme_font_override("font", Game.font_regular)
+-	vb.add_child(body)
++	if is_karte:
++		var sheet := Sheet.build(EpisodeDB.get_episode(card["karte"]))
++		sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL
++		vb.add_child(sheet)
++	else:
++		var body := T.label(card.get("text", ""), 25, T.INK)
++		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
++		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
++		body.add_theme_font_override("font", Game.font_regular)
++		vb.add_child(body)
+ 	_btn = T.button("わかった！", 30, 240)
+ 	_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+ 	_btn.pressed.connect(close)
+@@ -150,6 +164,15 @@ func _unhandled_input(event: InputEvent) -> void:
+ 		get_viewport().set_input_as_handled()
+ 
+ 
++## パネルの 高さ（テストが はみ出しを 見る）
++func panel_height() -> float:
++	return maxf(_panel.size.y, _panel.get_combined_minimum_size().y)
++
++
++func button() -> Button:
++	return _btn
++
++
+ func close() -> void:
+ 	if _done:
+ 		return
+diff --git a/godot/src/ui/episode_select.gd b/godot/src/ui/episode_select.gd
+new file mode 100644
+index 0000000..47c8024
+--- /dev/null
++++ b/godot/src/ui/episode_select.gd
+@@ -0,0 +1,110 @@
++extends "res://src/ui/flow_screen.gd"
++## カルテえらび：左に カルテの 行、右に えらんだ 話と スタートの ボタン。
++## つづきが ある 話は「つづきから ▶」が 主ボタン。クリアずみで クイズの ほしが まだなら「クイズに もういちど」。
++## いまは 仮の 画面：えらびかた・つづきから・クイズの やりなおしの 動きは 本物、見た目は 最小（docs/episodes.md 3.4 A）。
++
++var selected_id := ""
++var main_btn: Button = null       # しんさつ スタート！／つづきから ▶（テストが 見る）
++var main_is_resume := false
++var restart_btn: Button = null    # さいしょから（つづきが ある ときだけ）
++var quiz_btn: Button = null       # クイズに もういちど（クリアずみで クイズの ほしが まだの ときだけ）
++var rows: Dictionary = {}         # ep_id → 行の ボタン
++var _right: VBoxContainer
++
++
++func _ready() -> void:
++	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	var back := T.button("← もどる", 24)
++	back.position = Vector2(24, 20)
++	back.focus_mode = Control.FOCUS_NONE     # タッチ・マウス用（キーと パッドは ui_cancel）
++	back.pressed.connect(func(): Game.show_title())
++	add_child(back)
++	var y := 100
++	for ep in EpisodeDB.EPISODES:
++		var id: String = ep["id"]
++		var open := SaveData.is_unlocked(id)
++		var b := T.button(("カルテ %d　%s" % [ep["no"], ep["title"]]) if open else "？？？", 24, 560)
++		b.position = Vector2(40, y)
++		b.disabled = not open
++		if not open:
++			b.focus_mode = Control.FOCUS_NONE
++		b.pressed.connect(func(): _select(id, true))
++		b.focus_entered.connect(func(): _select(id, false))
++		add_child(b)
++		rows[id] = b
++		y += 110
++	_right = VBoxContainer.new()
++	_right.position = Vector2(680, 100)
++	_right.add_theme_constant_override("separation", 12)
++	add_child(_right)
++	_select(_default_id(), true)
++
++
++## 最初に えらぶ 話：つづきが ある 話 → まだ クリアして いない 最初の 開いている 話 → 1 話
++func _default_id() -> String:
++	var r := SaveData.resume()
++	if not r.is_empty() and SaveData.is_unlocked(r["ep"]):
++		return r["ep"]
++	for id in EpisodeDB.ids():
++		if SaveData.is_unlocked(id) and not SaveData.is_cleared(id):
++			return id
++	return EpisodeDB.ids()[0]
++
++
++## 右の パネルを 作りなおす。go_to_start なら 主ボタンに フォーカス（行に フォーカスが ある ときは うばわない）
++func _select(id: String, go_to_start: bool) -> void:
++	if id == selected_id and not go_to_start:
++		return
++	selected_id = id
++	for c in _right.get_children():
++		_right.remove_child(c)
++		c.queue_free()
++	var ep := EpisodeDB.get_episode(id)
++	var line := EpisodeDB.select_line(ep)
++	var say := T.label("%s：%s" % [EpisodeDB.speaker(line["who"])["name"], line["text"]], 22)
++	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
++	say.custom_minimum_size.x = 540
++	_right.add_child(say)
++	var r := SaveData.resume()
++	main_is_resume = not r.is_empty() and r["ep"] == id
++	restart_btn = null
++	quiz_btn = null
++	if main_is_resume:
++		main_btn = T.button("つづきから ▶", 36, 320)
++		main_btn.pressed.connect(func():
++			if not locked():
++				Game.resume_episode())
++		_right.add_child(main_btn)
++		_right.add_child(T.label("ばめん %d まで おわっているよ" % int(r["cleared"]), 20))
++		restart_btn = T.button("さいしょから", 24, 320)
++		restart_btn.pressed.connect(func():
++			if not locked():
++				Game.start_episode(id))
++		_right.add_child(restart_btn)
++	else:
++		main_btn = T.button("しんさつ スタート！", 36, 320)
++		main_btn.pressed.connect(func():
++			if not locked():
++				Game.start_episode(id))
++		_right.add_child(main_btn)
++	if SaveData.is_cleared(id) and not SaveData.star_flags(id)[2]:
++		quiz_btn = T.button("クイズに もういちど ちょうせん", 24, 320)
++		quiz_btn.pressed.connect(func():
++			if not locked():
++				Game.review_karte(id))
++		_right.add_child(quiz_btn)
++	# 右の ボタンから 左へ もどると、えらんだ 行に 行く
++	for b in [main_btn, restart_btn, quiz_btn]:
++		if b != null:
++			b.focus_neighbor_left = rows[id].get_path()
++	rows[id].focus_neighbor_right = main_btn.get_path()
++	focus_target = main_btn
++	if go_to_start:
++		main_btn.grab_focus()
++		lock()
++
++
++func _unhandled_input(event: InputEvent) -> void:
++	if event.is_action_pressed("ui_cancel"):
++		Game.show_title()
++		get_viewport().set_input_as_handled()
+diff --git a/godot/src/ui/stage_select.gd.uid b/godot/src/ui/episode_select.gd.uid
+similarity index 100%
+rename from godot/src/ui/stage_select.gd.uid
+rename to godot/src/ui/episode_select.gd.uid
+diff --git a/godot/src/ui/flow_screen.gd b/godot/src/ui/flow_screen.gd
+new file mode 100644
+index 0000000..42fbb59
+--- /dev/null
++++ b/godot/src/ui/flow_screen.gd
+@@ -0,0 +1,36 @@
++extends Control
++## カルテの 流れの 画面（カルテえらび・はなし・よそう・カルテ）の 土台。
++## - いつも どこかに フォーカスが ある ように 見はる（消えたら focus_target に もどす）
++## - 押しすぎ よけ：lock() から 0.4 秒は locked() が true（ボタンは disabled に しない。フォーカスが 外れない ように）
++
++const T := preload("res://src/ui/ui_theme.gd")
++
++var focus_target: Control = null
++var _lock := 0.0
++
++
++func _process(delta: float) -> void:
++	_lock = maxf(_lock - delta, 0.0)
++	if focus_target != null and is_instance_valid(focus_target) and focus_target.is_visible_in_tree() \
++			and get_viewport().gui_get_focus_owner() == null:
++		focus_target.grab_focus()
++
++
++func set_focus(c: Control) -> void:
++	focus_target = c
++	c.grab_focus()
++
++
++func lock(seconds := 0.4) -> void:
++	_lock = seconds
++
++
++func locked() -> bool:
++	return _lock > 0.0
++
++
++## 文が 幅 width・大きさ font_size で 何行に なるか（本物の フォントで はかる。テストが 使う）
++static func lines_of(text: String, font_size: int, width: float) -> int:
++	var f: Font = Game.font_regular
++	var h := f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, width, font_size).y
++	return int(ceil(h / f.get_height(font_size) - 0.01))
+diff --git a/godot/src/ui/flow_screen.gd.uid b/godot/src/ui/flow_screen.gd.uid
+new file mode 100644
+index 0000000..ae73b89
+--- /dev/null
++++ b/godot/src/ui/flow_screen.gd.uid
+@@ -0,0 +1 @@
++uid://dhqnlof2whjcv
+diff --git a/godot/src/ui/guess.gd b/godot/src/ui/guess.gd
+new file mode 100644
+index 0000000..49f8366
+--- /dev/null
++++ b/godot/src/ui/guess.gd
+@@ -0,0 +1,103 @@
++extends "res://src/ui/flow_screen.gd"
++## よそうの 画面：行き先を えらぶ。はずれは ほめて ヒントを 出し、えらびなおし（しからない・ほしに 入れない）。
++## いまは 仮の 画面：動きは 本物、見た目は 最小（からだの地図と レイアウトは docs/episodes.md 3.4 C）。
++
++signal finished(first_guess: String)
++signal cancelled
++
++## 文が 箱に 入るか（本物の フォントで はかる。テストが 全部の えらびに 使う）
++const SAY_SIZE := 26
++const SAY_WIDTH := 540.0
++const SAY_LINES := 4
++const DEPART_SIZE := 28
++const DEPART_WIDTH := 640.0
++const DEPART_LINES := 3
++
++var ep: Dictionary
++var first := ""                  # さいしょに えらんだ 場所（カルテで「あたり」か 見る）
++var buttons: Dictionary = {}     # place → えらぶ ボタン（テストが 見る）
++var _say: Label
++var _go: Button
++var _depart: Label
++
++
++static func say_fits(text: String) -> bool:
++	return lines_of(text, SAY_SIZE, SAY_WIDTH) <= SAY_LINES
++
++
++static func depart_fits(text: String) -> bool:
++	return lines_of(text, DEPART_SIZE, DEPART_WIDTH) <= DEPART_LINES
++
++
++func setup(e: Dictionary) -> void:
++	ep = e
++
++
++func _ready() -> void:
++	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	var g: Dictionary = ep["guess"]
++	_say = T.label(g["q"], 28)
++	_say.position = Vector2(500, 20)
++	add_child(_say)
++	var i := 0
++	for c in g["choices"]:
++		var b := T.button(EpisodeDB.place_label(c), 32, 660)
++		b.position = Vector2(500, 240 + i * 100)
++		var place: String = c["place"]
++		b.pressed.connect(func(): choose(place))
++		add_child(b)
++		buttons[place] = b
++		if i == 0:
++			set_focus(b)
++		i += 1
++	# しゅっぱつの ひとことは ふきだしと 別の 箱（つなげると ふきだしに 入らない）
++	_depart = T.label("", DEPART_SIZE)
++	_depart.position = Vector2(500, 250)
++	_depart.visible = false
++	add_child(_depart)
++	_go = T.button("しゅっぱつ！ ▶", 34, 340)
++	_go.position = Vector2(820, 548)
++	_go.visible = false
++	_go.pressed.connect(func():
++		if not locked():
++			finished.emit(first))
++	add_child(_go)
++	lock()
++
++
++func choose(place: String) -> void:
++	if locked() or _go.visible:
++		return
++	var g: Dictionary = ep["guess"]
++	var c: Dictionary = {}
++	for x in g["choices"]:
++		if x["place"] == place:
++			c = x
++	if c.is_empty() or buttons[place].disabled:
++		return
++	if first == "":
++		first = place
++	lock()
++	_say.text = c["say"]                 # ふきだしには 返事だけ
++	if c.get("go", false):
++		Sfx.play("quiz_ok")
++		for k in buttons.keys():         # えらぶ ボタンを かくして、あいた 所に「しゅっぱつ」の 箱を 出す
++			buttons[k].visible = false
++		_depart.text = "%s\n%s" % [EpisodeDB.place_label(c), g["depart"]]
++		_depart.visible = true
++		_go.visible = true
++		set_focus(_go)
++	else:
++		Sfx.play("card")                 # 「wrong」の 音は 使わない
++		buttons[place].disabled = true
++		buttons[place].focus_mode = Control.FOCUS_NONE
++		for x in g["choices"]:           # のこりの 上から 1 つめへ フォーカス
++			if not buttons[x["place"]].disabled:
++				set_focus(buttons[x["place"]])
++				break
++
++
++func _unhandled_input(event: InputEvent) -> void:
++	if event.is_action_pressed("ui_cancel"):
++		cancelled.emit()                 # そうだんの さいごの ページへ（Game が 決める）
++		get_viewport().set_input_as_handled()
+diff --git a/godot/src/ui/guess.gd.uid b/godot/src/ui/guess.gd.uid
+new file mode 100644
+index 0000000..f06d679
+--- /dev/null
++++ b/godot/src/ui/guess.gd.uid
+@@ -0,0 +1 @@
++uid://iq7sb7ugn7fp
+diff --git a/godot/src/ui/hud.gd b/godot/src/ui/hud.gd
+index eb2cdd4..8c2ffa3 100644
+--- a/godot/src/ui/hud.gd
++++ b/godot/src/ui/hud.gd
+@@ -11,6 +11,7 @@ var _mission_labels: Array[Label] = []
+ var _msg_panel: PanelContainer
+ var _msg_label: Label
+ var _msg_timer := 0.0
++var _msg_hold := 0.0     # 物語の ひとことが 出てから、ほかの 文に 上書きさせない 残り時間
+ var _pocket: Label
+ var _stage_label: Label
+ var _pause_btn: Button
+@@ -109,7 +110,7 @@ func _ready() -> void:
+ 
+ func bind_level(l: Node) -> void:
+ 	level = l
+-	_stage_label.text = "%d  %s（%s）" % [l.stage["order"], l.stage["name"], l.stage["kanji"]]
++	_stage_label.text = "%s（%s）" % [l.stage["name"], l.stage["kanji"]]
+ 	l.missions_changed.connect(_refresh_missions)
+ 	l.hearts_changed.connect(func(h): _hearts = h; _heart_box.queue_redraw())
+ 	_refresh_missions()
+@@ -129,6 +130,7 @@ func _refresh_missions() -> void:
+ 
+ 
+ func _process(delta: float) -> void:
++	_msg_hold = maxf(_msg_hold - delta, 0.0)
+ 	if _msg_timer > 0.0:
+ 		_msg_timer -= delta
+ 		if _msg_timer <= 0.0:
+@@ -145,7 +147,12 @@ func is_busy() -> bool:
+ 	return _msg_panel.visible and _msg_timer > 0.0
+ 
+ 
+-func say(text: String, seconds := 4.0) -> void:
++## hold > 0 は 物語の ひとこと：出てから hold 秒は、hold なしの 文（とっさの ひとこと）に 上書きさせない。
++## 出せたら true
++func say(text: String, seconds := 4.0, hold := 0.0) -> bool:
++	if hold <= 0.0 and _msg_hold > 0.0 and is_busy():
++		return false
++	_msg_hold = hold
+ 	_msg_label.text = text
+ 	_msg_panel.visible = true
+ 	# タッチ操作のボタンと重ならないように、タッチのときは少し細くする
+@@ -157,6 +164,7 @@ func say(text: String, seconds := 4.0) -> void:
+ 	_msg_panel.pivot_offset = _msg_panel.size * 0.5
+ 	var t := create_tween()
+ 	t.tween_property(_msg_panel, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
++	return true
+ 
+ 
+ func _draw_hearts() -> void:
+diff --git a/godot/src/ui/karte.gd b/godot/src/ui/karte.gd
+new file mode 100644
+index 0000000..6b11784
+--- /dev/null
++++ b/godot/src/ui/karte.gd
+@@ -0,0 +1,171 @@
++extends "res://src/ui/flow_screen.gd"
++## カルテの 画面：段 0 かいけつ → 1 カルテの 紙 → 2 クイズ → 3 ほし。ボタンで 進む（時間では 進まない）。
++## いまは 仮の 画面：段の 進みかた・カルテの 紙・クイズは 本物、見た目は 最小（docs/episodes.md 3.4 D）。
++
++signal answered(correct: bool)
++signal finished(go_next: bool)
++
++const Sheet := preload("res://src/ui/karte_sheet.gd")
++const PANEL_HEIGHT := 640.0
++
++var ep: Dictionary
++## guess_hit（さいしょの よそうが あたり）、review（クリアずみの カルテを 読みかえす：紙から 始め、つぎの 話へは 行かない）
++var opts: Dictionary = {}
++var step := 0
++var correct := false
++var panel: PanelContainer
++var _vb: VBoxContainer
++
++
++func setup(e: Dictionary, o := {}) -> void:
++	ep = e
++	opts = o
++
++
++func _ready() -> void:
++	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	panel = PanelContainer.new()
++	panel.anchor_left = 0.5
++	panel.anchor_right = 0.5
++	panel.anchor_top = 0.5
++	panel.anchor_bottom = 0.5
++	panel.offset_left = -470
++	panel.offset_right = 470
++	panel.offset_top = -PANEL_HEIGHT / 2
++	panel.offset_bottom = PANEL_HEIGHT / 2
++	add_child(panel)
++	var margin := MarginContainer.new()
++	for side in ["left", "right", "top", "bottom"]:
++		margin.add_theme_constant_override("margin_" + side, 24)
++	panel.add_child(margin)
++	_vb = VBoxContainer.new()
++	_vb.add_theme_constant_override("separation", 10)
++	margin.add_child(_vb)
++	step = 1 if opts.get("review", false) else 0
++	_show()
++
++
++## はみ出して いないか（テストが 見る）
++func fits() -> bool:
++	return panel.get_combined_minimum_size().y <= PANEL_HEIGHT
++
++
++func _clear() -> void:
++	for c in _vb.get_children():
++		_vb.remove_child(c)
++		c.queue_free()
++
++
++func _wrap(text: String, size: int) -> Label:
++	var l := T.label(text, size)
++	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
++	l.custom_minimum_size.x = 880
++	l.add_theme_font_override("font", Game.font_regular)
++	return l
++
++
++## 段の 主ボタン（下の 右はし）。押しすぎ よけは lock()
++func _main(text: String, cb: Callable) -> Button:
++	var sp := Control.new()
++	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
++	_vb.add_child(sp)
++	var b := T.button(text, 30, 320)
++	b.size_flags_horizontal = Control.SIZE_SHRINK_END
++	b.pressed.connect(func():
++		if not locked():
++			cb.call())
++	_vb.add_child(b)
++	set_focus(b)
++	lock()
++	return b
++
++
++func _go(s: int) -> void:
++	step = s
++	_show()
++
++
++func _show() -> void:
++	_clear()
++	var id: String = ep["id"]
++	match step:
++		0:
++			Sfx.play("clear")
++			_vb.add_child(T.label("かいけつ！", 48, Color(0.9, 0.35, 0.5)))
++			if ep["karte"].has("thanks"):
++				_vb.add_child(_wrap("%s：%s" % [EpisodeDB.speaker(ep["patient"])["name"], ep["karte"]["thanks"]], 28))
++			if ep["karte"].has("exit"):
++				_vb.add_child(_wrap(ep["karte"]["exit"], 24))
++			if opts.get("guess_hit", false):
++				_vb.add_child(T.label("★ きみの さいしょの よそう、あたっていたね！", 24, Color(0.75, 0.55, 0.2)))
++			_main("カルテを かく ▶", _go.bind(1))
++		1:
++			SaveData.mark_card(id, "karte")
++			_vb.add_child(T.label("カルテ %d　%s" % [ep["no"], ep["title"]], 26))
++			_vb.add_child(Sheet.build(ep))
++			_main("クイズに ちょうせん！", _go.bind(2))
++		2:
++			_show_quiz()
++		3:
++			_show_stars()
++
++
++## クイズ：えらびは まぜて ならべる。最初の フォーカスは 一番 上
++func _show_quiz() -> void:
++	var q: Dictionary = ep["quiz"]
++	_vb.add_child(T.label("クイズ", 20, Color(0.3, 0.5, 0.75)))
++	_vb.add_child(_wrap(q["q"], 34))
++	var order := [0, 1, 2]
++	order.shuffle()
++	var first: Button = null
++	for n in 3:
++		var i: int = order[n]
++		var b := T.button(["Ａ", "Ｂ", "Ｃ"][n] + "　" + q["choices"][i], 28)
++		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
++		T.colored_button(b, T.SKY, Color(0.3, 0.55, 0.8))
++		b.pressed.connect(func():
++			if locked():
++				return
++			correct = i == int(q["answer"])
++			_go(3))
++		_vb.add_child(b)
++		if first == null:
++			first = b
++	set_focus(first)
++	lock()
++
++
++func _show_stars() -> void:
++	var id: String = ep["id"]
++	answered.emit(correct)                 # Game が 記録する（ほしの 印は 回を またいで たまる）
++	Sfx.play("quiz_ok" if correct else "wrong")
++	_vb.add_child(T.label("せいかい！" if correct else "おしい！", 48, Color(0.9, 0.35, 0.5) if correct else Color(0.4, 0.5, 0.7)))
++	_vb.add_child(_wrap(ep["quiz"]["explain"], 24))
++	var f := SaveData.star_flags(id)
++	var miss: Array[String] = []
++	var sf := SaveData.scene_flags(id)
++	for i in sf.size():
++		if not sf[i]:
++			miss.append(str(i + 1))
++	_vb.add_child(T.label("ほし %d こ！" % SaveData.stars(id), 28))
++	_vb.add_child(T.label("● カルテ かんせい！" if f[0] else "○ カルテ かんせい（また こんど！）", 22))
++	if miss.is_empty():
++		_vb.add_child(T.label("● ハートを へらさずに", 22))
++	else:
++		# どの 場面が まだ かを 言う（つぎの 回で その 場面だけ がんばれば よい）
++		_vb.add_child(T.label("○ ハートを へらさずに（ばめん %s が まだ）" % "・".join(PackedStringArray(miss)), 22))
++	_vb.add_child(T.label("● クイズに せいかい" if f[2] else "○ クイズに せいかい（また こんど！）", 22))
++	var next := EpisodeDB.next_id(id)
++	if opts.get("review", false) or (next == "" and not EpisodeDB.SEASON_COMPLETE):
++		_main("カルテえらびへ", finished.emit.bind(false))
++	else:
++		var main := _main("つぎの カルテへ ▶" if next != "" else "エンディングへ ▶", finished.emit.bind(true))
++		# ここで やめる 道も いつも 出す（フォーカスは 主ボタンの まま）
++		var back := T.button("カルテえらびへ", 24, 240)
++		back.size_flags_horizontal = Control.SIZE_SHRINK_END
++		back.pressed.connect(func():
++			if not locked():
++				finished.emit(false))
++		_vb.add_child(back)
++		main.focus_neighbor_bottom = back.get_path()
++		back.focus_neighbor_top = main.get_path()
+diff --git a/godot/src/ui/result.gd.uid b/godot/src/ui/karte.gd.uid
+similarity index 100%
+rename from godot/src/ui/result.gd.uid
+rename to godot/src/ui/karte.gd.uid
+diff --git a/godot/src/ui/karte_sheet.gd b/godot/src/ui/karte_sheet.gd
+new file mode 100644
+index 0000000..a5b9560
+--- /dev/null
++++ b/godot/src/ui/karte_sheet.gd
+@@ -0,0 +1,51 @@
++## カルテの 紙：「なにが おきていた？／どうして？／これからは？」＋ げんいんの タイプ（不調の パターン）。
++## カルテ画面の 段 1 と、ずかんの ポップアップ（card.gd）が 同じ ものを 使う（見た目と はみ出しの 検査を 1 か所に）。
++const T := preload("res://src/ui/ui_theme.gd")
++
++const HEADS := ["なにが おきていた？", "どうして？", "これからは？"]
++const KEYS := ["what", "why", "next"]
++const COLORS := [Color(0.9, 0.35, 0.5), Color(0.3, 0.5, 0.75), Color(0.25, 0.6, 0.45)]
++const WIDTH := 848.0         # 紙の 幅（パネル 940 − ふち）
++const MAX_HEIGHT := 400.0    # これより 高いと ずかんの ポップアップ（940×640）に 入らない（カルテ画面は 430 まで 入る）
++
++
++static func build(ep: Dictionary) -> VBoxContainer:
++	var vb := VBoxContainer.new()
++	vb.custom_minimum_size.x = WIDTH
++	vb.add_theme_constant_override("separation", 4)
++	var k: Dictionary = ep["karte"]
++	for i in 3:
++		vb.add_child(T.label(HEADS[i], 20, COLORS[i]))
++		var body := T.label(k[KEYS[i]], 22, T.INK)
++		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
++		body.custom_minimum_size.x = WIDTH
++		body.add_theme_font_override("font", Game.font_regular)
++		vb.add_child(body)
++	# げんいんの タイプ：左に 見出し、右に「ふだ ＋ ひとこと」を 1 行ずつ
++	var row := HBoxContainer.new()
++	row.add_theme_constant_override("separation", 12)
++	var head := T.label("げんいんの タイプ", 20, Color(0.75, 0.5, 0.2))
++	head.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
++	row.add_child(head)
++	var list := VBoxContainer.new()
++	list.add_theme_constant_override("separation", 4)
++	for p in EpisodeDB.patterns(ep):
++		var info: Dictionary = EpisodeDB.PATTERNS[p]
++		var line := HBoxContainer.new()
++		line.add_theme_constant_override("separation", 10)
++		var chip := PanelContainer.new()
++		var sb := T.rounded(Color(1.0, 0.95, 0.8), 14, 3, Color(0.85, 0.6, 0.1))
++		sb.content_margin_left = 12
++		sb.content_margin_right = 12
++		sb.content_margin_top = 1
++		sb.content_margin_bottom = 1
++		chip.add_theme_stylebox_override("panel", sb)
++		chip.add_child(T.label(info["name"], 20, Color(0.6, 0.4, 0.05)))
++		line.add_child(chip)
++		var ml := T.label(info["msg"], 20, Color(0.45, 0.4, 0.42))
++		ml.add_theme_font_override("font", Game.font_regular)
++		line.add_child(ml)
++		list.add_child(line)
++	row.add_child(list)
++	vb.add_child(row)
++	return vb
+diff --git a/godot/src/ui/karte_sheet.gd.uid b/godot/src/ui/karte_sheet.gd.uid
+new file mode 100644
+index 0000000..a77364a
+--- /dev/null
++++ b/godot/src/ui/karte_sheet.gd.uid
+@@ -0,0 +1 @@
++uid://0o5bkwwmkmk
+diff --git a/godot/src/ui/pause.gd b/godot/src/ui/pause.gd
+index a4b936f..f87f54b 100644
+--- a/godot/src/ui/pause.gd
++++ b/godot/src/ui/pause.gd
+@@ -1,5 +1,5 @@
+ extends Control
+-## ポーズ画面。つづける／もういちど／ステージえらびへ、音のおおきさ、タッチそうさ。
++## ポーズ画面。つづける／この ばめんを やりなおす／カルテえらびへ、音のおおきさ、タッチそうさ。
+ 
+ const T := preload("res://src/ui/ui_theme.gd")
+ 
+@@ -34,12 +34,17 @@ func _ready() -> void:
+ 	var b1 := T.button("つづける", 30)
+ 	b1.pressed.connect(func(): Game.toggle_pause())
+ 	vb.add_child(b1)
+-	var b2 := T.button("さいしょから やりなおす", 26)
++	var in_episode: bool = not Game.episode.is_empty()
++	# カルテの 中では いまの 場面だけ やりなおす（そうだんへは もどらない）
++	var b2 := T.button("この ばめんを やりなおす" if in_episode else "さいしょから やりなおす", 26)
+ 	b2.pressed.connect(func(): get_tree().paused = false; queue_free(); Game.retry_stage())
+ 	vb.add_child(b2)
+-	var b3 := T.button("ステージえらびへ", 26)
+-	b3.pressed.connect(func(): get_tree().paused = false; queue_free(); Game.show_stage_select())
++	var b3 := T.button("カルテえらびへ", 26)
++	b3.pressed.connect(func(): get_tree().paused = false; queue_free(); Game.show_episode_select())
+ 	vb.add_child(b3)
++	if in_episode and Game.scene_index >= 1:
++		# おえた 場面は のこる（カルテえらびの「つづきから」で もどれる）。やめても こわくない ことを 言う
++		vb.add_child(T.label("おわった ばめんの つぎから つづけられるよ", 18, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
+ 	var hb := HBoxContainer.new()
+ 	hb.add_theme_constant_override("separation", 12)
+ 	hb.add_child(T.label("おと", 24))
+diff --git a/godot/src/ui/result.gd b/godot/src/ui/result.gd
+deleted file mode 100644
+index 05dbc50..0000000
+--- a/godot/src/ui/result.gd
++++ /dev/null
+@@ -1,185 +0,0 @@
+-extends Control
+-## けっか画面：ほし → まとめカード → クイズ → つぎへ。
+-
+-signal finished(stars: int, go_next: bool)
+-
+-const T := preload("res://src/ui/ui_theme.gd")
+-
+-var stage: Dictionary
+-var no_damage := false
+-var quiz_correct := false
+-var _vb: VBoxContainer
+-var _panel: PanelContainer
+-var _phase := 0
+-
+-
+-func setup(s: Dictionary, nd: bool) -> void:
+-	stage = s
+-	no_damage = nd
+-
+-
+-func _ready() -> void:
+-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+-	var bg := ColorRect.new()
+-	bg.color = Color(1.0, 0.92, 0.8)
+-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+-	add_child(bg)
+-	_panel = PanelContainer.new()
+-	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+-	_panel.anchor_left = 0.5
+-	_panel.anchor_right = 0.5
+-	_panel.anchor_top = 0.5
+-	_panel.anchor_bottom = 0.5
+-	_panel.offset_left = -470
+-	_panel.offset_right = 470
+-	_panel.offset_top = -300
+-	_panel.offset_bottom = 300
+-	add_child(_panel)
+-	var margin := MarginContainer.new()
+-	for side in ["left", "right", "top", "bottom"]:
+-		margin.add_theme_constant_override("margin_" + side, 24)
+-	_panel.add_child(margin)
+-	_vb = VBoxContainer.new()
+-	_vb.add_theme_constant_override("separation", 14)
+-	margin.add_child(_vb)
+-	_show_stars()
+-
+-
+-func _clear() -> void:
+-	for c in _vb.get_children():
+-		c.queue_free()
+-
+-
+-func stars_count() -> int:
+-	return 1 + (1 if no_damage else 0) + (1 if quiz_correct else 0)
+-
+-
+-func _show_stars() -> void:
+-	_phase = 0
+-	_clear()
+-	_vb.add_child(T.label("ステージ クリア！", 48, Color(0.9, 0.35, 0.5), HORIZONTAL_ALIGNMENT_CENTER))
+-	_vb.add_child(T.label("%s（%s）　%s" % [stage["name"], stage["kanji"], stage["title"]], 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
+-	var stars := Control.new()
+-	stars.custom_minimum_size = Vector2(0, 120)
+-	var shown := [true, no_damage, false]
+-	stars.draw.connect(func():
+-		var cx := stars.size.x * 0.5
+-		for i in 3:
+-			var c := Vector2(cx + (i - 1) * 120, 60)
+-			stars.draw_colored_polygon(T.star_points(c + Vector2(3, 4), 46), Color(0, 0, 0, 0.1))
+-			stars.draw_colored_polygon(T.star_points(c, 46), T.YELLOW if shown[i] else Color(0.88, 0.86, 0.87)))
+-	_vb.add_child(stars)
+-	var lines := VBoxContainer.new()
+-	lines.add_child(T.label("● クリア！", 24, Color(0.45, 0.7, 0.5)))
+-	lines.add_child(T.label(("● ハートを へらさずに クリア！" if no_damage else "○ ハートを へらさずに クリア（こんどは がんばろう）"), 24, Color(0.45, 0.7, 0.5) if no_damage else Color(0.6, 0.55, 0.58)))
+-	lines.add_child(T.label("○ クイズに せいかい（このあと！）", 24, Color(0.6, 0.55, 0.58)))
+-	_vb.add_child(lines)
+-	var sp := Control.new()
+-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+-	_vb.add_child(sp)
+-	var btn := T.button("つぎへ ▶", 32, 260)
+-	btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+-	btn.pressed.connect(_show_summary)
+-	_vb.add_child(btn)
+-	btn.grab_focus()
+-	Sfx.play("clear")
+-	if Game.testing:
+-		_show_summary.call_deferred()
+-
+-
+-func _show_summary() -> void:
+-	_phase = 1
+-	_clear()
+-	var card: Dictionary = stage["summary"]
+-	SaveData.mark_card(stage["id"], "summary")
+-	_vb.add_child(T.label("ものしりカード", 18, Color(0.75, 0.5, 0.2)))
+-	_vb.add_child(T.label(card["title"], 40))
+-	var body := T.label(card["text"], 26)
+-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+-	body.add_theme_font_override("font", Game.font_regular)
+-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+-	# 納品された まとめの挿絵（cards/card_<stage>_summary.png）があれば 左に出す
+-	var pic := T.art_rect("cards/card_%s_summary" % stage["id"], Vector2(220, 250))
+-	if pic:
+-		var hb := HBoxContainer.new()
+-		hb.add_theme_constant_override("separation", 20)
+-		hb.size_flags_vertical = Control.SIZE_EXPAND_FILL
+-		hb.add_child(pic)
+-		hb.add_child(body)
+-		_vb.add_child(hb)
+-	else:
+-		_vb.add_child(body)
+-	var btn := T.button("クイズに ちょうせん！", 30, 320)
+-	btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+-	btn.pressed.connect(_show_quiz)
+-	_vb.add_child(btn)
+-	btn.grab_focus()
+-	if Game.testing:
+-		_show_quiz.call_deferred()
+-
+-
+-func _show_quiz() -> void:
+-	_phase = 2
+-	_clear()
+-	var q: Dictionary = stage["quiz"]
+-	_vb.add_child(T.label("クイズ", 18, Color(0.3, 0.5, 0.75)))
+-	var ql := T.label(q["q"], 34)
+-	ql.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+-	_vb.add_child(ql)
+-	var choices: Array = q["choices"].duplicate()
+-	var order := [0, 1, 2]
+-	order.shuffle()
+-	var first: Button = null
+-	for i in order:
+-		var b := T.button(["Ａ", "Ｂ", "Ｃ"][order.find(i)] + "　" + choices[i], 28)
+-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+-		T.colored_button(b, T.SKY, Color(0.3, 0.55, 0.8))
+-		b.pressed.connect(func(): _answer(i == int(q["answer"]), q.get("explain", "")))
+-		_vb.add_child(b)
+-		if first == null:
+-			first = b
+-	if first:
+-		first.grab_focus()
+-	if Game.testing:
+-		(func(): _answer(true, q.get("explain", ""))).call_deferred()
+-
+-
+-func _answer(correct: bool, explain: String) -> void:
+-	_phase = 3
+-	quiz_correct = correct
+-	_clear()
+-	Sfx.play("quiz_ok" if correct else "wrong")
+-	_vb.add_child(T.label("せいかい！" if correct else "ざんねん！", 48, Color(0.9, 0.35, 0.5) if correct else Color(0.4, 0.5, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
+-	var ex := T.label(explain, 26)
+-	ex.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+-	ex.add_theme_font_override("font", Game.font_regular)
+-	_vb.add_child(ex)
+-	var stars := Control.new()
+-	stars.custom_minimum_size = Vector2(0, 110)
+-	var n := stars_count()
+-	stars.draw.connect(func():
+-		var cx := stars.size.x * 0.5
+-		for i in 3:
+-			var c := Vector2(cx + (i - 1) * 120, 55)
+-			stars.draw_colored_polygon(T.star_points(c, 44), T.YELLOW if i < n else Color(0.88, 0.86, 0.87)))
+-	_vb.add_child(stars)
+-	_vb.add_child(T.label("ほし %d こ ゲット！" % n, 28, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
+-	var sp := Control.new()
+-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+-	_vb.add_child(sp)
+-	var hb := HBoxContainer.new()
+-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+-	hb.add_theme_constant_override("separation", 20)
+-	var back := T.button("ステージえらびへ", 26)
+-	back.pressed.connect(func(): finished.emit(stars_count(), false))
+-	hb.add_child(back)
+-	var next_id := StageDB.next_stage_id(stage["id"])
+-	var nxt := T.button("つぎの ステージへ ▶" if next_id != "" else "エンディングへ ▶", 30)
+-	T.colored_button(nxt, T.YELLOW, Color(0.85, 0.6, 0.1))
+-	nxt.pressed.connect(func(): finished.emit(stars_count(), true))
+-	hb.add_child(nxt)
+-	_vb.add_child(hb)
+-	nxt.grab_focus()
+-	if Game.testing:
+-		(func(): finished.emit(stars_count(), false)).call_deferred()
+diff --git a/godot/src/ui/stage_select.gd b/godot/src/ui/stage_select.gd
+deleted file mode 100644
+index 6ffadb9..0000000
+--- a/godot/src/ui/stage_select.gd
++++ /dev/null
+@@ -1,184 +0,0 @@
+-extends Control
+-## ステージえらび。からだの絵の上に 番号ボタン。右に ステージの説明と「スタート」。
+-
+-const T := preload("res://src/ui/ui_theme.gd")
+-
+-## からだの絵の中での位置（0〜1）
+-const ORGAN_POS := {
+-	"brain": Vector2(0.50, 0.085), "nose": Vector2(0.62, 0.17), "mouth": Vector2(0.50, 0.23),
+-	"esophagus": Vector2(0.50, 0.33), "lungs": Vector2(0.34, 0.42), "heart": Vector2(0.58, 0.40), "heart2": Vector2(0.72, 0.47),
+-	"stomach": Vector2(0.58, 0.54), "intestine": Vector2(0.50, 0.66), "vessel": Vector2(0.20, 0.58),
+-}
+-
+-var selected := ""
+-var _info: VBoxContainer
+-var _start_btn: Button
+-var _buttons: Dictionary = {}
+-var _map: Control
+-
+-
+-func _ready() -> void:
+-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+-	var bg := ColorRect.new()
+-	bg.color = Color(0.93, 0.95, 1.0)
+-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+-	add_child(bg)
+-
+-	var back := T.button("← もどる", 24)
+-	back.position = Vector2(24, 20)
+-	back.pressed.connect(func(): Sfx.play("click"); Game.show_title())
+-	add_child(back)
+-	var head := T.label("どこへ いく？", 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
+-	head.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+-	head.anchor_left = 0.5
+-	head.anchor_right = 0.5
+-	head.offset_left = -300
+-	head.offset_right = 300
+-	head.offset_top = 18
+-	add_child(head)
+-
+-	# 画面の横幅が変わっても まんなかに まとまるように、横ならびの入れ物に入れる
+-	var row := HBoxContainer.new()
+-	row.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+-	row.anchor_left = 0.5
+-	row.anchor_right = 0.5
+-	row.anchor_top = 0.0
+-	row.anchor_bottom = 0.0
+-	row.offset_left = -570
+-	row.offset_right = 570
+-	row.offset_top = 80
+-	row.offset_bottom = 700
+-	row.add_theme_constant_override("separation", 60)
+-	add_child(row)
+-	_map = Control.new()
+-	_map.custom_minimum_size = Vector2(440, 620)
+-	_map.size = Vector2(440, 620)
+-	_map.draw.connect(_draw_body)
+-	row.add_child(_map)
+-	# 納品された「からだの地図」（ui/bodymap_hana.png）があれば それ、なければ 仮の SVG
+-	var tex_path := "res://assets/ui/body_map.svg"
+-	if T.art("bodymap_hana") != null:
+-		tex_path = "res://assets/ui/bodymap_hana.png"
+-	if ResourceLoader.exists(tex_path):
+-		var tr := TextureRect.new()
+-		tr.texture = load(tex_path)
+-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+-		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+-		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+-		_map.add_child(tr)
+-
+-	var first_unlocked := ""
+-	for s in StageDB.STAGES:
+-		var id: String = s["id"]
+-		var b := Button.new()
+-		b.text = str(s["order"])
+-		b.custom_minimum_size = Vector2(62, 62)
+-		b.add_theme_font_size_override("font_size", 28)
+-		var unlocked := SaveData.is_unlocked(id)
+-		var cleared := SaveData.is_cleared(id)
+-		var col := T.YELLOW if cleared else (T.SKY if unlocked else Color(0.85, 0.85, 0.87))
+-		var border := Color(0.8, 0.6, 0.1) if cleared else (Color(0.3, 0.55, 0.8) if unlocked else Color(0.6, 0.6, 0.62))
+-		T.colored_button(b, col, border)
+-		b.add_theme_stylebox_override("normal", T.rounded(col, 31, 3, border))
+-		b.add_theme_stylebox_override("hover", T.rounded(col.lightened(0.1), 31, 3, border))
+-		b.add_theme_stylebox_override("pressed", T.rounded(border, 31, 3, border))
+-		b.add_theme_stylebox_override("focus", T.outline(Color(0.9, 0.3, 0.5), 31, 5))
+-		b.disabled = not unlocked
+-		if not unlocked:
+-			b.focus_mode = Control.FOCUS_NONE
+-		var p: Vector2 = ORGAN_POS.get(id, Vector2(0.5, 0.5))
+-		b.position = Vector2(p.x * _map.size.x - 31, p.y * _map.size.y - 31)
+-		b.focus_entered.connect(func(): if selected != id: _select(id, false))
+-		b.pressed.connect(func(): _select(id, true))
+-		_map.add_child(b)
+-		_buttons[id] = b
+-		if unlocked and not cleared and first_unlocked == "":
+-			first_unlocked = id
+-	if first_unlocked == "":
+-		first_unlocked = StageDB.STAGES[0]["id"]
+-
+-	var panel := PanelContainer.new()
+-	panel.custom_minimum_size = Vector2(640, 560)
+-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+-	row.add_child(panel)
+-	_info = VBoxContainer.new()
+-	_info.add_theme_constant_override("separation", 10)
+-	panel.add_child(_info)
+-	_select(first_unlocked, true)
+-
+-
+-func _unhandled_input(event: InputEvent) -> void:
+-	if event.is_action_pressed("ui_cancel"):
+-		Sfx.play("click")
+-		Game.show_title()
+-		get_viewport().set_input_as_handled()
+-
+-
+-func _select(id: String, go_to_start := false) -> void:
+-	selected = id
+-	Sfx.play("click", 1.1)
+-	var s := StageDB.get_stage(id)
+-	for c in _info.get_children():
+-		c.queue_free()
+-	_info.add_child(T.label("ステージ %d" % s["order"], 20, Color(0.5, 0.45, 0.5)))
+-	var name_label := T.label("%s（%s）" % [s["name"], s["kanji"]], 44, T.INK)
+-	var icon := T.art_rect("stage_icons/stage_icon_%s" % id, Vector2(64, 64))
+-	if icon:
+-		var nh := HBoxContainer.new()
+-		nh.add_theme_constant_override("separation", 12)
+-		nh.add_child(icon)
+-		nh.add_child(name_label)
+-		_info.add_child(nh)
+-	else:
+-		_info.add_child(name_label)
+-	_info.add_child(T.label(s["title"], 26, Color(0.9, 0.35, 0.5)))
+-	var diff: String = ["", "かんたん", "ふつう", "むずかしい"][int(s["difficulty"])]
+-	_info.add_child(T.label("むずかしさ： " + diff, 22))
+-	var stars := Control.new()
+-	stars.custom_minimum_size = Vector2(200, 50)
+-	var n := SaveData.stars(id)
+-	stars.draw.connect(func():
+-		for i in 3:
+-			var c := Vector2(30 + i * 56, 25)
+-			stars.draw_colored_polygon(T.star_points(c, 22), T.YELLOW if i < n else Color(0.85, 0.83, 0.85)))
+-	_info.add_child(stars)
+-	_info.add_child(T.label("ミッション", 22, Color(0.5, 0.45, 0.5)))
+-	for m in s["missions"]:
+-		var l := T.label("・" + m["text"], 22)
+-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+-		_info.add_child(l)
+-	var sp := Control.new()
+-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+-	_info.add_child(sp)
+-	_start_btn = T.button("スタート！", 36, 300)
+-	_start_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+-	T.colored_button(_start_btn, T.YELLOW, Color(0.85, 0.6, 0.1))
+-	_start_btn.disabled = not SaveData.is_unlocked(id)
+-	_start_btn.pressed.connect(func(): Sfx.play("click"); Game.start_stage(id))
+-	_info.add_child(_start_btn)
+-	# ゲームパッド：番号ボタン → みぎ で スタート、スタート → ひだり で いまの番号へ
+-	if _buttons.has(id):
+-		_start_btn.focus_neighbor_left = _start_btn.get_path_to(_buttons[id])
+-		for k in _buttons.keys():
+-			_buttons[k].focus_neighbor_right = _buttons[k].get_path_to(_start_btn)
+-	if go_to_start and not _start_btn.disabled:
+-		_start_btn.grab_focus()
+-	for k in _buttons.keys():
+-		_buttons[k].scale = Vector2.ONE * (1.15 if k == id else 1.0)
+-		_buttons[k].pivot_offset = Vector2(31, 31)
+-
+-
+-func _draw_body() -> void:
+-	# SVG が無いときの 簡単な からだの絵
+-	if _map.get_child_count() > 0 and _map.get_child(0) is TextureRect:
+-		return
+-	var w := _map.size.x
+-	var h := _map.size.y
+-	var skin := Color(1.0, 0.9, 0.8)
+-	_map.draw_circle(Vector2(w * 0.5, h * 0.12), w * 0.17, skin)
+-	_map.draw_rect(Rect2(w * 0.3, h * 0.25, w * 0.4, h * 0.5), Color(0.75, 0.88, 1.0))
+-	_map.draw_rect(Rect2(w * 0.12, h * 0.28, w * 0.16, h * 0.4), skin)
+-	_map.draw_rect(Rect2(w * 0.72, h * 0.28, w * 0.16, h * 0.4), skin)
+-	_map.draw_rect(Rect2(w * 0.32, h * 0.75, w * 0.15, h * 0.22), Color(0.5, 0.6, 0.9))
+-	_map.draw_rect(Rect2(w * 0.53, h * 0.75, w * 0.15, h * 0.22), Color(0.5, 0.6, 0.9))
+diff --git a/godot/src/ui/talk.gd b/godot/src/ui/talk.gd
+new file mode 100644
+index 0000000..0ff1587
+--- /dev/null
++++ b/godot/src/ui/talk.gd
+@@ -0,0 +1,73 @@
++extends "res://src/ui/flow_screen.gd"
++## はなしの 画面（そうだん・あとの はなし の 両方）。ボタンで ページを 進める。時間では 進まない。
++## いまは 仮の 画面：動きは 本物、見た目は 最小（レイアウトは docs/episodes.md 3.4 B）。
++
++signal finished
++signal cancelled
++
++## ふきだし（770×320）の 中の 文：32 px、幅 726、6 行まで
++const TEXT_SIZE := 32
++const TEXT_WIDTH := 726.0
++const TEXT_LINES := 6
++
++var lines: Array = []
++## mood（患者の 顔）、banner（上の 見出し）、last_label（さいごの ページの ボタン）、can_cancel（1 ページ目で もどれるか）、start_page
++var opts: Dictionary = {}
++var page := 0
++var _banner: Label
++var _text: Label
++var _next: Button
++
++
++## 文が ふきだしに 入るか（本物の フォントで はかる。テストが 全部の ページに 使う）
++static func text_fits(text: String) -> bool:
++	return lines_of(text, TEXT_SIZE, TEXT_WIDTH) <= TEXT_LINES
++
++
++func setup(l: Array, o := {}) -> void:
++	lines = l
++	opts = o
++
++
++func _ready() -> void:
++	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	_banner = T.label(opts.get("banner", ""), 48, Color(0.25, 0.5, 0.75))   # 赤に しない（まちがいの 色に 見せない）
++	_banner.position = Vector2(380, 60)
++	_banner.visible = _banner.text != ""
++	add_child(_banner)
++	_text = T.label("", TEXT_SIZE)
++	_text.position = Vector2(380, 160)
++	add_child(_text)
++	_next = T.button("つぎへ ▶", 30, 280)
++	_next.position = Vector2(860, 540)
++	_next.pressed.connect(_on_next)
++	add_child(_next)
++	page = clampi(int(opts.get("start_page", 0)), 0, lines.size() - 1)
++	_show()
++
++
++func _show() -> void:
++	_text.text = "%s：%s" % [EpisodeDB.speaker(lines[page]["who"])["name"], lines[page]["text"]]
++	_next.text = opts.get("last_label", "つぎへ ▶") if page == lines.size() - 1 else "つぎへ ▶"
++	set_focus(_next)
++	lock()
++
++
++func _on_next() -> void:
++	if locked():
++		return
++	if page + 1 < lines.size():
++		page += 1
++		_show()
++	else:
++		finished.emit()
++
++
++func _unhandled_input(event: InputEvent) -> void:
++	if event.is_action_pressed("ui_cancel"):
++		if page > 0:
++			page -= 1          # 1 ページ もどる（読みなおせる）
++			_show()
++		elif opts.get("can_cancel", false):
++			cancelled.emit()
++		get_viewport().set_input_as_handled()
+diff --git a/godot/src/ui/talk.gd.uid b/godot/src/ui/talk.gd.uid
+new file mode 100644
+index 0000000..e459965
+--- /dev/null
++++ b/godot/src/ui/talk.gd.uid
+@@ -0,0 +1 @@
++uid://dgi2vyhfu5pec
+diff --git a/godot/src/ui/title.gd b/godot/src/ui/title.gd
+index 02d1a5f..811dbae 100644
+--- a/godot/src/ui/title.gd
++++ b/godot/src/ui/title.gd
+@@ -47,11 +47,11 @@ func _ready() -> void:
+ 			add_child(hana)
+ 			move_child(hana, 0)
+ 		pv.add_child(T.label("おめでとう！ ぜんぶ クリア！", 40, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
+-		var body := T.label(StageDB.STORY_ENDING, 26)
++		var body := T.label(EpisodeDB.ENDING, 26)
+ 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ 		body.add_theme_font_override("font", Game.font_regular)
+ 		pv.add_child(body)
+-		pv.add_child(T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), StageDB.STAGES.size() * 3], 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
++		pv.add_child(T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), EpisodeDB.EPISODES.size() * 3], 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
+ 		vb.add_child(p)
+ 		var back := T.button("タイトルへ", 30)
+ 		back.pressed.connect(func(): Game.show_title())
+@@ -81,7 +81,7 @@ func _ready() -> void:
+ 
+ 	var start := T.button("はじめる", 36, 320)
+ 	start.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+-	start.pressed.connect(func(): Sfx.play("click"); Game.show_stage_select())
++	start.pressed.connect(func(): Sfx.play("click"); Game.show_episode_select())
+ 	vb.add_child(start)
+ 	var zukan := T.button("ずかん", 30, 320)
+ 	zukan.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+@@ -101,7 +101,7 @@ func _ready() -> void:
+ 	reset.pressed.connect(_confirm_reset)
+ 	hb.add_child(reset)
+ 	vb.add_child(hb)
+-	var stars := T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), StageDB.STAGES.size() * 3], 22, Color(0.75, 0.55, 0.2), HORIZONTAL_ALIGNMENT_CENTER)
++	var stars := T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), EpisodeDB.EPISODES.size() * 3], 22, Color(0.75, 0.55, 0.2), HORIZONTAL_ALIGNMENT_CENTER)
+ 	if _keyvisual:
+ 		stars.add_theme_color_override("font_color", Color(1.0, 0.92, 0.6))
+ 		stars.add_theme_color_override("font_outline_color", Color(0.3, 0.15, 0.25))
+diff --git a/godot/src/ui/zukan.gd b/godot/src/ui/zukan.gd
+index ace37ff..08b7ae4 100644
+--- a/godot/src/ui/zukan.gd
++++ b/godot/src/ui/zukan.gd
+@@ -4,6 +4,9 @@ extends Control
+ const T := preload("res://src/ui/ui_theme.gd")
+ const CardPopup := preload("res://src/ui/card.gd")
+ 
++var karte_buttons: Dictionary = {}   # ep_id -> Button（テストが 見る）
++var popup: Control = null            # いま 開いている カード（テストが 見る）
++
+ 
+ func _ready() -> void:
+ 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+@@ -39,9 +42,33 @@ func _ready() -> void:
+ 	var seen_total := 0
+ 	var total := 0
+ 	var first_btn: Button = null
+-	for s in StageDB.STAGES:
+-		var sid: String = s["id"]
+-		vb.add_child(T.label("%d  %s（%s）" % [s["order"], s["name"], s["kanji"]], 28, Color(0.9, 0.35, 0.5)))
++	# 1. カルテの 段
++	vb.add_child(T.label("カルテ", 28, Color(0.9, 0.35, 0.5)))
++	var kflow := HFlowContainer.new()
++	kflow.add_theme_constant_override("h_separation", 10)
++	kflow.add_theme_constant_override("v_separation", 10)
++	for ep in EpisodeDB.EPISODES:
++		var id: String = ep["id"]
++		var kseen := SaveData.card_seen(id, "karte")
++		total += 1
++		if kseen:
++			seen_total += 1
++		var kb := T.button(("カルテ %d　%s" % [ep["no"], ep["title"]]) if kseen else "？？？", 22)
++		if kseen:
++			T.colored_button(kb, T.CREAM, T.YELLOW)
++			kb.pressed.connect(func(): _open(EpisodeDB.karte_card(ep), "karte", id))
++		else:
++			kb.disabled = true
++			kb.focus_mode = Control.FOCUS_NONE
++		kflow.add_child(kb)
++		karte_buttons[id] = kb
++		if first_btn == null and kseen:
++			first_btn = kb
++	vb.add_child(kflow)
++	# 2. 場所の 段（どれかの カルテで 行く 場所だけ）
++	for sid in EpisodeDB.used_places():
++		var s := StageDB.get_stage(sid)
++		vb.add_child(T.label("%s（%s）" % [s["name"], s["kanji"]], 28, Color(0.9, 0.35, 0.5)))
+ 		var flow := HFlowContainer.new()
+ 		flow.add_theme_constant_override("h_separation", 10)
+ 		flow.add_theme_constant_override("v_separation", 10)
+@@ -77,7 +104,9 @@ func _open(card: Dictionary, key: String, sid := "") -> void:
+ 	var p := CardPopup.new()
+ 	p.setup(card, key, sid)
+ 	Game.add_overlay(p)
++	popup = p
+ 	p.closed.connect(func():
++		popup = null
+ 		if is_instance_valid(prev):
+ 			prev.grab_focus())
+ 
+diff --git a/godot/tests/shot.gd b/godot/tests/shot.gd
+index 3c54681..664d935 100644
+--- a/godot/tests/shot.gd
++++ b/godot/tests/shot.gd
+@@ -2,7 +2,8 @@ extends Node
+ const Autopilot := preload("res://tests/autopilot.gd")
+ ## スクリーンショット撮影（ソフトウェアレンダリング用）
+ ##   xvfb-run godot --rendering-driver opengl3 --path godot res://tests/shot.tscn -- --stage=mouth --out=/tmp/x.png
+-## --stage=title / select / zukan / <stage id>。--frames=N で待つフレーム数。--play=秒 で自動操縦してから撮る。
++## --stage=title / select / zukan / card / model:<id> / <場所 id>。--frames=N で待つフレーム数。--play=秒 で自動操縦してから撮る。
++## 撮影は べつの セーブ（user://save_shot.json）を 使う（手元の セーブを さわらない）。
+ 
+ func _ready() -> void:
+ 	var stage := "mouth"
+@@ -25,13 +26,15 @@ func _ready() -> void:
+ 	var main = load("res://src/main.tscn").instantiate()
+ 	add_child(main)
+ 	await get_tree().process_frame
++	SaveData.use_path("user://save_shot.json")
++	SaveData.reset()
+ 	SaveData.set_setting("volume", 0.0)
+ 	SaveData.set_setting("unlock_all", true)
+ 	SaveData.set_setting("touch", "on" if touch else "off")
+ 	if stage == "title":
+ 		Game.show_title()
+ 	elif stage == "select":
+-		Game.show_stage_select()
++		Game.show_episode_select()
+ 	elif stage == "zukan":
+ 		for sid in ["mouth", "esophagus", "stomach"]:
+ 			for key in StageDB.get_stage(sid)["cards"].keys():
+@@ -41,19 +44,11 @@ func _ready() -> void:
+ 		# キャラクターモデルを 大きく 1 体だけ映す（Blender の作り直し確認用）
+ 		_show_model(stage.substr(6))
+ 	elif stage == "card":
++		# 場所の カードは クリアの あとに 出る。ここでは い（胃）の 上に 直接 出す
+ 		Game.testing = false  # カードを自動で閉じない
+ 		Game.start_stage("stomach")
+-	elif stage == "result":
+-		Game.start_stage("lungs")
+-		var waited := 0
+-		while (Game.level == null or not Game.level.started) and waited < 600:
+-			await get_tree().process_frame
+-			waited += 1
+-		Game.testing = false
+-		Game.level.damage_taken = true
+-		Game.level.finish()
+-		for i in 60:
+-			await get_tree().process_frame
++		await get_tree().process_frame
++		Game.show_card(StageDB.card("stomach", "stage"), Callable(), "stage", "stomach")
+ 	else:
+ 		Game.start_stage(stage)
+ 		var waited := 0
+diff --git a/godot/tests/smoke.gd b/godot/tests/smoke.gd
+index 956cca6..93245a1 100644
+--- a/godot/tests/smoke.gd
++++ b/godot/tests/smoke.gd
+@@ -1,37 +1,80 @@
+ extends Node
+ ## 自動テスト（ヘッドレス）。
+-##   godot --headless --fixed-fps 60 --path godot res://tests/smoke.tscn
+-## 1. src/ の全スクリプトを読み込んで 文法エラーがないか
+-## 2. 全ステージを 自動操縦（autopilot）で クリアまで動かす
+-
+-const MAX_STAGE_SECONDS := 420.0
++##   godot --headless --fixed-fps 60 --path godot res://tests/smoke.tscn [-- --episode=ep03 | --stage=mouth]
++## 1. src/ の 全スクリプトを 読みこむ　2. カルテの データを 調べる（EpisodeDB.validate ＋ 文が 箱に 入るか）　3. セーブを 調べる
++## 4. 全カルテを カルテえらび → そうだん → よそう → 場面 → カルテ まで 通す（画面は フォーカス中の ボタンを 押す。場面は 自動操縦）
++## 5. つづきから　6. ずかん（カルテを 開いて 閉じる）
++## 7. 全部の 場所を 既定の ミッションで 自動操縦（カルテで まだ 使わない 場所も ここで 守る）
++const MAX_SCENE_SECONDS := 420.0
++const MAX_UI_SECONDS := 30.0
+ const Autopilot := preload("res://tests/autopilot.gd")
++const SelectScreen := preload("res://src/ui/episode_select.gd")
++const TalkScreen := preload("res://src/ui/talk.gd")
++const GuessScreen := preload("res://src/ui/guess.gd")
++const ZukanScreen := preload("res://src/ui/zukan.gd")
++const KarteSheet := preload("res://src/ui/karte_sheet.gd")
+ 
+ var _failures: Array[String] = []
+ var _log: Array[String] = []
+-var _stage_elapsed := 0.0
+-var _only := ""
++var _only_place := ""
++var _only_ep := ""
+ var _finished := false
+-var _debug := false
++var _ep_done := false
++var _phases: Array[String] = []
++var _phases_at_end: Array[String] = []
++var _scene_clears := 0
++var _said: Array = []          # いまの 場面で HUD に 出た 文：[物理フレーム, 文]
++var _text_seen: Dictionary = {}
+ 
+ 
+ func _ready() -> void:
+ 	Game.testing = true
+ 	for a in OS.get_cmdline_user_args():
+ 		if a.begins_with("--stage="):
+-			_only = a.substr(8)
+-		if a == "--debug":
+-			_debug = true
++			_only_place = a.substr(8)
++		if a.begins_with("--episode="):
++			_only_ep = a.substr(10)
++	SaveData.use_path("user://save_test.json")
+ 	var main = load("res://src/main.tscn").instantiate()
+ 	add_child(main)
+ 	await get_tree().process_frame
+ 	_check_scripts()
++	_check_data()
++	await _check_sheets()
++	_check_save()
+ 	SaveData.reset()
+-	SaveData.set_setting("unlock_all", true)
+ 	SaveData.set_setting("volume", 0.0)
+-	await _run_stages()
++	Game.phase_changed.connect(func(p: String, i: int): _phases.append("%s%s" % [p, str(i) if p in ["scene", "after"] else ""]))
++	Game.stage_started.connect(func(_sid): _said.clear())
++	Game.said.connect(func(t: String): _said.append([Engine.get_physics_frames(), t]))
++	Game.stage_finished.connect(func(sid: String, _stars):
++		_scene_clears += 1
++		if not Game.episode.is_empty():
++			_info("  scene %d (%s) done" % [Game.scene_index, sid])
++			_check_says())
++	if _only_place == "":
++		for id in EpisodeDB.ids():
++			if _only_ep == "" or id == _only_ep:
++				await _run_episode(id)
++	if _only_place == "" and _only_ep == "":
++		await _check_back()
++		await _check_resume()
++		await _check_zukan()
++	if _only_ep == "":
++		for id in StageDB.stage_ids():
++			if _only_place == "" or id == _only_place:
++				await _run_place(id)
+ 	SaveData.reset()
+-	_print_summary()
++	print("")
++	print("==================== SMOKE SUMMARY ====================")
++	for l in _log:
++		print(l)
++	if _failures.is_empty():
++		print("RESULT: OK")
++	else:
++		for f in _failures:
++			print("FAIL: " + f)
++		print("RESULT: %d FAILURE(S)" % _failures.size())
+ 	get_tree().quit(1 if _failures.size() > 0 else 0)
+ 
+ 
+@@ -73,85 +116,419 @@ func _list_scripts(dir: String) -> Array[String]:
+ 	return out
+ 
+ 
+-func _run_stages() -> void:
+-	for id in StageDB.stage_ids():
+-		if _only != "" and id != _only:
++func _check_data() -> void:
++	for b in EpisodeDB.validate():
++		_fail("data: " + b)
++	# 文が 箱に 入るか（本物の フォントで はかる）。画面に 出ない えらびの 返事も ここで 見る
++	for ep in EpisodeDB.EPISODES:
++		var id: String = ep["id"]
++		var pages: Array = EpisodeDB.OPENING + ep["consult"]
++		for sc in ep["scenes"]:
++			pages += sc.get("after", {}).get("lines", []) + sc.get("after", {}).get("lines_hit", [])
++		for l in pages:
++			if not TalkScreen.text_fits(l["text"]):
++				_fail("%s: はなしの 文が ふきだしに 入らない：%s" % [id, l["text"]])
++		if ep.has("guess"):
++			for t in [ep["guess"]["q"]] + ep["guess"]["choices"].map(func(c): return c["say"]):
++				if not GuessScreen.say_fits(t):
++					_fail("%s: よそうの 文が ふきだしに 入らない（%d 行）：%s" % [id, GuessScreen.lines_of(t, GuessScreen.SAY_SIZE, GuessScreen.SAY_WIDTH), t])
++			if not GuessScreen.depart_fits(ep["guess"]["depart"]):
++				_fail("%s: depart が 箱に 入らない" % id)
++		# あたりの よそうには lines_hit が 出る
++		for i in ep["scenes"].size():
++			var a: Dictionary = ep["scenes"][i].get("after", {})
++			if a.has("lines_hit"):
++				for c in ep["guess"]["choices"]:
++					var want: Array = a["lines_hit"] if c.get("hit", false) else a["lines"]
++					if EpisodeDB.after_lines(ep, i, c["place"]) != want:
++						_fail("%s: after_lines が ちがう（%s）" % [id, c["place"]])
++	_info("episodes: %d, places: %d" % [EpisodeDB.EPISODES.size(), StageDB.STAGES.size()])
++
++
++## カルテの 紙が 入るか（カルテ画面と ずかんの ポップアップが 同じ 紙を 使う）
++func _check_sheets() -> void:
++	for ep in EpisodeDB.EPISODES:
++		var sh := KarteSheet.build(ep)
++		sh.theme = Game.theme
++		add_child(sh)
++		await get_tree().process_frame
++		await get_tree().process_frame
++		var h := sh.get_combined_minimum_size().y
++		_info("karte sheet %s: %.0f px" % [ep["id"], h])
++		if h > KarteSheet.MAX_HEIGHT:
++			_fail("%s: カルテの 紙が 高すぎる（%.0f px。%.0f まで）" % [ep["id"], h, KarteSheet.MAX_HEIGHT])
++		sh.queue_free()
++
++
++func _write(text: String) -> void:
++	var f := FileAccess.open(SaveData.path, FileAccess.WRITE)
++	f.store_string(text)
++	f.close()
++
++
++func _check_save() -> void:
++	var ep2 := ""      # 場面が 2 つ 以上 ある 最初の 話
++	for e in EpisodeDB.EPISODES:
++		if ep2 == "" and e["scenes"].size() >= 2:
++			ep2 = e["id"]
++	# v1（ステージごとの ほし）→ カードと 設定だけ 引きつぐ
++	_write('{"version":1,"stars":{"mouth":3},"cleared":["mouth"],"cards_seen":["mouth/stage","mouth/mushiba",5],"story_seen":true,"settings":{"volume":0.5,"touch":"on","unlock_all":false}}')
++	SaveData.load_data()
++	if SaveData.data["version"] != 2 or SaveData.total_stars() != 0 or SaveData.is_cleared("ep01") or not SaveData.card_seen("mouth", "stage") or SaveData.setting("volume") != 0.5 or SaveData.setting("touch") != "on" or SaveData.data["cards_seen"].size() != 2:
++		_fail("save: v1 migration: %s" % SaveData.data)
++	if not FileAccess.file_exists("user://save_test.v1.json"):
++		_fail("save: v1 backup not written")
++	# こわれた ファイル・型ちがい
++	for text in ["{{{", "[1,2]", '{"version":2,"episodes":[],"cards_seen":{},"settings":"x","opening_seen":3,"resume":[1]}', '{"version":"x","episodes":{"ep01":5,"ep02":{"clear":"yes"}}}', '{"version":9,"stars":[]}', '{"version":2,"episodes":{"ep01":{"clear":1,"nd":"x"},"ep02":{"nd":[1,"a",null]}},"resume":{"ep":"ep99","cleared":1}}', '{"version":2,"resume":{"ep":"ep01","cleared":7}}']:
++		_write(text)
++		SaveData.load_data()
++		if SaveData.total_stars() != 0 or not (SaveData.data["episodes"] is Dictionary) or not (SaveData.data["cards_seen"] is Array) or SaveData.setting("volume") != 0.8 or SaveData.data["opening_seen"] != false or not SaveData.resume().is_empty():
++			_fail("save: broken file not handled: %s -> %s" % [text, SaveData.data])
++		for id in EpisodeDB.ids():
++			if SaveData.star_flags(id) != [false, false, false] or SaveData.scene_flags(id).has(true):
++				_fail("save: broken file gives stars: %s" % text)
++	# v2 の 往復。ほしの 印は 場面ごと・回を またいで たまる。クリア前は ほしに ならない
++	SaveData.reset()
++	SaveData.record_scene("ep01", 0, true)
++	if SaveData.stars("ep01") != 0:
++		_fail("save: クリア前に ほしが ついた")
++	SaveData.record_clear("ep01")
++	SaveData.record_quiz("ep01", false)
++	SaveData.record_quiz("ep01", true)
++	SaveData.record_quiz("ep01", false)
++	SaveData.record_scene("ep01", 0, false)
++	SaveData.load_data()
++	if SaveData.stars("ep01") != 3 or not SaveData.is_unlocked("ep02") or SaveData.is_unlocked("ep03"):
++		_fail("save: v2 roundtrip: %s" % SaveData.data)
++	if ep2 != "":
++		SaveData.record_clear(ep2)
++		SaveData.record_scene(ep2, 1, true)
++		if SaveData.star_flags(ep2) != [true, false, false]:
++			_fail("save: 場面が 1 つ まだなのに ハートの ほし")
++		SaveData.record_scene(ep2, 0, true)
++		SaveData.set_resume(ep2, 1, "stomach")
++		SaveData.load_data()
++		if SaveData.star_flags(ep2) != [true, true, false] or SaveData.resume().get("ep", "") != ep2 or int(SaveData.resume().get("cleared", 0)) != 1:
++			_fail("save: scene flags／resume roundtrip: %s" % SaveData.data)
++		SaveData.clear_resume("ep01")     # ほかの 話の つづきは 消さない
++		if SaveData.resume().is_empty():
++			_fail("save: clear_resume が ほかの 話を 消した")
++		SaveData.clear_resume(ep2)
++		if not SaveData.resume().is_empty():
++			_fail("save: clear_resume が きかない")
++	_info("save checks done")
++
++
++func _expected_phases(ep: Dictionary) -> Array[String]:
++	var out: Array[String] = ["consult"]
++	if ep.has("guess"):
++		out.append("guess")
++	for i in ep["scenes"].size():
++		out.append("scene%d" % i)
++		if ep["scenes"][i].has("after"):
++			out.append("after%d" % i)
++	out.append("karte")
++	return out
++
++
++## いまの 画面で、押せる ボタンに フォーカスが あれば それを 返す（まだなら null）
++func _focused_button(scr: Control) -> BaseButton:
++	if scr == null or not scr.has_method("locked") or scr.locked():
++		return null
++	var fo := get_viewport().gui_get_focus_owner()
++	if fo == null or not scr.is_ancestor_of(fo) or not (fo is BaseButton) or fo.disabled:
++		return null
++	return fo
++
++
++## 画面に 出ている 文（ラベルと ボタン）を 文の きまりで 調べる。はみ出しも 見る
++func _check_screen(scr: Control, where: String) -> void:
++	for n in scr.find_children("*", "Control", true, false):
++		if (n is Label or n is Button) and n.is_visible_in_tree() and n.text != "" and not _text_seen.has(n.text):
++			_text_seen[n.text] = true
++			for p in EpisodeDB.text_problems(n.text):
++				_fail("%s: 画面の 文「%s」: %s" % [where, n.text, p])
++	if scr.has_method("fits") and not scr.fits():
++		_fail("%s: 文が 箱から はみ出して いる" % where)
++
++
++## 場面が おわった とき：intro・goal_say・clear_say が HUD に 出たか。goal_say が 同じ フレームで 上書きされて いないか
++func _check_says() -> void:
++	var sc: Dictionary = Game.episode["scenes"][Game.scene_index]
++	var where := "%s scene %d" % [Game.episode["id"], Game.scene_index]
++	var texts: Array = _said.map(func(e): return e[1])
++	var want: Array = [sc["intro"]]
++	var has_work: bool = sc["missions"].size() > 1
++	if has_work and sc.has("goal_say"):
++		want.append(sc["goal_say"])
++	if sc.has("clear_say"):
++		want.append(sc["clear_say"])
++	for t in want:
++		if not texts.has(t):
++			_fail("%s: HUD に 出なかった：%s" % [where, t])
++	if has_work and sc.has("goal_say"):
++		var i := texts.find(sc["goal_say"])
++		if i >= 0 and i + 1 < _said.size() and _said[i + 1][0] == _said[i][0] and _said[i + 1][1] != sc.get("clear_say", "クリア！"):
++			_fail("%s: goal_say が すぐ 上書きされた：%s" % [where, _said[i + 1][1]])
++
++
++func _run_episode(id: String) -> void:
++	_info("=== episode %s ===" % id)
++	var ep := EpisodeDB.get_episode(id)
++	var t0 := Time.get_ticks_msec()
++	_ep_done = false
++	_phases.clear()
++	_scene_clears = 0
++	# id だけを 回す とき（--episode=）は、前の 話を クリアずみに して おく（カルテえらびが id を えらぶ ように）
++	for prev in EpisodeDB.ids():
++		if prev == id:
++			break
++		if not SaveData.is_cleared(prev):
++			SaveData.record_clear(prev)
++	# episode_finished の しゅんかんの フェーズ列を 写す（「つぎの カルテへ」は すぐ 次の 話の consult を 出すので）
++	Game.episode_finished.connect(func(_id, _s):
++		_ep_done = true
++		_phases_at_end = _phases.duplicate(), CONNECT_ONE_SHOT)
++	Game.show_episode_select()
++	var total := 0.0
++	var idle := 0.0          # いまの フェーズに 入ってからの 時間
++	var seen_phases := 0
++	var nofocus := 0
++	var select_done := false
++	var wrong_done := false
++	var checked_level = null
++	while not _ep_done:
++		await get_tree().physics_frame
++		var dt := get_physics_process_delta_time()
++		total += dt
++		idle += dt
++		if _phases.size() != seen_phases:
++			seen_phases = _phases.size()
++			idle = 0.0
++		var lvl = Game.level
++		if lvl != null and is_instance_valid(lvl):
++			if lvl != checked_level and lvl.started:
++				checked_level = lvl
++				for w in lvl.data_warnings:
++					_fail("%s scene %d: %s" % [id, Game.scene_index, w])
++				for p in lvl.stage.get("spawn", {}).get("skip", []):
++					for m in lvl.markers:
++						if m["node"] != null and Level.spawn_rule_matches(String(m["node"].name).substr(3), p):
++							_fail("%s: skip が きいていない: %s" % [id, m["node"].name])
++			if lvl.started and not lvl.finished:
++				Autopilot.drive(lvl, get_tree())
++			if idle > MAX_SCENE_SECONDS:
++				_fail("%s: scene %d (%s) did not finish in %.0fs" % [id, Game.scene_index, lvl.stage_id, MAX_SCENE_SECONDS])
++				break
++			continue
++		var scr := Game.screen()
++		if idle > MAX_UI_SECONDS:
++			_fail("%s: stuck on %s for %.0fs" % [id, Game.phase, MAX_UI_SECONDS])
++			break
++		if scr == null or not scr.has_method("locked") or scr.locked():
++			continue
++		var fo := _focused_button(scr)
++		if fo == null:
++			nofocus += 1
++			if nofocus == 30:
++				_fail("%s: %s の 画面で フォーカスが ボタンに ない" % [id, Game.phase if Game.phase != "" else "カルテえらび"])
++			continue
++		nofocus = 0
++		_check_screen(scr, "%s %s" % [id, Game.phase if Game.phase != "" else "select"])
++		if scr is SelectScreen and not select_done:
++			# カルテえらび：最初から この 話が えらばれ、スタートの ボタンに フォーカスが ある こと
++			select_done = true
++			if scr.selected_id != id or fo != scr.main_btn or scr.main_is_resume:
++				_fail("%s: カルテえらびの 最初の えらびが ちがう（%s）" % [id, scr.selected_id])
++				Game.start_episode(id)
++				continue
++		if scr is GuessScreen and not wrong_done:
++			wrong_done = true
++			for c in ep["guess"]["choices"]:
++				if not c.get("go", false):
++					scr.choose(c["place"])   # わざと はずれを 1 回
++					if Game.screen() != scr or not scr.buttons[c["place"]].disabled:
++						_fail("%s: はずれの よそうで 画面が 残らない／ボタンが 消えない" % id)
++					break
++			continue
++		fo.pressed.emit()
++	var expect := _expected_phases(ep)
++	if _ep_done:
++		_info("cleared %s in %.1fs (sim) / %.1fs (real); scenes=%d stars=%d" % [id, total, (Time.get_ticks_msec() - t0) / 1000.0, _scene_clears, SaveData.stars(id)])
++		if _phases_at_end != expect:
++			_fail("%s: phases %s != %s" % [id, _phases_at_end, expect])
++		if _scene_clears != ep["scenes"].size():
++			_fail("%s: %d scenes cleared, expected %d" % [id, _scene_clears, ep["scenes"].size()])
++		if not SaveData.is_cleared(id) or not SaveData.card_seen(id, "karte") or not SaveData.resume().is_empty():
++			_fail("%s: clear／karte が 記録されていない、または つづきが 残っている" % id)
++		for sc in ep["scenes"]:
++			if not SaveData.card_seen(sc["place"], "stage") or not SaveData.card_seen(sc["place"], "summary"):
++				_fail("%s: 場所 %s の カード（stage／summary）が ずかんに 入って いない" % [id, sc["place"]])
++		if Game.level != null or get_tree().paused:
++			_fail("%s: おわった あとに level／pause が のこっている" % id)
++		# 主ボタンは「つぎの カルテへ ▶」（次が ある とき）。押した あと 次の 話の そうだんに いる こと
++		var next := EpisodeDB.next_id(id)
++		await get_tree().process_frame
++		if next != "" and (Game.episode.get("id", "") != next or Game.phase != "consult"):
++			_fail("%s: 「つぎの カルテへ」で %s が 始まらない（%s %s）" % [id, next, Game.episode.get("id", ""), Game.phase])
++		if next == "" and (not Game.episode.is_empty() or not (Game.screen() is SelectScreen)):
++			_fail("%s: さいごの 話の あと カルテえらびに もどらない" % id)
++	await get_tree().process_frame
++
++
++## 画面の フォーカス中の ボタンを 押しつづける（cond が true に なる まで）。場面は 自動操縦
++func _play_until(cond: Callable, max_seconds: float) -> bool:
++	var t := 0.0
++	while t < max_seconds:
++		if cond.call():
++			return true
++		await get_tree().physics_frame
++		t += get_physics_process_delta_time()
++		var lvl = Game.level
++		if lvl != null and is_instance_valid(lvl):
++			if lvl.started and not lvl.finished:
++				Autopilot.drive(lvl, get_tree())
++			continue
++		var fo := _focused_button(Game.screen())
++		if fo != null:
++			fo.pressed.emit()
++	return cond.call()
++
++
++## よそうで「もどる」→ そうだんの さいごの ページ → 進むと また よそう（カルテえらびまで もどされない）
++func _check_back() -> void:
++	var id: String = EpisodeDB.ids()[0]
++	Game.start_episode(id, "guess")
++	for i in 60:
++		if _focused_button(Game.screen()) == null:
++			await get_tree().physics_frame
++	if not (Game.screen() is GuessScreen):
++		_fail("back: よそうの 画面が 出ない")
++		return
++	Game.screen().cancelled.emit()
++	var t := Game.screen()
++	if Game.phase != "consult" or not (t is TalkScreen) or t.page != t.lines.size() - 1:
++		_fail("back: よそうから そうだんの さいごの ページに もどらない")
++		return
++	if not await _play_until(func(): return Game.phase == "guess", MAX_UI_SECONDS):
++		_fail("back: そうだんから よそうへ 進めない")
++	Game.show_episode_select()
++	await get_tree().process_frame
++
++
++## 場面 1 を おえて やめる → カルテえらびに「つづきから」が 出て、押すと 場面 2 に 入る
++func _check_resume() -> void:
++	var id := ""
++	for e in EpisodeDB.EPISODES:
++		if id == "" and e["scenes"].size() >= 2:
++			id = e["id"]
++	if id == "":
++		return
++	_info("=== resume %s ===" % id)
++	var ep := EpisodeDB.get_episode(id)
++	Game.start_episode(id, "scene", 0)
++	if not await _play_until(func(): return Game.phase != "scene" or Game.scene_index != 0, MAX_SCENE_SECONDS):
++		_fail("resume: 場面 1 が おわらない")
++		return
++	var r := SaveData.resume()
++	if r.get("ep", "") != id or int(r.get("cleared", 0)) != 1:
++		_fail("resume: つづきが 記録されて いない: %s" % r)
++	Game.show_episode_select()      # ポーズの「カルテえらびへ」と 同じ
++	for i in 60:
++		if _focused_button(Game.screen()) == null:
++			await get_tree().physics_frame
++	var scr := Game.screen()
++	if not (scr is SelectScreen) or scr.selected_id != id or not scr.main_is_resume or _focused_button(scr) != scr.main_btn or scr.restart_btn == null:
++		_fail("resume: カルテえらびに「つづきから」が 出ない")
++		return
++	if not await _play_until(func(): return Game.phase == "scene" and Game.level != null and Game.level.started, MAX_UI_SECONDS):
++		_fail("resume: つづきから 場面に 入れない（%s）" % Game.phase)
++		return
++	if Game.scene_index != 1 or Game.level.stage_id != ep["scenes"][1]["place"]:
++		_fail("resume: 場面 2 では ない（scene %d %s）" % [Game.scene_index, Game.level.stage_id])
++	else:
++		_info("resumed %s at scene 1 (%s)" % [id, Game.level.stage_id])
++	# クリアずみの 話の クイズだけ もういちど：クリアの 記録も つづきも 変わらない
++	SaveData.record_clear(id)
++	Game.review_karte(id)
++	if Game.phase != "karte" or SaveData.resume().get("ep", "") != id:
++		_fail("resume: review_karte が つづきを 消した")
++	if not await _play_until(func(): return Game.screen() is SelectScreen, MAX_UI_SECONDS):
++		_fail("resume: クイズの やりなおしから カルテえらびに もどらない")
++	SaveData.clear_resume()
++	await get_tree().process_frame
++
++
++## ずかん：最初の フォーカスが カルテの ボタン。開く → 高さ → 閉じる → フォーカスが もどる
++func _check_zukan() -> void:
++	_info("=== zukan ===")
++	Game.show_zukan()
++	for i in 10:
++		await get_tree().process_frame
++	var scr := Game.screen()
++	if not (scr is ZukanScreen):
++		_fail("zukan: 画面が 出ない")
++		return
++	_check_screen(scr, "zukan")
++	var first := true
++	for id in EpisodeDB.ids():
++		if not SaveData.card_seen(id, "karte"):
++			continue
++		var b: Button = scr.karte_buttons[id]
++		if first and get_viewport().gui_get_focus_owner() != b:
++			_fail("zukan: 最初の フォーカスが カルテの ボタンに ない")
++		first = false
++		b.grab_focus()
++		b.pressed.emit()
++		var t := 0.0
++		while t < 5.0 and (scr.popup == null or scr.popup.button().disabled):
++			await get_tree().process_frame
++			t += get_process_delta_time()
++		if scr.popup == null or scr.popup.button().disabled:
++			_fail("zukan: カルテ %s の カードが 開かない" % id)
+ 			continue
+-		await _run_stage(id)
++		var h: float = scr.popup.panel_height()
++		_info("  karte card %s: panel %.0f px" % [id, h])
++		if h > 680.0:
++			_fail("zukan: カルテ %s の カードが 高すぎる（%.0f px）" % [id, h])
++		if get_viewport().gui_get_focus_owner() != scr.popup.button():
++			_fail("zukan: カードの ボタンに フォーカスが ない")
++		_check_screen(scr.popup, "zukan card " + id)
++		scr.popup.button().pressed.emit()
++		t = 0.0
++		while t < 5.0 and scr.popup != null:
++			await get_tree().process_frame
++			t += get_process_delta_time()
++		if get_viewport().gui_get_focus_owner() != b:
++			_fail("zukan: カードを 閉じた あと フォーカスが もどらない（%s）" % id)
++	if first:
++		_fail("zukan: 見た カルテが 1 つも ない")
+ 
+ 
+-func _run_stage(id: String) -> void:
+-	_info("=== stage %s ===" % id)
++func _run_place(id: String) -> void:
++	_info("=== place %s ===" % id)
+ 	var t0 := Time.get_ticks_msec()
+ 	Game.start_stage(id)
+ 	var lvl = Game.level
+-	if lvl == null:
+-		_fail("level not created: " + id)
+-		return
+-	# カードが閉じて started になるまで待つ
+ 	var waited := 0.0
+ 	while not lvl.started and waited < 10.0:
+ 		await get_tree().process_frame
+ 		waited += get_process_delta_time()
+ 	if not lvl.started:
+-		_fail("stage never started: " + id)
++		_fail("place never started: " + id)
+ 		return
+-	_info("env=%s markers=%d missions=%d path_pts=%d" % [lvl.stage["env"], lvl.markers.size(), lvl.missions.size(), lvl.path.points.size()])
+-	_stage_elapsed = 0.0
++	for w in lvl.data_warnings:
++		_fail("place %s: %s" % [id, w])
+ 	_finished = false
+ 	Game.stage_finished.connect(func(_sid, _stars): _finished = true, CONNECT_ONE_SHOT)
+-	var last_report := 0.0
+-	while not _finished and _stage_elapsed < MAX_STAGE_SECONDS:
++	var t := 0.0
++	while not _finished and t < MAX_SCENE_SECONDS:
+ 		await get_tree().physics_frame
+-		var dt := get_physics_process_delta_time()
+-		_stage_elapsed += dt
++		t += get_physics_process_delta_time()
+ 		if is_instance_valid(lvl) and not lvl.finished:
+-			_drive(lvl)
+-		if _debug and is_instance_valid(lvl) and fmod(_stage_elapsed, 2.0) < dt and lvl.player:
+-			var p = lvl.player
+-			var cols: Array[String] = []
+-			for i in p.get_slide_collision_count():
+-				var c: KinematicCollision3D = p.get_slide_collision(i)
+-				cols.append("%s n=%s" % [c.get_collider().get_parent().name if c.get_collider().get_parent() else c.get_collider().name, c.get_normal()])
+-			_info("  dbg t=%.0f pos=%s floor=%s vel=%s tgt=%s ctrl=%s seq=%s in=%d show=%s pend=%s cols=%d" % [_stage_elapsed, p.global_position, p.floor_found, p.velocity, p.autopilot_target, p.control_enabled, lvl.sequence_expected(), lvl._seq_input, lvl._seq_showing, lvl._seq_pending, cols.size()])
+-		if _stage_elapsed - last_report > 30.0:
+-			last_report = _stage_elapsed
+-			if is_instance_valid(lvl):
+-				_info("  t=%.0fs missions: %s  pos=%s hearts=%d" % [_stage_elapsed, _mission_state(lvl), lvl.player.global_position, lvl.player.hearts])
++			Autopilot.drive(lvl, get_tree())
+ 	if not _finished:
+-		_fail("stage %s did not finish in %.0fs; missions: %s" % [id, MAX_STAGE_SECONDS, _mission_state(lvl) if is_instance_valid(lvl) else "?"])
++		_fail("place %s did not finish in %.0fs" % [id, MAX_SCENE_SECONDS])
+ 	else:
+-		_info("cleared %s in %.1fs (sim) / %.1fs (real); stars=%d" % [id, _stage_elapsed, (Time.get_ticks_msec() - t0) / 1000.0, SaveData.stars(id)])
+-		if SaveData.stars(id) < 1:
+-			_fail("stars not recorded for " + id)
+-	# ステージえらび画面に戻っているはず
++		_info("cleared %s in %.1fs (sim) / %.1fs (real)" % [id, t, (Time.get_ticks_msec() - t0) / 1000.0])
+ 	await get_tree().process_frame
+-
+-
+-func _mission_state(lvl) -> String:
+-	var parts: Array[String] = []
+-	for m in lvl.missions:
+-		parts.append("%s:%d/%d%s" % [m.type, m.current, m.count, "✓" if m.done else ""])
+-	return ", ".join(parts)
+-
+-
+-## 自動操縦（tests/autopilot.gd と共用）
+-func _drive(lvl) -> void:
+-	Autopilot.drive(lvl, get_tree())
+-
+-
+-func _nearest_enemy(lvl, pos: Vector3) -> Node3D:
+-	return Autopilot.nearest_enemy(get_tree(), pos)
+-
+-
+-func _print_summary() -> void:
+-	print("")
+-	print("==================== SMOKE SUMMARY ====================")
+-	for l in _log:
+-		print(l)
+-	if _failures.is_empty():
+-		print("RESULT: OK")
+-	else:
+-		for f in _failures:
+-			print("FAIL: " + f)
+-		print("RESULT: %d FAILURE(S)" % _failures.size())
+diff --git a/tools/build_dashboard.py b/tools/build_dashboard.py
+index dd65471..e09a0a8 100644
+--- a/tools/build_dashboard.py
++++ b/tools/build_dashboard.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ """ブックマーク用のダッシュボード（GitHub Pages：https://hassy0511.github.io/inside-body-seek/）を 1 枚の HTML で作る。
+ 
+-元にするもの：docs/dashboard.md の 1〜4・7 章、docs/story.md、godot/src/autoload/stage_db.gd、テストのログ（あれば）。
++元にするもの：docs/dashboard.md の 1〜4・7 章、docs/story.md、godot/src/autoload/stage_db.gd（場所）・episode_db.gd（カルテ）、テストのログ（あれば）。
+     python3 tools/build_dashboard.py --html _site/index.html --test-log /tmp/inside-body-seek-test.log
+ main に push されると GitHub Actions（.github/workflows/test.yml）がテストのあとに作りなおし、gh-pages ブランチへ出す。
+ """
+@@ -75,6 +75,32 @@ def stages(gd: str, test_log: str) -> list:
+     return sorted(out, key=lambda s: s["順"])
+ 
+ 
++def episodes(ep_gd: str, gd: str, test_log: str) -> list:
++    """godot/src/autoload/episode_db.gd から カルテの 表を 作る（書きかたの きまりは その ファイルの 先頭）。"""
++    cleared = {m.group(1): float(m.group(2))
++               for m in re.finditer(r"cleared (\w+) in ([\d.]+)s \(sim\)", test_log)}
++    patients = dict(re.findall(r'"(\w+)": \{"name": "([^"]+)"', ep_gd))
++    place_names = {m.group(1): "%s（%s）" % (m.group(2), m.group(3))
++                   for m in re.finditer(r'"id": "(\w+)", "order": \d+, "name": "([^"]+)", "kanji": "([^"]+)"', gd)}
++    body = ep_gd.split("const EPISODES", 1)[1].split("\n]\n", 1)[0]
++    out = []
++    # 1 話 = 2 タブの「"id": …」から 次の「"id":」まで。場面の 場所は 4 タブの「"place": "…",」
++    for b in re.split(r'\n\t\t"id": ', body)[1:]:
++        b = '"id": ' + b
++        g = lambda key: re.search(r'"%s": "?([^",]*)"?' % key, b).group(1)
++        places = re.findall(r'\n\t\t\t\t"place": "(\w+)"', b)
++        eid = g("id")
++        test = "—"
++        if test_log:
++            test = "OK（%.0f 秒）" % cleared[eid] if eid in cleared else "クリアできず"
++        out.append({
++            "話": int(g("no")), "だいめい": g("title"), "患者": patients.get(g("patient"), g("patient")),
++            "場所": " → ".join(place_names.get(p, p) for p in places), "パターン": g("pattern"),
++            "むずかしさ": "★" * int(g("difficulty")), "自動テスト": test,
++        })
++    return sorted(out, key=lambda e: e["話"])
++
++
+ def inline(t: str) -> str:
+     t = html.escape(t)
+     t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+@@ -131,7 +157,7 @@ def git_rev() -> str:
+ 
+ # ---------------------------------------------------------------- 書き出し
+ STATUS_COLS = {"状態", "出した日", "確認", "自動テスト"}
+-NARROW_HIDE = {"内容", "題", "形", "ミッション", "納品", "組み込み"}
++NARROW_HIDE = {"内容", "題", "形", "ミッション", "納品", "組み込み", "パターン", "場所"}
+ 
+ 
+ def tone(v: str) -> str:
+@@ -154,7 +180,7 @@ def table(rows: list, cols: list) -> str:
+         tds = []
+         for c in cols:
+             v = str(r.get(c, ""))
+-            cls = ' class="wide"' if c in NARROW_HIDE else (' class="num"' if c == "順" else "")
++            cls = ' class="wide"' if c in NARROW_HIDE else (' class="num"' if c in ("順", "話") else "")
+             if c in STATUS_COLS and v and v != "—":
+                 v_html = '<span class="chip %s%s">%s</span>' % (tone(v), " short" if len(v) <= 12 else "", e(v))
+             else:
+@@ -167,8 +193,11 @@ def table(rows: list, cols: list) -> str:
+ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str) -> str:
+     e = html.escape
+     st = data["stages"]
++    eps = data["episodes"]
+     ok = sum(1 for s in st if s["自動テスト"].startswith("OK"))
+-    test_line = ("自動テスト：<b class=\"%s\">%d / %d</b> ステージがクリアまで通る" % ("ok" if ok == len(st) else "bad", ok, len(st))
++    ep_ok = sum(1 for x in eps if x["自動テスト"].startswith("OK"))
++    test_line = ("自動テスト：カルテ <b class=\"%s\">%d / %d</b>、場所 <b class=\"%s\">%d / %d</b> がクリアまで通る"
++                 % ("ok" if ep_ok == len(eps) else "bad", ep_ok, len(eps), "ok" if ok == len(st) else "bad", ok, len(st))
+                  if tested else "自動テスト：まだ結果がありません")
+     todo = data["todo"]
+     nows = [t for t in todo if "いま" in t.get("状態", "")] or todo[:1]
+@@ -189,6 +218,8 @@ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup:
+         phases=table(data["phases"], ["段階", "内容", "状態"]),
+         lineup=lineup,
+         art=table(data["art"], ["波", "発注書", "出した日", "納品", "確認", "組み込み"]),
++        episodes=table(eps, ["話", "だいめい", "患者", "場所", "パターン", "むずかしさ", "自動テスト"]),
++        episode_count=len(eps), stage_count=len(st),
+         stages=table(st, ["順", "ステージ", "題", "形", "むずかしさ", "ミッション", "自動テスト"]),
+         models=table(data["models"], ["種類", "ID（GLB 名）", "状態", "発注書"]),
+         repo=REPO_URL,
+@@ -287,7 +318,7 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
+   <h1><small>開発ダッシュボード</small>からだのなか だいぼうけん</h1>
+   {now}
+   <p class="meta">{test_line} ／ 更新 {updated}{rev}</p>
+-  <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#stages">ステージ</a><a href="#models">3D モデル</a></nav>
++  <nav><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
+ </header>
+ 
+ <section id="todo">
+@@ -322,9 +353,15 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
+   <div class="card">{art}</div>
+ </section>
+ 
++<section id="episodes">
++  <h2>カルテ（{episode_count} 話まで実装）</h2>
++  <p class="note">1 話 = そうだん → よそう → 場所を 1〜3 こ めぐる → カルテ。秒数は、自動操縦が そうだんから カルテまでに かかった ゲームの中の時間。子どもが遊ぶと 1 話 10〜15 分の想定。</p>
++  <div class="card">{episodes}</div>
++</section>
++
+ <section id="stages">
+-  <h2>ステージ（10）</h2>
+-  <p class="note">自動テストの秒数は、自動操縦がクリアまでにかかったゲームの中の時間。子どもが遊ぶと 1 ステージ 3〜6 分の想定。</p>
++  <h2>場所（{stage_count}）</h2>
++  <p class="note">カルテが めぐる 場所（臓器）。ミッションは 場所の 既定で、カルテの 場面が 上書きする。自動テストは 場所だけを 既定の ミッションで 通した 結果。</p>
+   <div class="card">{stages}</div>
+ </section>
+ 
+@@ -366,6 +403,7 @@ def main() -> None:
+     a = ap.parse_args()
+     md = (ROOT / "docs/dashboard.md").read_text(encoding="utf-8")
+     gd = (ROOT / "godot/src/autoload/stage_db.gd").read_text(encoding="utf-8")
++    ep_gd = (ROOT / "godot/src/autoload/episode_db.gd").read_text(encoding="utf-8")
+     log_path = pathlib.Path(a.test_log) if a.test_log else None
+     log = log_path.read_text(encoding="utf-8", errors="replace") if log_path and log_path.is_file() else ""
+     story = (ROOT / "docs/story.md").read_text(encoding="utf-8")
+@@ -376,6 +414,7 @@ def main() -> None:
+         "art": first_table(sec[3]),
+         "models": first_table(sec[4]),
+         "stages": stages(gd, log),
++        "episodes": episodes(ep_gd, gd, log),
+         "prompts": prompts(sec[7]),
+     }
+     for name, rows in data.items():
+diff --git a/tools/make_screenshots.sh b/tools/make_screenshots.sh
+index 8840b80..b9c42b0 100755
+--- a/tools/make_screenshots.sh
++++ b/tools/make_screenshots.sh
+@@ -5,10 +5,10 @@ set -u
+ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ OUT="$ROOT/docs/screenshots"
+ mkdir -p "$OUT"
+-for w in title select card result zukan; do
++for w in title select card zukan; do
+   "$ROOT/tools/screenshot.sh" "$w" "$OUT/$w.png" --frames=40
+ done
+-for s in mouth esophagus stomach intestine vessel heart lungs brain nose; do
++for s in mouth esophagus stomach intestine vessel heart lungs heart2 brain nose; do
+   "$ROOT/tools/screenshot.sh" "$s" "$OUT/stage_$s.png" --frames=30 --play=1.5
+ done
+ ls -la "$OUT"
+diff --git a/tools/run_tests.sh b/tools/run_tests.sh
+index efed270..85f4c2f 100755
+--- a/tools/run_tests.sh
++++ b/tools/run_tests.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+-# Godot をヘッドレスで起動して、インポート → 全ステージ自動プレイのテストを行う。
+-#   使い方: GODOT=/path/to/godot tools/run_tests.sh [--stage=mouth]
++# Godot をヘッドレスで起動して、インポート → 床プローブ → 全カルテと 全部の 場所の 自動プレイ → ダッシュボードの 試し作り を行う。
++#   使い方: GODOT=/path/to/godot tools/run_tests.sh [--stage=mouth | --episode=ep03]
+ set -u
+ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ GODOT="${GODOT:-godot}"
+@@ -17,6 +17,12 @@ code=$?
+ grep -E "SCRIPT ERROR|ERROR:|WARNING: .*(gd|tscn)|\[SMOKE FAIL\]" "$LOG" | sort | uniq -c | sort -rn | head -40
+ echo "---"
+ sed -n '/SMOKE SUMMARY/,$p' "$LOG"
++echo "== dashboard =="
++if python3 "$ROOT/tools/build_dashboard.py" --html "$LOG.dash.html" --test-log "$LOG" >"$LOG.dash" 2>&1; then
++  echo "DASHBOARD: OK"
++else
++  echo "DASHBOARD: FAILED"; tail -5 "$LOG.dash"; code=1
++fi
+ if [ $code -ne 0 ]; then echo "exit code: $code"; fi
+ if grep -q -E "SCRIPT ERROR" "$LOG"; then echo "script errors found"; exit 1; fi
+ exit $code

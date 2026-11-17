@@ -193,7 +193,8 @@ def table(rows: list, cols: list) -> str:
     return '<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (head, "".join(body))
 
 
-def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str, play: str = "") -> str:
+def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str, play: str = "",
+           compare: str = "", compare_page: str = "") -> str:
     e = html.escape
     st = data["stages"]
     eps = data["episodes"]
@@ -216,9 +217,20 @@ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup:
     play_html = ('<p class="play"><a class="playbtn" href="%s">▶ ブラウザで あそんで たしかめる</a>'
                  '<span>いまの main の ゲームが そのまま 動きます（絵と 3D モデルは 仮）。キーボード：やじるしキーで うごく・スペースで 決定と アクション。'
                  'スマホ・タブレットは よこむきで、画面の ボタンで 操作。さいしょの 読みこみは 50 MB ほど。</span></p>' % e(play)) if play else ""
+    # くらべもの（一時的）：同じ 指示文で 別々に 作られた 2 つの 実装。compare は このページから 見た 相対パス
+    compare_html = ""
+    if compare:
+        page = (' <a class="cmpbtn" href="%s" target="_blank" rel="noopener">ならべて 見る ページ</a>' % e(compare_page)) if compare_page else ""
+        compare_html = ('<p class="play cmp"><b>A と B を くらべる</b>'
+                        '<a class="cmpbtn" href="%sa/" target="_blank" rel="noopener">A を あそぶ</a>'
+                        '<a class="cmpbtn" href="%sb/" target="_blank" rel="noopener">B を あそぶ</a>%s'
+                        '<span>同じ 指示文で 別々に 作られた 2 つの 実装（カルテ形式の 土台と 1〜3 話、第 1 段階の 結果）。'
+                        '画面の 下に「くらべる 版 A／B」の ふだが 出ます。セーブは A・B・いまの 版で 別々。'
+                        '上の「あそんで たしかめる」は、B を その後 さらに 進めた いまの 版です。</span></p>'
+                        % (e(compare), e(compare), page))
     return TEMPLATE.format(
         updated=e(updated), rev=rev_html, test_line=test_line,
-        now=now_html, play=play_html,
+        now=now_html, play=play_html + compare_html,
         story=md_html(story), story_state=e(story_state), story_tone="now" if "待ち" in story_state else "ok",
         todo=table(todo, ["やること", "だれ", "状態"]),
         prompts=cards,
@@ -272,6 +284,10 @@ h1 small {{ display: block; font-size: .9rem; font-weight: 500; color: var(--mut
 .play span {{ flex: 1 1 18rem; color: var(--muted); font-size: .85rem; }}
 a.playbtn {{ flex: none; font-family: var(--round); font-weight: 800; font-size: 1.1rem; color: #3a3340; background: var(--yellow); text-decoration: none; border-radius: 999px; padding: .6rem 1.4rem; }}
 a.playbtn:hover {{ filter: brightness(1.05); }}
+.play.cmp b {{ font-family: var(--round); }}
+a.cmpbtn {{ flex: none; font-family: var(--round); font-weight: 800; color: var(--fg); background: var(--panel); border: 2px solid var(--wall); text-decoration: none; border-radius: 999px; padding: .35rem 1rem; }}
+a.cmpbtn:hover {{ border-color: var(--fg); }}
+a.cmpbtn:focus-visible {{ outline: 2px solid var(--fg); outline-offset: 2px; }}
 a.playbtn:focus-visible {{ outline: 2px solid var(--fg); outline-offset: 2px; }}
 .meta {{ margin: 0; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }}
 .meta b.ok {{ color: var(--ok); }} .meta b.bad {{ color: var(--bad); }}
@@ -413,6 +429,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--html", required=True, help="書き出す HTML のパス")
     ap.add_argument("--test-log", default="", help="tools/run_tests.sh の LOG（無ければ自動テストの列は —）")
+    ap.add_argument("--compare-dir", default="", help="tools/compare/build.sh の 出力フォルダ（a/ と b/ が あれば「A と B を くらべる」を 出す。一時的）")
     ap.add_argument("--play-dir", default="", help="tools/export_web.sh の 出力フォルダ（index.html が あれば「あそんで たしかめる」の ボタンを 出す）")
     a = ap.parse_args()
     md = (ROOT / "docs/dashboard.md").read_text(encoding="utf-8")
@@ -441,7 +458,13 @@ def main() -> None:
     play = ""
     if a.play_dir and (pathlib.Path(a.play_dir) / "index.html").is_file():
         play = os.path.relpath(pathlib.Path(a.play_dir).resolve(), out.parent.resolve()).replace(os.sep, "/") + "/"
-    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup, play), encoding="utf-8")
+    compare = compare_page = ""
+    cdir = pathlib.Path(a.compare_dir) if a.compare_dir else None
+    if cdir and (cdir / "a/index.html").is_file() and (cdir / "b/index.html").is_file():
+        compare = os.path.relpath(cdir.resolve(), out.parent.resolve()).replace(os.sep, "/") + "/"
+        url_file = ROOT / "tools/compare/page_url.txt"   # ならべて 見る ページの URL（あれば リンクを 出す）
+        compare_page = url_file.read_text(encoding="utf-8").strip() if url_file.is_file() else ""
+    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup, play, compare, compare_page), encoding="utf-8")
     print("wrote %s（%s）" % (out, ", ".join("%s %d" % (k, len(v)) for k, v in data.items())))
 
 
