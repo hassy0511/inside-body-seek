@@ -99,7 +99,7 @@ Codex に下のプロンプトをそのまま貼り付けて使う。リポジ�
 | `W2_02_なかま.md` | `art/w2-friends` | `art/concepts/W2_friends/` | `art: W2-02 friends` |
 | `W2_03_アイテムと小物.md` | `art/w2-items` | `art/concepts/W2_items/` | `art: W2-03 items (1)` など |
 | `W2_04_カルテのてきとなかま.md` | `art/w2-episodes` | `art/concepts/W2_episodes/` | `art: W2-04 episode enemies and friends (1)` など |
-| `W3_01_からだのぶたい.md` | `art/w3-stages` | `art/concepts/W3_stages/` | `art: W3-01 stages (1-3)` など |
+| `W3_01_からだのぶたい.md`（順 1 ＝ 口だけ を 先に） | `art/w3-stages` | `art/concepts/W3_stages/` | `art: W3-01 stages (1)` など |
 | `W4_01_UI.md` | `art/w4-ui` | `art/concepts/W4_ui/` | `art: W4-01 ui (1)` など |
 | `W4_02_ものしりカードの挿絵.md` の **Part A**（`<順>` は `Part A の 次`） | `art/w4-cards` | `art/concepts/W4_cards/` | `art: W4-02 cards A (1)` など |
 | `W4_02_ものしりカードの挿絵.md` の **Part B**（`<順>` は `Part B の 次`。W1-02・W2-03・W2-04 の納品のあと。そろった順から出せる：発注書 8 章の「先にそろっていること」） | `art/w4-cards` | `art/concepts/W4_cards/` | `art: W4-02 cards B (1)` など |
