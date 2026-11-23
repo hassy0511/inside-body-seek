@@ -16,12 +16,14 @@ from mathutils import Vector
 
 try:
     from . import common as C
+    from . import mushiba as MUSHIBA
     from . import pod as POD
 except ImportError:  # blender -b -P で直接実行したとき
     import os
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from blender import common as C
+    from blender import mushiba as MUSHIBA
     from blender import pod as POD
 
 
@@ -86,29 +88,8 @@ def build_pico():
 
 # ------------------------------------------------------------------ 敵
 def build_mushiba():
-    dark = C.material("MushibaDark", (0.22, 0.2, 0.28), 0.8)
-    teeth = C.material("Teeth", (1.0, 1.0, 0.95), 0.4)
-    metal = C.material("Metal", (0.6, 0.62, 0.68), 0.35, metallic=0.6)
-    body = C.add_ico("mushiba_body", 0.6, (0, 0, 0), 2, dark)
-    C.displace_noise(body, 0.08, 0.6, 1)
-    C.subdivide(body, 1)
-    C.apply_modifiers(body)
-    parts = [body]
-    parts += C.eyes("mushiba", 0.5, 0.18, spacing=0.22, r=0.11, pupil=0.06)
-    # ギザギザの くち
-    for i in range(5):
-        x = -0.26 + i * 0.13
-        parts.append(C.add_cone(f"mushiba_tooth{i}", 0.06, 0.0, 0.14, (x, 0.55, -0.12 - (i % 2) * 0.03), (math.radians(90 if i % 2 else -90), 0, 0), 6, teeth))
-    # ドリル
-    parts.append(C.add_cone("mushiba_drill", 0.12, 0.0, 0.45, (0.55, 0.3, -0.1), (math.radians(-90), 0, 0), 10, metal))
-    parts.append(C.add_sphere("mushiba_hand", 0.12, (0.55, 0.05, -0.1), 10, 6, dark))
-    # ツノ
-    for sx in (-1, 1):
-        parts.append(C.add_cone(f"mushiba_horn{sx}", 0.08, 0.0, 0.25, (sx * 0.3, 0.0, 0.6), (math.radians(sx * -20), 0, 0), 8, dark))
-    o = C.join(parts, "mushiba")
-    C.apply_modifiers(o)
-    C.shade_smooth(o, 50)
-    return o
+    """むしばきん。絵から 3D 化した 本番の 形は blender/mushiba.py に ある。"""
+    return MUSHIBA.build_mushiba()
 
 
 def build_pylori():

@@ -14,6 +14,7 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ## --hide=Window のように 書くと、その 名前の 部品を かくして 撮る（中を 見る とき）。--no-omni で 船の 明かり（player.gd の OmniLight）を 消す。
 ## --stage=mouth [--play=秒] を 書くと、モデルではなく 本物の 場所を 自動操縦で 進めてから、HUD を かくして 撮る
 ## （ピコの ふきだしが 船に 重なって 見えないので）。画面 全体（stage_<id>.png）と、船の まわりを 3 倍に した 絵（stage_<id>_zoom.png）。
+## --enemy も 書くと、いちばん 近い てきの まわりの 3 倍の 絵と、その てきを たたいた ときの 絵も 撮る（_shoot_enemy()）。
 
 const VIEWS := {
 	"front": [Vector3(0, 0, -1), Vector3.UP],
@@ -206,5 +207,43 @@ func _shoot_stage(stage: String, play: float, out: String) -> void:
 		var zoom := img.get_region(r)
 		zoom.resize(r.size.x * 3, r.size.y * 3, Image.INTERPOLATE_NEAREST)
 		zoom.save_png(out.path_join("stage_%s_zoom.png" % stage))
+	if OS.get_cmdline_user_args().has("--enemy"):
+		await _shoot_enemy(stage, out, cam)
 	print("saved ", out.path_join("stage_%s.png" % stage))
+
+
+## --enemy：画面に いちばん 近く 映って いる てきの まわりを 3 倍に した 絵（stage_<id>_enemy.png）と、
+## その てきを 1 回 たたいた あとの 絵（_hit：時間を 1/20 に して 1 フレームあと。HP 1 なら やられて ふくらむ ところ／_gone：40 フレームあと）
+func _shoot_enemy(stage: String, out: String, cam: Camera3D) -> void:
+	var best: Node3D = null
+	var bd := INF
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var en := e as Node3D
+		if en == null or cam.is_position_behind(en.global_position):
+			continue
+		var d := en.global_position.distance_to(cam.global_position)
+		if d < bd:
+			bd = d
+			best = en
+	if best == null:
+		print("saved nothing: no enemy on screen")
+		return
+	print("saved: enemy %s at %.1f m from the camera" % [best.get("kind"), bd])
+	var at := best.global_position
+	for s in [["enemy", 0], ["hit", 1], ["gone", 40]]:
+		if s[0] == "hit":
+			# 撮影は 1 フレームが 長いので、時間を ゆっくりに して ふくらむ ところを 撮る
+			Engine.time_scale = 0.05
+			best.call("take_hit", 1, at + Vector3(0, 0, 1))
+		elif s[0] == "gone":
+			Engine.time_scale = 1.0
+		for i in int(s[1]) + 1:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var c := Vector2i(cam.unproject_position(at))
+		var r := Rect2i(c - Vector2i(80, 70), Vector2i(160, 140)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+		var crop := img.get_region(r)
+		crop.resize(r.size.x * 3, r.size.y * 3, Image.INTERPOLATE_NEAREST)
+		crop.save_png(out.path_join("stage_%s_%s.png" % [stage, s[0]]))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveData.path))

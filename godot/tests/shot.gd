@@ -5,7 +5,7 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ## --frames=N で待つフレーム数。--play=秒 で自動操縦してから撮る。--touch で タッチそうさの 見た目。
 ## --stage= に 書ける もの（「,」で ならべると 1 回の 起動で 何枚も 撮る。その ときの --out= は フォルダ。
 ## ファイル名は「:」「+」を「_」に した もの）：
-##   title / zukan / card / pause / model:<キャラクター id>
+##   title / zukan / card / card:<場所 id>:<カードの キー>（card:mouth:mushiba） / pause / model:<キャラクター id>
 ##   select_new        カルテえらび（はじめて：ep01 だけ 開いて いる）
 ##   select            カルテえらび（ep01 クリアずみ・ep02 が 開いた 状態）
 ##   resume            カルテえらび（クリアずみの ep02 を 遊びなおして 場面 1 まで おえた 状態：ボタンが いちばん 多い）
@@ -109,7 +109,7 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 	var is_scene := EpisodeDB.ids().has(mode)
 	var ep_id := mode if is_scene else (parts[1] if parts.size() > 1 else "ep01")
 	var num := int(parts[1 if is_scene else 2]) if parts.size() > (1 if is_scene else 2) else 0
-	if mode != "model" and not EpisodeDB.ids().has(ep_id):
+	if mode != "model" and mode != "card" and not EpisodeDB.ids().has(ep_id):
 		push_error("unknown episode: %s" % ep_id)
 		return false
 	var page := 0
@@ -181,10 +181,12 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 	elif stage.begins_with("model:"):
 		# キャラクターモデルを 大きく 1 体だけ映す（Blender の作り直し確認用）
 		_show_model(stage.substr(6))
-	elif stage == "card":
+	elif stage == "card" or stage.begins_with("card:"):
+		# card:mouth:mushiba のように 場所と カードの キーを 書くと その カード（キャラクターの 3D の 絵つき）
+		var cp := (stage + ":stomach:stage").split(":") if stage == "card" else stage.split(":")
 		Game.testing = false  # カードを自動で閉じない
-		Game.start_stage("stomach")
-		Game.show_card(StageDB.card("stomach", "stage"), Callable(), "stage", "stomach")
+		Game.start_stage(cp[1])
+		Game.show_card(StageDB.card(cp[1], cp[2]), Callable(), cp[2], cp[1])
 		await get_tree().create_timer(0.9, true).timeout   # 「わかった！」が 押せる ように なる まで
 	elif stage == "pause":
 		# 場面 2 の とちゅうで ポーズ（おえた 場面が あるので「つづきから できるよ」が 出る）

@@ -166,6 +166,13 @@ func _make_picture(kind: String) -> Control:
 	sv.add_child(env)
 	var pivot := Node3D.new()
 	ModelLib.fit(model, 0.95)
+	# 回る 軸（原点）から いちばん 遠い 所で 合わせなおす（むしばきんの ドリルのように 片がわだけ 出る 形が、
+	# 回った ときに わくから はみ出ない ように）。左右前後が そろった 形は 変わらない
+	var bb := ModelLib._aabb(model)
+	var reach := maxf(maxf(-bb.position.x, bb.end.x), maxf(-bb.position.z, bb.end.z))
+	var half := maxf(bb.size.x, maxf(bb.size.y, bb.size.z)) * 0.5
+	if reach > half:
+		model.scale *= half / reach
 	pivot.add_child(model)
 	sv.add_child(pivot)
 	var spin := create_tween().set_loops()
