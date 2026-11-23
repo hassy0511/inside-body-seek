@@ -8,7 +8,7 @@
 
 - 文章は ひらがな・カタカナ中心。一文字の臓器名は「い（胃）」「は（歯）」「ち（血）」のように漢字を添える。分かち書き（単語の間にスペース）。この きまりは `EpisodeDB.text_problems()` が 調べ、テストが データと 画面に 出た 文の 両方に かける（くわしくは `docs/episodes.md` 2.2）。
 - 体の事実は子ども向けに丸めてよいが、間違いは入れない（数値は `docs/design.md` の表に合わせる）。
-- **カルテ**（そうだん・よそう・場面ごとの 上書き・あとの はなし・カルテの 3 行・クイズ）は `godot/src/autoload/episode_db.gd`。**場所**（既定の ミッション・ものしりカード・まとめ）は `godot/src/autoload/stage_db.gd`。場所の 形と スポーン位置は `blender/stages.py`（Empty の名前 `MK_...` がスポーン）。
+- **カルテ**（そうだん・よそう・場面ごとの 上書き・あとの はなし・カルテの 3 行・クイズ）は `godot/src/autoload/episode_db.gd`。**場所**（既定の ミッション・ものしりカード・まとめ）は `godot/src/autoload/stage_db.gd`。場所の 形と スポーン位置は `blender/stages.py`（Empty の名前 `MK_...` がスポーン）。作りなおした 場所は 1 つ 1 ファイル（`blender/stage_mouth.py`。部品は `blender/stage_kit.py`）。絵から 作りなおした キャラクターも 1 体 1 ファイル（`blender/pod.py`）で、`characters.py` の `BUILDERS` から 呼ぶ。
 - カルテを 足すのは データだけ（`EPISODES` に 1 件。`docs/episodes.md` 8 章）。`episode_db.gd` の 先頭の「書きかたの きまり」は ダッシュボードが 読むので 守る。場面は `hints` と、さいごの 場面の `after` を かならず 書く。
 - 原因の 種あかしや 学びは、ボタンで 進む 画面（`after`・カルテ）に 書く。HUD の 文（`intro`・`goal_say` など）は 時間で 消えるので「いま 何を するか」だけ。
 - モデルを変えたら GLB を作り直す：`<venv>/bin/python -m blender.characters <name>` / `-m blender.stages <stage_env>`（`blender -b -P blender/stages.py -- stage_mouth` でも可）。
@@ -69,5 +69,7 @@ tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # �
 - 数は グループから 数えない（`queue_free` した 前の Level の ノードが フレームの 終わりまで のこる）。マーカーの 配列から 数える。
 - ヘッドレスの 窓は 64×64。画面の はみ出しを 見る テストは 1280×720 に 固定して から（`smoke.gd` の 先頭）。
 - セーブの JSON は 数や 文字が まざる。`== true` で くらべず 型を 見る（`SaveData._yes()`）。
-- ブラウザ版（Web）には、パソコンの フォントの 代わりが 無い。入れて ある フォントに 無い 字は 四角に 化ける（場面の 一時停止ボタンの 絵が そう）。記号を 足したら ブラウザ版でも 見る。
+- ブラウザ版（Web）には、パソコンの フォントの 代わりが 無い。入れて ある フォントに 無い 字は 四角に 化ける。記号は 字で なく 形で 描く（一時停止ボタンは 棒 2 本）。字を 足したら ブラウザ版でも 見る。
+- 場所の 見た目は `StageDB` の `"look"`（光・きり・面の 色と 画像・あわ・ゆれ。キーの 説明は `src/level/stage_look.gd` の 先頭）。`"look"` が 無い 場所は 前の まま。面の 画像は `godot/assets/textures/stages/tex_<場所>_<floor|wall>.png` を 置くだけ（GLB は 作りなおさない。`.import` は 手で mipmaps を 入れる）。見た目を 作る ときの 撮影は `godot/tests/stage_view.tscn`（HUD なし・すきな 位置）。
+- この 描画方式（Compatibility）は 色の 計算を 画面の 色の まま する（sRGB と リニアを 変換しない）。頂点の 色で かける 倍率は、見た 目の 色の 比で 書く。自動の LOD は 丸い 形を つぶす ことが ある（pod・stage_mouth は `.import` で 切った）。
 - 同じ サイトに 置いた Godot の ブラウザ版は、どれも 同じ 入れ物（IndexedDB の `/userfs`）に セーブを 書く。版を ならべる ときは 名前を 分ける（`tools/compare/build.sh`）。

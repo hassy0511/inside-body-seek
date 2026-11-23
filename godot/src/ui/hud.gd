@@ -57,7 +57,7 @@ func _ready() -> void:
 	mp.add_child(_mission_box)
 	add_child(mp)
 
-	_pause_btn = T.button("❚❚", 30)
+	_pause_btn = T.button("", 30)
 	_pause_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_pause_btn.anchor_left = 1.0
 	_pause_btn.anchor_right = 1.0
@@ -68,6 +68,18 @@ func _ready() -> void:
 	_pause_btn.focus_mode = Control.FOCUS_NONE
 	_pause_btn.pressed.connect(func(): Game.toggle_pause())
 	add_child(_pause_btn)
+	# 一時停止の しるし（たての 棒 2 本）は、字で なく 形で 描く。
+	# ブラウザ版には パソコンの フォントの 代わりが 無いので、記号の 字は 四角に 化ける
+	for x in [-14.0, 5.0]:
+		var bar := ColorRect.new()
+		bar.color = T.INK
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		bar.offset_left = x
+		bar.offset_right = x + 9.0
+		bar.offset_top = -16.0
+		bar.offset_bottom = 16.0
+		_pause_btn.add_child(bar)
 
 	_pocket = T.label("", 24, T.INK)
 	_pocket.position = Vector2(24, 86)
