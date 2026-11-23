@@ -16,11 +16,13 @@ from mathutils import Vector
 
 try:
     from . import common as C
+    from . import pod as POD
 except ImportError:  # blender -b -P で直接実行したとき
     import os
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from blender import common as C
+    from blender import pod as POD
 
 
 def curve_tube(name, points, radius, mat, resolution=4, smooth=True, taper=False):
@@ -62,61 +64,8 @@ def curve_tube(name, points, radius, mat, resolution=4, smooth=True, taper=False
 
 # ------------------------------------------------------------------ プレイヤー
 def build_pod():
-    white = C.material("PodWhite", (0.96, 0.96, 1.0), 0.5)
-    glass = C.material("PodGlass", (0.6, 0.88, 1.0), 0.15, emission=(0.2, 0.4, 0.6), emission_strength=0.3, alpha=0.35)
-    yellow = C.material("PodYellow", (1.0, 0.8, 0.25), 0.6)
-    pink = C.material("PodPink", (1.0, 0.55, 0.7), 0.6)
-    glow = C.material("PodGlow", (0.5, 0.95, 1.0), 0.3, emission=(0.4, 0.9, 1.0), emission_strength=2.0)
-    skin = C.material("Skin", (1.0, 0.88, 0.78), 0.7)
-    hair = C.material("Hair", (0.35, 0.22, 0.15), 0.8)
-
-    body = C.add_sphere("pod_body", 0.6, (0, 0, 0), 28, 18, white, scale=(1.0, 1.25, 0.9))
-    # まど（とうめいな ドーム）は 船体より 前に出す。中の かおは まどの中・船体の外
-    window = C.add_sphere("pod_window", 0.42, (0, 0.55, 0.28), 24, 14, glass, scale=(0.9, 0.75, 0.8))
-    face = C.add_sphere("pod_face", 0.2, (0, 0.59, 0.30), 16, 10, skin)
-    hair_o = C.add_sphere("pod_hair", 0.21, (0, 0.57, 0.36), 16, 10, hair, scale=(1.05, 1.0, 0.7))
-    nose_light = C.add_sphere("pod_noselight", 0.09, (0, 0.78, -0.05), 12, 8, glow)
-    parts = [body, face, hair_o, nose_light]
-    parts += C.eyes("pod", 0.73, 0.32, spacing=0.08, r=0.045, pupil=0.025)
-    parts.append(C.smile("pod", 0.77, 0.23, 0.06, thickness=0.012))
-    # ひれ
-    for sx in (-1, 1):
-        fin = C.add_box(f"pod_fin{sx}", (0.5, 0.45, 0.08), (sx * 0.62, -0.25, -0.05), (0, math.radians(sx * 25), 0), yellow, bevel=0.03)
-        parts.append(fin)
-    tail = C.add_box("pod_tailfin", (0.08, 0.4, 0.45), (0, -0.55, 0.35), (math.radians(-20), 0, 0), yellow, bevel=0.03)
-    parts.append(tail)
-    # おなかの ピンクの ライン
-    band = C.add_torus("pod_band", 0.58, 0.05, (0, -0.1, 0), (math.radians(90), 0, 0), pink, 28, 8)
-    band.scale = (1.0, 1.0, 1.0)
-    parts.append(band)
-    # うしろの プロペラ（別オブジェクト：Godot 側で "Propeller" を回す）
-    ring = C.add_torus("pod_ring", 0.3, 0.06, (0, -0.78, 0), (math.radians(90), 0, 0), yellow, 20, 8)
-    parts.append(ring)
-    main = C.join(parts, "pod")
-    C.apply_modifiers(main)
-    C.shade_smooth(main, 50)
-    window.name = "Window"
-    C.set_active(window)
-    bpy.ops.object.shade_smooth()
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    window.parent = main
-    window.matrix_parent_inverse = main.matrix_world.inverted()
-
-    blades = []
-    for i in range(3):
-        a = i * math.pi * 2 / 3
-        b = C.add_box(f"blade{i}", (0.08, 0.04, 0.5), (0, -0.8, 0), (0, a, 0), glow)
-        b.location = (0, -0.8, 0)
-        blades.append(b)
-    hub = C.add_sphere("hub", 0.09, (0, -0.8, 0), 12, 8, glow)
-    prop = C.join(blades + [hub], "Propeller")
-    # 回転軸：Blender の Y 軸（Godot では Z 軸）。原点をハブの位置に。
-    C.set_active(prop)
-    bpy.context.scene.cursor.location = (0, -0.8, 0)
-    bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
-    prop.parent = main
-    prop.matrix_parent_inverse = main.matrix_world.inverted()
-    return main
+    """ミクロごう＋パイロット。絵から 3D 化した 本番の 形は blender/pod.py に ある。"""
+    return POD.build_pod()
 
 
 def build_pico():

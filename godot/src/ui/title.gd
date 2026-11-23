@@ -125,6 +125,10 @@ func _add_pod_preview() -> void:
 	svc.offset_right = -10
 	svc.offset_bottom = -10
 	svc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# すきとおった 背景に 描いた 3D は、色に アルファが かかった 形で 出て くる。そのまま 重ねると ドームの ガラスが 黒ずむ
+	var pm := CanvasItemMaterial.new()
+	pm.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+	svc.material = pm
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
 	sv.own_world_3d = true
@@ -145,7 +149,8 @@ func _add_pod_preview() -> void:
 	we.environment = e
 	sv.add_child(we)
 	var pivot := Node3D.new()
-	ModelLib.fit(model, 1.0)
+	# 船は 原点（船体の まん中）より うしろへ 長い。回しても プロペラが わくから 出ない 大きさ
+	ModelLib.fit(model, 0.85)
 	pivot.add_child(model)
 	sv.add_child(pivot)
 	var tw := create_tween().set_loops()
