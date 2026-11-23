@@ -11,6 +11,24 @@ const STAGES: Array[Dictionary] = [
 		"difficulty": 1, "env": "stage_mouth", "kind": "arena",
 		"fog": Color(0.97, 0.75, 0.79), "ambient": Color(1.0, 0.9, 0.92), "fog_density": 0.009,
 		"flow_speed": 0.0,
+		# 見た目（A-model の「口」の 絵の 色）。キーの 説明は src/level/stage_look.gd の 先頭
+		"look": {
+			"background": Color("#6E182A"), "fog_color": Color("#7A1B2E"), "fog_depth": [30.0, 230.0], "fog_curve": 1.1,
+			"tonemap": "linear", "exposure": 1.0,
+			"sun": Vector3(-74, 6, 0), "light_gain": 0.44, "light_wrap": 0.7, "lamp_gain": 0.45,
+			"fill": Vector3(-12, 0, 0), "fill_energy": 0.4, "fill_color": Color(1.0, 0.93, 0.88),
+			"shadows": true, "shadow_opacity": 0.55, "shadow_blur": 3.0, "shadow_distance": 70.0, "shadow_size": 1024,
+			"glow": 0.5, "glow_bloom": 0.03,
+			"hemi_up": Color(0.5, 0.48, 0.48), "hemi_down": Color(0.66, 0.58, 0.6),
+			"surfaces": {
+				"floor": {"color": Color("#FD7985")}, "wall": {"color": Color("#EF5658")},
+				"gum": {"color": Color("#E4566C"), "shadow": true}, "tooth": {"color": Color("#FBE6D2"), "shadow": true, "rim": 0.2},
+				"soft": {"color": Color("#F2595C"), "shadow": true}, "lip": {"color": Color("#EE5F6A")},
+				"sky": {"color": Color("#FFFFFF"), "glow": 1.04},
+			},
+			"sway": {"NC_Uvula": [4.0, 3.4]},
+			"bubbles": {"count": 12, "center": Vector3(0, 3, -2), "extents": Vector3(15, 4, 20), "size": [0.2, 0.5], "color": Color(1.0, 0.96, 0.96, 0.5)},
+		},
 		"missions": [
 			{"type": "defeat", "target": "mushiba", "count": 4, "text": "むしばきんを やっつけよう"},
 			{"type": "reach", "text": "のどの おくの ゴールへ いこう"},

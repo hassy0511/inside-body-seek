@@ -129,27 +129,8 @@ func say_story(text: String, base := 3.0) -> void:
 
 # ---------------------------------------------------------------- 環境
 func _build_environment() -> void:
-	var we := WorldEnvironment.new()
-	var e := Environment.new()
-	e.background_mode = Environment.BG_COLOR
-	e.background_color = stage.get("fog", Color(0.9, 0.7, 0.7))
-	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = stage.get("ambient", Color(1, 0.9, 0.9))
-	e.ambient_light_energy = 0.55
-	e.fog_enabled = true
-	e.fog_light_color = stage.get("fog", Color(0.9, 0.7, 0.7)).darkened(0.1)
-	e.fog_density = float(stage.get("fog_density", 0.015)) * 0.6
-	e.fog_sky_affect = 0.0
-	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	e.tonemap_exposure = 0.9
-	we.environment = e
-	add_child(we)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, 30, 0)
-	sun.light_energy = 0.75
-	sun.light_color = Color(1.0, 0.97, 0.9)
-	sun.shadow_enabled = false
-	add_child(sun)
+	# 光・きり・たいよう。場所の "look" で 変えられる（無ければ いままでの 値。stage_look.gd）
+	StageLook.environment(self, stage)
 
 
 func _load_env() -> void:
@@ -160,6 +141,7 @@ func _load_env() -> void:
 	env.name = "Env"
 	add_child(env)
 	_ensure_collisions(env)
+	StageLook.apply(env, stage)
 
 
 ## GLB が無いときの代わりの広場（平らな円＋かべ）。マーカーも適当に置く。

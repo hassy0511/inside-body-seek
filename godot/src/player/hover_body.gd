@@ -23,17 +23,25 @@ func _ready() -> void:
 	add_child(_shadow)
 
 
-## ゆかに落ちる丸いかげ（見やすさのため）
+## ゆかに落ちる丸いかげ（見やすさのため）。ふちは ぼかす（まんなかが こく、外へ うすく）
 func _make_shadow(radius: float) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = radius
-	cm.bottom_radius = radius
-	cm.height = 0.02
-	cm.radial_segments = 20
-	mi.mesh = cm
+	var pm := PlaneMesh.new()
+	pm.size = Vector2.ONE * radius * 3.0
+	mi.mesh = pm
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.72), Color(1, 1, 1, 0)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.2, 0.05, 0.1, 0.35)
+	m.albedo_color = Color(0.2, 0.05, 0.1, 0.45)
+	m.albedo_texture = tex
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.no_depth_test = false
@@ -57,9 +65,9 @@ func hover_step(delta: float) -> void:
 		velocity.y = clampf(dy * hover_spring, -14.0, 14.0)
 		if _shadow:
 			_shadow.visible = true
-			_shadow.global_position = floor_point + Vector3.UP * 0.06
 			var h := clampf(global_position.y - floor_point.y, 0.0, 4.0)
-			_shadow.scale = Vector3.ONE * (1.0 - h * 0.12)
+			# ゆかの かたむきに 合わせて ねかせる（ぼかした かげが 坂に めりこまない）
+			_shadow.global_transform = Transform3D(Basis(Quaternion(Vector3.UP, floor_normal)).scaled(Vector3.ONE * (1.0 - h * 0.12)), floor_point + floor_normal * 0.06)
 	else:
 		floor_found = false
 		velocity.y = move_toward(velocity.y, -5.0, 12.0 * delta)
