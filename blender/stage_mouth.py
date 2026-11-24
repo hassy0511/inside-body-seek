@@ -2,9 +2,11 @@
 
   python -m blender.stages stage_mouth
 
-目あては アートバイブル A-model の「口」の 絵（artbible_a_model_stages.png の 左）：
-ミクロごうの うしろから 見た、あたたかい 色の 口。ピンクの した（まんなかに みぞ）、まるい クリーム色の は、
-のどへ むかって 段々に 暗く なる かべの わ、のどの 入口に ぶらさがる のどちんこ。
+目あては 納品の 雰囲気画 mood_mouth.png と 部品の 三面図（art/w3-stages の art/concepts/W3_stages/。
+大きさと 色は spec.md：main の art/concepts/W3_stages/spec.md）。取り込みの 記録は docs/art_orders/W3_01_口_取り込みの結果.md：
+ミクロごうの うしろから 見た、あたたかい 色の 口。ピンクの した（まんなかに みぞ、よこの すじ、少しの ぶつぶつ）、
+左右に クリーム色の は（前歯・犬歯・奥歯）、のどへ むかって 段々に 暗く なる 赤い わ、のどの 入口に
+ぶらさがる のどちんこ と 左右の 大きな へんとうせん。
 
 形は 全部 式から 作る（stage_kit）：
   MouthShell  かべ（くちびる → ほお → うわあご → のどの わ → のどの くだ）。内向き。
@@ -13,7 +15,7 @@
   Teeth       は 24 本（7 さいの はなちゃん：まえば 4・いときりば 2・おくば 6 が うえと したに）。
   Tonsils     へんとうせん。NC_Uvula（のどちんこ：Godot 側で ゆれる）・NC_Lips・Outside（くちびるの むこうの 明るい おそと）。
 
-座標：+Y が おく（のど）。くちびるは y=-35、スタートは したの さき、ゴールは のどの 中（y=76）。
+座標：+Y が おく（のど）。くちびるは y=-35、スタートは したの さきの 少し おく（START_Y）、ゴールは のどの 中（y=76）。
 マーカーの 高さは floor_h() から 出す。
 """
 from __future__ import annotations
@@ -35,28 +37,34 @@ except ImportError:
 
 sstep, pchip, spow = K.sstep, K.pchip, K.spow
 
-# ------------------------------------------------------------------ 色（絵から 測った sRGB。Godot 側の 設定と そろえる）
+# ------------------------------------------------------------------ 色（sRGB）
+# HEX：面の もとの 色＝納品の spec の 色見本（art/concepts/W3_stages/spec.md）。ゲームの 中の 色は Godot 側
+#   （stage_db.gd の "look"：画像 × tex_tint × 頂点カラー × 光）で 決まる。soft（へんとうせん・のどちんこ）と lip は spec に ないので 雰囲気画から。
+# 頂点カラー（かげの 倍率）は 雰囲気画（mood_mouth.png）で 測った 色の 比：REF の 色を 1 と して、その 場所の 絵の 色に する 倍率。
 HEX = {
-    "floor": "#FD7985", "wall": "#EF5658", "gum": "#E4566C", "tooth": "#FBE6D2",
-    "soft": "#F45D5E", "lip": "#EE5F6A", "sky": "#FFFBEF",
+    "floor": "#F9949E", "wall": "#E96571", "gum": "#E4566C", "tooth": "#FBE6D2",
+    "soft": "#EC565C", "lip": "#EE5F6A", "sky": "#FFFBEF",
 }
-# かべの わ：おくへ 行くほど 暗く（絵の 色）。さいごは のどの くだの いちばん おく
-RING_HEX = ["#EF5658", "#DA434B", "#C63641", "#B22D3C", "#A12838", "#932435"]
-DEEP_HEX = "#5C1527"
+REF = {"floor": "#FD8E96", "tooth": "#FBE6D2", "soft": "#F35D65"}
+# かべの わ：おくへ 行くほど 暗い 赤（雰囲気画の わ：#BC333D → #A72A35 → #8F2634）。さいごは のどの おくの 暗い 赤（#681F2E。黒に しない）
+RING_HEX = ["#BC333D", "#B4303B", "#A72A35", "#9B2834", "#8F2634", "#822331"]
+DEEP_HEX = "#6A1F2E"
 
 # ------------------------------------------------------------------ かべ（から）の 形
 CZ = 2.5           # くちの まんなかの 高さ（いちばん 広い ところ）
 Y_LIPS = -35.0
 Y_END = 110.0
-THROAT_R = 6.6
+THROAT_R = 8.4     # のどの くだの 半径（雰囲気画の 大きな あなに ちかづける）
 ROAD_UP = 1.3      # のどの くだの 底から「みち」までの 高さ
 GOAL_Y = 76.0
+START_Y = -12.0    # スタート（したの さきの すこし おく。カメラが まえばの 上に くる）
 # のどの わ：(y, はばが へる, 天井が さがる, 床が あがる)。ここで 1 段ずつ せまく・暗く なる
 RINGS = [(15.5, 4.0, 2.0, 1.0), (21.5, 3.6, 1.6, 0.9), (27.5, 3.2, 1.2, 0.7), (33.0, 2.8, 0.8, 0.5), (38.5, 2.8, 0.4, 0.2)]
 RING_W = 0.95
 THROAT_RIBS = [46.5, 54.0, 61.5, 69.0, 86.0, 94.0, 102.0]
 
-_A = pchip([(-35, 10.5), (-33.2, 11.5), (-31, 14.5), (-28, 19.5), (-23, 22.6), (-12, 23.5), (6, 23.5), (13, 23.0), (120, 23.0)])
+MOUTH_A = 13.6     # くちの 中の はば（かたがわ）。spec の した 17 m に あわせた はならび ＋ ほお
+_A = pchip([(-35, 10.5), (-33.2, 11.2), (-31, 12.6), (-28, 13.8), (-23, 13.8), (-12, 13.9), (6, 13.9), (13, MOUTH_A), (120, MOUTH_A)])
 _TOP = pchip([(-35, 8.0), (-33.2, 8.7), (-31, 11.0), (-28, 13.0), (-22, 14.2), (-10, 14.5), (6, 14.3), (13, 14.0), (120, 14.0)])
 _BOT = pchip([(-35, -3.0), (-33.2, -3.7), (-31, -6.4), (-28, -9.0), (-22, -9.8), (0, -9.5), (13, -8.5), (120, -8.5)])
 _ys = np.linspace(40.0, 120.0, 1601)
@@ -64,8 +72,13 @@ _slope = 0.20 * sstep(40, 47, _ys) + 0.75 * sstep(82, 96, _ys)
 _drop = np.concatenate([[0.0], np.cumsum((_slope[1:] + _slope[:-1]) * 0.5 * np.diff(_ys))])
 
 
+RING_A = (MOUTH_A - THROAT_R) / sum(r[1] for r in RINGS)   # わの はばの へりかた（のどの くだが THROAT_R に なる ように）
+RING_V = (22.5 - 2 * THROAT_R) / sum(r[2] + r[3] for r in RINGS)   # 天井と 床の へりかた（たても THROAT_R）
+
+
 def ring_steps(y, col):
-    return sum(r[col] * sstep(r[0] - RING_W, r[0] + RING_W, y) for r in RINGS)
+    k = RING_A if col == 1 else RING_V
+    return sum(r[col] * k * sstep(r[0] - RING_W, r[0] + RING_W, y) for r in RINGS)
 
 
 def shell(y):
@@ -104,11 +117,12 @@ def shell_floor_z(x, y):
 
 # ------------------------------------------------------------------ はの ならび（アーチ）
 ARCH_M = 2.5
-ARCH_YB = 15.0
-LOWER = {"W": 19.0, "yf": -25.5}
-UPPER = {"W": 19.6, "yf": -26.3}
-GUM_W = 3.3        # はぐきの うねの はば（かたがわ）
-GUM_H = 3.0
+ARCH_YB = 1.5     # はならびの おくの はし（いちばん おくの はの すこし うしろ。そこから おくは ほお と のど）
+LOWER = {"W": 9.8, "yf": -19.0}
+UPPER = {"W": 10.2, "yf": -19.8}
+UPPER_CREST = (10.6, 9.3)   # うえの はぐきの てっぺん（まえ、おく）
+GUM_W = 2.7        # はぐきの うねの はば（かたがわ）
+GUM_H = 2.6
 
 
 def arch_x(y, arch=LOWER):
@@ -136,20 +150,25 @@ def arch_curve(arch, step=0.25):
 
 
 # ------------------------------------------------------------------ ゆか（した）の 形
-TIP_YS = -6.0      # ここから まえは したの さきの まるみ
-TIP_Y = -20.5      # したの さき
-TIP_K = 2.4
+TIP_YS = -1.0      # ここから まえは したの さきの まるみ
+TIP_Y = -15.5      # したの さき
+TIP_K = 4.5
 _TT = pchip([(-21, -4.5), (-17, -3.9), (-10, -3.45), (0, -3.2), (10, -3.1), (17, -2.7), (24, -3.1), (30, -3.7), (36, -4.5), (40, -5.0)])
-_FM = pchip([(-34, -3.9), (-31.5, -5.8), (-28.5, -7.6), (-24, -8.0), (-12, -6.4), (0, -5.8), (14, -5.2), (22, -4.8), (40, -5.2)])
-# おくの V の 列（ゆうかくにゅうとう）：おおきめの ぶつぶつ 7 こ
-PAPILLAE = [((k - 3) / 3.0 * 8.5, 14.0 - abs(k - 3) / 3.0 * 6.5) for k in range(7)]
+_FM = pchip([(-34, -3.9), (-31.5, -5.8), (-28.5, -7.0), (-24, -6.8), (-12, -5.2), (0, -4.9), (14, -4.8), (22, -4.6), (40, -5.2)])
+# したの ぶつぶつ（spec の 部品 4：0.3〜1.2 m の まるい ふくらみ、底は 平ら）を 少しだけ。(x, y, さしわたし m)。
+# 雰囲気画の 2 つ（ひだりの 手前の 大きい の と、みぎの 先の の）＋ おくに 3 つ
+PAPILLAE = [(-4.8, -9.5, 3.3), (3.8, -2.5, 2.6), (-2.8, 5.5, 2.2), (6.0, 8.5, 1.7), (-6.8, 1.5, 1.5)]
+BUMP_H = 0.3         # 高さ ÷ さしわたし（spec の 表は 0.7 × 0.4 m、三面図は もっと ひくい 0.37。雰囲気画に あわせて ひくめ）
+RIDGE_M = 2.1         # したの よこの すじ（雰囲気画の やわらかい しま）の 間かく m
+RIDGE_H = 0.11
 
 
 def tongue_w(y):
     """したの はば（かたがわ）。おくばの ところは はぐきの 下まで、のどの 手前は かべから かべまで。"""
     y = np.asarray(y, dtype=float)
     _cx, _cz, a, _t, _b, _nu, _nd = shell(y)
-    return (arch_x(np.maximum(y, TIP_YS)) - GUM_W + 0.8) * (1.0 - sstep(13, 17, y)) + (a + 1.0) * sstep(13, 17, y)
+    k = sstep(ARCH_YB + 1.0, ARCH_YB + 10.0, y)    # はならびの うしろでは かべまで ひろがる
+    return (arch_x(np.maximum(y, TIP_YS)) - GUM_W + 2.6) * (1.0 - k) + (a + 1.0) * k
 
 
 def tongue_s(x, y):
@@ -168,13 +187,14 @@ def floor_h(x, y):
     _cx, _cz, a, _t, _b, _nu, _nd = shell(y)
     fm = _FM(y) + 0.9 * np.abs(x / np.maximum(a, 1.0)) ** 3
     s = tongue_s(x, y)
-    groove = (0.7 * sstep(-19, -9, y) + 0.5 * sstep(6, 16, y)) * (1.0 - sstep(26, 36, y)) * np.exp(-(x / 1.5) ** 2)
+    groove = (0.6 * sstep(-14, -5, y) + 0.4 * sstep(6, 16, y)) * (1.0 - sstep(26, 36, y)) * np.exp(-(x / 1.6) ** 2)
     bumps = 0.0
-    for px, py in PAPILLAE:
-        d = np.hypot(x - px, y - py)
-        bumps = bumps + 0.4 * np.cos(np.clip(d / 1.25, 0.0, 1.0) * math.pi * 0.5) ** 2
-    dome = _TT(y) - 1.3 * np.minimum(s, 1.2) ** 2.2 - groove + bumps
-    rim = sstep(0.80, 1.0, s) ** 2
+    for px, py, dia in PAPILLAE:
+        u = np.clip(np.hypot(x - px, y - py) / (dia * 0.5), 0.0, 1.0)
+        bumps = bumps + BUMP_H * dia * (1.0 - u ** 2.2) ** 0.7
+    ridge = RIDGE_H * np.cos(y * (2 * math.pi / RIDGE_M)) * (1.0 - sstep(0.45, 0.8, s)) * sstep(-13, -7, y) * (1.0 - sstep(16, 24, y))
+    dome = _TT(y) - 0.7 * np.minimum(s, 1.2) ** 3.0 - groove + bumps + ridge
+    rim = sstep(0.86, 1.0, s) ** 2
     h = dome * (1.0 - rim) + fm * rim
     # のどの くだの 中は、くだの 底より 少し 高い「みち」（まんなかが わずかに くぼむ）
     cx, _cz2, a2, _t2, bot, _nu2, _nd2 = shell(y)
@@ -234,12 +254,13 @@ def build_shell(mat):
     wob = (np.sin(q[:, 0] * 0.21 + q[:, 2] * 0.13 + 1.3) * np.sin(q[:, 1] * 0.17 - q[:, 2] * 0.19 + 0.4)
            + 0.6 * np.sin(q[:, 0] * 0.09 - q[:, 1] * 0.11 + q[:, 2] * 0.23 + 2.1))
     k = (0.5 + 0.5 * np.clip(wob / 1.6, -1.0, 1.0))[:, None] * 0.10
-    tone = tone * (1.0 - k) + tone * K.ratio("#DA434B", RING_HEX[0])[None, :] * k
+    tone = tone * (1.0 - k) + tone * K.ratio("#B0303A", RING_HEX[0])[None, :] * k
     return ob, tone
 
 
 def build_floor(mat):
-    ys = np.concatenate([np.arange(-34.0, 40.0, 0.5), np.arange(40.0, Y_END, 1.25), [Y_END]])
+    ys = np.concatenate([np.arange(-34.0, -17.0, 0.5), np.arange(-17.0, 25.0, 0.35), np.arange(25.0, 40.0, 0.5),
+                         np.arange(40.0, Y_END, 1.25), [Y_END]])
     nu = 81
     p = np.linspace(-1.0, 1.0, nu)
     cx = shell(ys)[0]
@@ -256,96 +277,153 @@ def build_floor(mat):
     s = tongue_s(x, y).reshape(-1)
     yy = y.reshape(-1)
     xx = x.reshape(-1)
-    tone = np.ones((len(P), 3))
-    edge = (sstep(0.55, 0.92, s) * 0.55)[:, None]
-    tone = tone * (1.0 - edge) + K.ratio("#F4647A", HEX["floor"])[None, :] * edge
+    # 雰囲気画：したの まんなか #FA7785、ふち #F66B7C、ぶつぶつの 上 #FD8E96（REF）。したの そとの ゆかと のどの すべりだいは 暗く
+    tone = np.tile(K.ratio("#FA7785", REF["floor"]), (len(P), 1))
+    bump = np.zeros(len(P))
+    for px, py, dia in PAPILLAE:
+        bump = np.maximum(bump, 1.0 - sstep(0.15, 0.95, np.hypot(xx - px, yy - py) / (dia * 0.5)))
+    foot = np.zeros(len(P))
+    for px, py, dia in PAPILLAE:
+        u = np.hypot(xx - px, yy - py) / (dia * 0.5)
+        foot = np.maximum(foot, np.exp(-((u - 1.0) / 0.14) ** 2))
+    tone = tone * (1.0 - bump[:, None]) + bump[:, None]
+    tone = tone * (1.0 - 0.1 * foot[:, None])     # ぶつぶつの ねもとは 少し こく（雰囲気画の かげ）
+    ridge = (np.cos(yy * (2 * math.pi / RIDGE_M)) * (1.0 - sstep(0.45, 0.8, s)) * sstep(-13, -7, yy) * (1.0 - sstep(16, 24, yy)))[:, None]
+    tone = tone * (1.0 + 0.035 * ridge)          # すじの 山は 少し 明るく、谷は 少し 暗く（雰囲気画の しま）
+    edge = (sstep(0.55, 0.92, s) * 0.8)[:, None]
+    tone = tone * (1.0 - edge) + K.ratio("#F66B7C", REF["floor"])[None, :] * edge
     out = sstep(0.93, 1.06, s)[:, None]
-    tone = tone * (1.0 - out) + K.ratio("#DC4658", HEX["floor"])[None, :] * out
-    line = (0.45 * np.exp(-(xx / 1.1) ** 2) * sstep(-20, -8, yy) * (1.0 - sstep(28, 36, yy)))[:, None]
-    tone = tone * (1.0 - line) + K.ratio("#E9566E", HEX["floor"])[None, :] * line
-    for a_y, b_y, hexc in ((26.0, 40.0, "#E4506A"), (40.0, GOAL_Y, "#C23E55"), (GOAL_Y + 6.0, Y_END, "#5A1628")):
+    tone = tone * (1.0 - out) + K.ratio("#DC4658", REF["floor"])[None, :] * out
+    line = (0.45 * np.exp(-(xx / 1.1) ** 2) * sstep(-15, -5, yy) * (1.0 - sstep(28, 36, yy)))[:, None]
+    tone = tone * (1.0 - line) + K.ratio("#E9566E", REF["floor"])[None, :] * line
+    for a_y, b_y, hexc in ((24.0, 40.0, "#D8475F"), (40.0, GOAL_Y, "#B23A50"), (GOAL_Y + 6.0, Y_END, "#5E1A2B")):
         k = sstep(a_y, b_y, yy)[:, None]
-        tone = tone * (1.0 - k) + K.ratio(hexc, HEX["floor"])[None, :] * k
+        tone = tone * (1.0 - k) + K.ratio(hexc, REF["floor"])[None, :] * k
     return ob, tone
 
 
+# は（歯）の 大きさ：納品の spec（art/concepts/W3_stages/spec.md）の 表の m（はば × おくゆき × 高さ。高さは 根を ふくむ）。
+# ゲームの 中では TOOTH_G 倍（口ぜんたいが spec の 約 2 倍：ゲームの カメラは 雰囲気画より 遠いので、絵と 同じ 見えかたに なる 大きさ）
+TOOTH_SPEC = {"incisor": (1.25, 0.55, 2.0, 0.45), "canine": (0.9, 0.85, 2.2, 0.5), "molar": (1.8, 1.45, 2.4, 0.5)}
+TOOTH_G = 2.2
+TOOTH_GAP = 0.35       # はと はの すきま（m。こどもの はには すきまが ある）
+GERM_GAP = 2.0         # むしばきんが 顔を 出す すきま（したの おくから 2・3 本目の あいだ）
+
+
 def tooth_layout(arch, upper):
-    """アーチに そった はの ならび。[(種類, s（弧の 位置）, はば, おくゆき, 高さ)]。まんなかから 左右に 6 本ずつ。"""
+    """アーチに そった はの ならび。[(種類, s（弧の 位置）, はば, おくゆき, 高さ, 根の 長さ)]。
+    まんなかから 左右に 6 本ずつ（7 さい：まえば 2・いときりば 1・おくば 3）。大きさは spec × TOOTH_G × 1 本ずつの 倍率。"""
     if upper:
-        spec = [("incisor", 6.0, 2.9, 4.9), ("incisor", 5.0, 2.7, 4.5), ("canine", 5.4, 4.2, 4.8),
-                ("molar_s", 7.2, 5.6, 3.7), ("molar", 8.0, 6.2, 3.7), ("molar", 9.2, 6.8, 3.9)]
+        order = [("incisor", 1.15, 1.1), ("incisor", 0.9, 0.95), ("canine", 1.0, 1.05),
+                 ("molar", 0.82, 0.9), ("molar", 0.92, 0.95), ("molar", 1.0, 1.0)]
     else:
-        spec = [("incisor", 4.7, 2.6, 4.3), ("incisor", 5.2, 2.7, 4.4), ("canine", 5.5, 4.1, 4.8),
-                ("molar_s", 7.4, 5.6, 3.6), ("molar", 8.2, 6.2, 3.6), ("molar", 9.4, 6.8, 3.8)]
-    P, _T, _N, S = arch_curve(arch)
+        order = [("incisor", 0.95, 0.95), ("incisor", 1.0, 1.0), ("canine", 1.0, 1.0),
+                 ("molar", 0.85, 0.92), ("molar", 0.95, 0.97), ("molar", 1.05, 1.0)]
+    _P, _T, _N, S = arch_curve(arch)
     half = S[-1] * 0.5
-    gap = 1.5
-    scale = (half - 0.6 - gap * len(spec)) / sum(w for _k, w, _d, _h in spec)
     out = []
-    pos = gap * 0.5
-    for kind, w, d, h in spec:
-        w *= scale
+    pos = TOOTH_GAP * 0.5
+    for i, (kind, kw, kh) in enumerate(order):
+        sw, sd, sh, sr = TOOTH_SPEC[kind]
+        w, d, h, r = sw * kw * TOOTH_G, sd * kw * TOOTH_G, sh * kh * TOOTH_G, sr * TOOTH_G
         for side in (-1, 1):
-            out.append((kind, half + side * (pos + w * 0.5), w, d, h))
-        pos += w + gap
+            out.append((kind, half + side * (pos + w * 0.5), w, d, h, r))
+        pos += w + (GERM_GAP if (not upper and i == 4) else TOOTH_GAP)
     return out
 
 
-def tooth_mesh(kind, w, d, h, rng, fine=False):
-    """は 1 本（ねもとが 原点、z が のびる 向き）。まるい 箱を 種類ごとに 少し 変える。fine は 点を 細かく（むしばの は）"""
-    root = 1.5
+def _lathe(zs, rx, ry, n_sec, nu):
+    """たての 軸の まわりの 形（断面は スーパーだ円）。zs・rx・ry は 下から 上への 列。上下は とじる。
+    返す：点、四角形、三角形（外向き）"""
+    th = np.linspace(0.0, 2 * math.pi, nu, endpoint=False)
+    cu, su = spow(np.cos(th), 2.0 / n_sec), spow(np.sin(th), 2.0 / n_sec)
+    X = rx[:, None] * cu[None, :]
+    Y = ry[:, None] * su[None, :]
+    Z = np.broadcast_to(np.asarray(zs)[:, None], X.shape)
+    body = np.stack([X, Y, Z], axis=-1).reshape(-1, 3)
+    rows = len(zs)
+    V = np.concatenate([body, [[0.0, 0.0, zs[0]]], [[0.0, 0.0, zs[-1]]]])
+    quads = K.grid_faces(rows, nu, wrap_u=True)[:, ::-1]
+    south, north = len(body), len(body) + 1
+    tris = []
+    for j in range(nu):
+        j2 = (j + 1) % nu
+        tris.append((south, j, j2))
+        tris.append((north, (rows - 1) * nu + j2, (rows - 1) * nu + j))
+    return V, quads, np.array(tris)
+
+
+def tooth_mesh(kind, w, d, h, root, rng, fine=False):
+    """は 1 本（はぐきの てっぺんが 原点、z が のびる 向き。根は z < 0 で はぐきに うまる）。
+    形は 納品の 三面図（parts_mouth_front/_side.png）：
+      まえば  うすい 板。正面は 角の まるい 四角、よこから 見ると さきへ うすく なる
+      いときりば  たかい しずく。さきは とがらせず まるく
+      おくば  まるい 箱。てっぺんに 大きな まるい やま（はばに 3 つ・おくゆきに 2 つ）
+    返す：点、四角形、三角形、高さの 割合（0 = 根の さき、1 = てっぺん）"""
+    hc = h - root                      # はぐきから 出て いる 高さ
+    if kind == "molar":
+        nu, nv = (88, 52) if fine else (40, 26)
+        V, Q, T3 = K.superellipsoid(nu, nv, 0.42, 0.5)
+        x, y, z = V[:, 0].copy(), V[:, 1].copy(), V[:, 2].copy()
+        zt = (z + 1.0) * 0.5
+        zz = -root + zt * h
+        neck = 0.72 + 0.28 * sstep(-root * 0.6, hc * 0.3, zz)     # 根は ほそく、はぐきの 上で ふくらむ
+        x *= neck
+        y *= neck
+        top = sstep(0.62, 0.95, zt)
+        lobes = sum(np.exp(-(((x - cx) / 0.31) ** 2 + ((y - cy) / 0.38) ** 2))
+                    for cx in (-0.6, 0.0, 0.6) for cy in (-0.45, 0.45))
+        zz = zz + top * hc * (0.15 * np.clip(lobes, 0.0, 1.0) - 0.12)
+        jit = 1.0 + rng.uniform(-0.03, 0.03)
+        P = np.stack([x * w * 0.5 * jit, y * d * 0.5, zz], axis=1)
+        return P, Q, T3, zt
+    nz = 30
+    zs = np.concatenate([np.linspace(-root, 0.0, 6)[:-1], np.linspace(0.0, hc, nz)])
+    zc = np.clip(zs / hc, 0.0, 1.0)                 # はぐきから 上の 割合
+    zr = np.clip(1.0 + zs / root, 0.0, 1.0)         # 根の さきから はぐきまでの 割合
+    rootk = np.where(zs < 0, 0.45 + 0.4 * zr, 1.0)
     if kind == "incisor":
-        V, Q, T3 = K.superellipsoid(32, 20, 0.55, 0.62)
-    elif kind == "canine":
-        V, Q, T3 = K.superellipsoid(32, 20, 0.78, 0.78)
-    elif fine:
-        V, Q, T3 = K.superellipsoid(88, 52, 0.56, 0.56)
-    else:
-        V, Q, T3 = K.superellipsoid(40, 24, 0.56, 0.56)
-    x, y, z = V[:, 0].copy(), V[:, 1].copy(), V[:, 2].copy()
-    zt = (z + 1.0) * 0.5
-    neck = 0.84 + 0.16 * sstep(0.12, 0.6, zt)       # はぐきの きわは 少し ほそく
-    x *= neck
-    y *= neck
-    if kind == "incisor":
-        y *= 1.0 - 0.58 * sstep(0.3, 1.0, zt)       # さきへ うすく（のみの 形）
-        x *= 1.0 + 0.05 * zt
-    elif kind == "canine":
-        k = 1.0 - 0.5 * sstep(0.42, 1.0, zt) ** 1.3  # さきへ とがる（まるく）
-        x *= k
-        y *= k
-    else:
-        amp = 0.15 if kind == "molar" else 0.11
-        cusp = np.sin(np.minimum(np.abs(x), 1.0) * math.pi) * np.sin(np.minimum(np.abs(y), 1.0) * math.pi)
-        topm = sstep(0.55, 0.97, zt)
-        z += topm * (amp * cusp - 0.07 * np.exp(-(x * x + y * y) / 0.18))   # 4 つの やま と まんなかの くぼみ
-    jit = 1.0 + rng.uniform(-0.035, 0.035)
-    P = np.stack([x * w * 0.5 * jit, y * d * 0.5, (z + 1.0) * 0.5 * (h + root) - root], axis=1)
-    return P, Q, T3, zt
+        body = 0.86 + 0.14 * sstep(0.0, 0.3, zc)
+        cap = np.sqrt(np.clip(1.0 - (np.clip(zc - 0.8, 0.0, None) / 0.2) ** 2, 0.0, 1.0))
+        rx = 0.5 * w * body * rootk * np.maximum(cap, 0.0) ** 0.5
+        ry = 0.5 * d * (1.0 - 0.45 * sstep(0.25, 1.0, zc)) * rootk * np.maximum(cap, 0.0) ** 0.9
+        n_sec = 3.0
+    else:  # canine
+        u = np.clip((zc - 0.3) / 0.7, 0.0, 1.0)
+        prof = (0.88 + 0.12 * sstep(0.0, 0.3, zc)) * (1.0 - u ** 1.8) ** 0.62
+        rx = 0.5 * w * prof * rootk
+        ry = 0.5 * d * prof * rootk
+        n_sec = 2.2
+    rx[-1] = ry[-1] = 0.0
+    V, Q, T3 = _lathe(zs, np.maximum(rx, 1e-3), np.maximum(ry, 1e-3), n_sec, 32)
+    V[:, 0] *= 1.0 + rng.uniform(-0.03, 0.03)
+    zt = np.concatenate([np.repeat((zs + root) / h, 32), [0.0, 1.0]])
+    return V, Q, T3, zt
 
 
 # むしば（した の いちばん おくの は、左右）：(ならびの 番号, あなの 位置（はば・おくゆき・高さの 割合）, 半径 m)
 # 位置は はの 中の 向き：x ＝ ならびに そって、y ＝ −1 が した（舌）の がわ、z ＝ 1 が てっぺん
-CAVITIES = {10: ((0.45, -0.72, 0.66), 1.5), 11: ((-0.4, -0.75, 0.7), 1.8)}
+CAVITIES = {10: ((0.45, -0.72, 0.7), 0.95), 11: ((-0.4, -0.75, 0.74), 1.1)}
 
 
 def build_teeth(mat, arch, upper, crest_fn, rng, tag):
     P, T, N, S = arch_curve(arch)
     objs = []
     tones = []
-    for i, (kind, s, w, d, h) in enumerate(tooth_layout(arch, upper)):
+    for i, (kind, s, w, d, h, root) in enumerate(tooth_layout(arch, upper)):
         k = int(np.argmin(np.abs(S - s)))
         decayed = not upper and i in CAVITIES
-        V, Q, T3, zt = tooth_mesh(kind, w, d, h, rng, fine=decayed)
+        V, Q, T3, zt = tooth_mesh(kind, w, d, h, root, rng, fine=decayed)
+        hc = h - root
         hole = np.zeros(len(V))
         if decayed:
             # むしばの あな：まるく へこませて、中を こげ茶に（この お話の げんいん。むしばきんは この そばに いる）
             (ax, ay, az), rad = CAVITIES[i]
-            rel = V - np.array([ax * w * 0.5, ay * d * 0.5, az * h])
+            rel = V - np.array([ax * w * 0.5, ay * d * 0.5, az * hc])
             ang = np.arctan2(rel[:, 2], rel[:, 0])
             dist = np.linalg.norm(rel, axis=1) / (1.0 + 0.12 * np.sin(ang * 3.0 + i))   # まんまるに しない
             hole = 1.0 - sstep(rad * 0.55, rad, dist)
-            V = V - (V - np.array([0.0, 0.0, h * 0.45])) * (0.16 * sstep(0.2, 1.0, hole)[:, None])
+            V = V - (V - np.array([0.0, 0.0, hc * 0.45])) * (0.16 * sstep(0.2, 1.0, hole)[:, None])
         yaw = rng.uniform(-0.05, 0.05)
         tx = T[k] * math.cos(yaw) + N[k] * math.sin(yaw)
         ny = N[k] * math.cos(yaw) - T[k] * math.sin(yaw)
@@ -359,11 +437,11 @@ def build_teeth(mat, arch, upper, crest_fn, rng, tag):
         C.recalc_normals(ob, inside=False)
         objs.append(ob)
         g = sstep(0.25, 0.8, zt)[:, None]           # ねもとは 少し あたたかい 色
-        tone = K.ratio("#F6D5BC", HEX["tooth"])[None, :] * (1.0 - g) + g
+        tone = K.ratio("#F6D5BC", REF["tooth"])[None, :] * (1.0 - g) + g
         stain = sstep(0.0, 0.35, hole)[:, None]
-        tone = tone * (1.0 - stain) + K.ratio("#DDB89E", HEX["tooth"])[None, :] * stain
+        tone = tone * (1.0 - stain) + K.ratio("#DDB89E", REF["tooth"])[None, :] * stain
         pit = sstep(0.25, 0.9, hole)[:, None]
-        tones.append(tone * (1.0 - pit) + K.ratio("#5E4244", HEX["tooth"])[None, :] * pit)
+        tones.append(tone * (1.0 - pit) + K.ratio("#5E4244", REF["tooth"])[None, :] * pit)
     return objs, tones
 
 
@@ -399,22 +477,47 @@ def build_gum(mat, arch, upper, crest_fn, name):
     return ob
 
 
+# のどちんこ と へんとうせん（spec の 部品 5・6）の 大きさ：spec の m × TOOTH_G
+UVULA_SPEC = (0.7, 0.65, 1.7)
+TONSIL_SPEC = (1.0, 0.7, 1.5)
+
+
 def build_uvula(mat, root):
-    """のどちんこ：しずくの 形。原点は ねもと（Godot 側が ここを 中心に ゆらす）"""
-    UP, L = 2.4, 7.0                # ねもとから 上へ 2.4 m は 天井の 中（すきまが 見えない ように）
-    t = np.linspace(0.0, 1.0, 30)
-    r = 0.95 + 0.75 * (1.0 - sstep(0.0, 0.45, t)) ** 2 + 0.55 * np.exp(-((t - 0.8) / 0.17) ** 2)
-    r = r * np.sqrt(np.clip(1.0 - np.clip((t - 0.88) / 0.12, 0.0, 1.0) ** 2, 0.0, 1.0))
+    """のどちんこ：天井から さがる しずく（正面は 花びん形：ねもとが ひろがり、くびれて、下が まるく ふくらむ）。
+    原点は ねもと（Godot 側が ここを 中心に ゆらす）"""
+    w, d, h = (v * TOOTH_G for v in UVULA_SPEC)
+    UP = 2.4                        # ねもとから 上へ 2.4 m は 天井の 中（すきまが 見えない ように）
+    t = np.linspace(-UP / h, 1.0, 34)          # 0 = ねもと、1 = 下の はし
+    r = 0.31 * w + 0.4 * w * (1.0 - sstep(-0.1, 0.32, t)) ** 2 + 0.2 * w * np.exp(-((t - 0.76) / 0.17) ** 2)
+    r = r * np.sqrt(np.clip(1.0 - np.clip((t - 0.84) / 0.16, 0.0, 1.0) ** 2, 0.0, 1.0))
     r[-1] = 0.02
-    nu = 18
+    nu = 20
     th = np.linspace(0.0, 2 * math.pi, nu, endpoint=False)
     X = r[:, None] * np.cos(th)[None, :]
-    Y = r[:, None] * np.sin(th)[None, :] * 0.9
-    Z = np.broadcast_to((UP - t * L)[:, None], X.shape)
+    Y = r[:, None] * np.sin(th)[None, :] * (d / w)
+    Z = np.broadcast_to((-t * h)[:, None], X.shape)
     V = np.stack([X, Y, Z], axis=-1).reshape(-1, 3) + np.array(root)
     ob = K.mesh_object("NC_Uvula", V, K.grid_faces(len(t), nu, wrap_u=True), mat, location=tuple(root))
     K.face_toward(ob, lambda q: (q - np.array([root[0], root[1], 0.0])) * np.array([1.0, 1.0, 0.0]))
     return ob
+
+
+def build_tonsils(mat):
+    """へんとうせん：のどの 入口の 左右に 1 つずつ。まるい たまごで、うらは かべに うめる（三面図の よこ：うしろが 平ら）"""
+    w, d, h = (v * TOOTH_G * TONSIL_K for v in TONSIL_SPEC)
+    tons = []
+    for sx in (-1, 1):
+        V, Q, T3 = K.superellipsoid(24, 16, 0.92, 0.92)
+        V[:, 1] = np.minimum(V[:, 1], 0.55)               # うしろ（おく）は 平ら
+        a = float(shell(TONSIL_Y)[2])
+        c = np.array([sx * (a - w * 0.5 - TONSIL_IN), TONSIL_Y, float(floor_h(sx * (a - w * 0.5 - TONSIL_IN), TONSIL_Y)) + h * 0.42])
+        tons.append(K.blob_object(f"tonsil{sx}", V * np.array([w * 0.5, d * 0.5, h * 0.5]) + c, Q, T3, mat))
+    return K.join_meshes(tons, "Tonsils")
+
+
+TONSIL_Y = 29.0
+TONSIL_IN = 0.4
+TONSIL_K = 2.0   # spec の 2 倍（とおくに あるので、雰囲気画の 大きな まるい へんとうせんに 見える 大きさ）
 
 
 def build_lips(mat):
@@ -460,7 +563,7 @@ def build():
 
     def upper_crest(s):
         f = np.abs(np.asarray(s, dtype=float) / upper_len - 0.5) * 2.0
-        return 10.6 - 1.3 * sstep(0.15, 0.85, f)
+        return UPPER_CREST[0] + (UPPER_CREST[1] - UPPER_CREST[0]) * sstep(0.15, 0.85, f)
 
     shell_o, shell_tone = build_shell(mats["wall"])
     floor_o, floor_tone = build_floor(mats["floor"])
@@ -472,15 +575,7 @@ def build():
         K.set_colors(o, t)
     teeth = K.join_meshes(teeth_l + teeth_u, "Teeth")
     gums = K.join_meshes([gum_l, gum_u], "Gums")
-    # へんとうせん：2 つめの わ の くぼみに、左右 1 つずつ
-    tons = []
-    ty = 24.6
-    ta = float(shell(ty)[2])
-    for sx in (-1, 1):
-        V, Q, T3 = K.superellipsoid(20, 14, 0.9, 0.9)
-        V = V * np.array([1.9, 2.6, 3.4]) + np.array([sx * (ta + 0.9), ty, 0.2])
-        tons.append(K.blob_object(f"tonsil{sx}", V, Q, T3, mats["soft"]))
-    tonsils = K.join_meshes(tons, "Tonsils")
+    tonsils = build_tonsils(mats["soft"])
     uvula = build_uvula(mats["soft"], (0.0, UVULA_Y, float(ceil_z(0.0, UVULA_Y))))
     lips = build_lips(mats["lip"])
     outside = build_outside(mats["sky"])
@@ -490,9 +585,9 @@ def build():
     ao = K.bake_ao(objs, reach=5.5, rays=24, smooth=2, exclude=("Outside",))
     K.set_colors(shell_o, shell_tone * K.shade(ao[shell_o.name], (0.58, 0.38, 0.46), 1.25))
     K.set_colors(floor_o, floor_tone * K.shade(ao[floor_o.name], (0.52, 0.28, 0.36), 1.25))
-    K.set_colors(gums, K.shade(ao[gums.name], (0.46, 0.25, 0.33), 1.2))
-    K.set_colors(teeth, K.get_colors(teeth) * K.shade(ao[teeth.name], (0.80, 0.56, 0.52), 1.1))
-    K.set_colors(tonsils, K.ratio("#DC474E", HEX["soft"])[None, :] * K.shade(ao[tonsils.name], (0.5, 0.28, 0.34), 1.2))
+    K.set_colors(gums, K.shade(ao[gums.name], (0.6, 0.4, 0.46), 1.1))
+    K.set_colors(teeth, K.get_colors(teeth) * K.shade(ao[teeth.name], (0.86, 0.68, 0.62), 1.0))
+    K.set_colors(tonsils, K.ratio("#EC565C", REF["soft"])[None, :] * K.shade(ao[tonsils.name], (0.5, 0.28, 0.34), 1.2))
     K.set_colors(uvula, K.shade(ao[uvula.name], (0.6, 0.34, 0.4), 1.0))
     K.set_colors(lips, K.shade(ao[lips.name], (0.6, 0.34, 0.4), 1.0))
     oz = K.world_verts(outside)[:, 2]          # おそと：上は うすい 空色、下は あたたかい 白
@@ -503,28 +598,29 @@ def build():
     def fz(x, y, up=1.2):
         return float(floor_h(x, y)) + up
 
-    C.add_empty("MK_player", (0, -15, fz(0, -15, 1.5)))
+    C.add_empty("MK_player", (0, START_Y, fz(0, START_Y, 1.5)))
     goal = (0.0, GOAL_Y, fz(0, GOAL_Y, 0.8))
     C.add_empty("MK_goal", goal)
     C.add_empty("MK_checkpoint_1", (0, 37, fz(0, 37, 0.5)))
-    # むしばきん：おくばの そばの みぞに 4 ひき（左右 2 ひきずつ：いちばん おくの はの うしろ と、
-    # おくから 1・2 本目の あいだ）。スタートから 19 m より とおく（じどうで ねらう きょり 16 m の 外）
+    # むしばきん 4 ひき（雰囲気画：はと はの あいだから 顔を 出す）。左右 2 ひきずつ：
+    # したの おくから 1・2 本目の あいだの すきま（GERM_GAP。むしばの はの となり）と、いちばん おくの はの うしろ。
+    # 高さは はぐきの てっぺん（ゆかの 式の 外なので crest から）
     P, _T, N, S = arch_curve(LOWER)
     lay = sorted(tooth_layout(LOWER, False), key=lambda t: t[1])
-    spots = [lay[0][1] - lay[0][2] * 0.5 - 0.8, lay[-1][1] + lay[-1][2] * 0.5 + 0.8]
-    for i in (0, len(lay) - 2):
-        spots.append((lay[i][1] + lay[i][2] * 0.5 + lay[i + 1][1] - lay[i + 1][2] * 0.5) * 0.5)
+    spots = [(lay[1][1] - lay[1][2] * 0.5 + lay[0][1] + lay[0][2] * 0.5) * 0.5,
+             (lay[-2][1] + lay[-2][2] * 0.5 + lay[-1][1] - lay[-1][2] * 0.5) * 0.5,
+             lay[0][1] - lay[0][2] * 0.5 - 1.3, lay[-1][1] + lay[-1][2] * 0.5 + 1.3]
     germ = []
     for s in spots:
         k = int(np.argmin(np.abs(S - s)))
-        germ.append(P[k] - N[k] * (GUM_W + 2.4))
+        germ.append((P[k, 0] - N[k, 0] * 1.2, P[k, 1] - N[k, 1] * 1.2, float(lower_crest(S[k])) + 1.1))
     germ.sort(key=lambda p: (p[0] > 0, p[1]))
     for i, p in enumerate(germ):
-        C.add_empty(f"MK_enemy_mushiba_{i + 1}", (p[0], p[1], fz(p[0], p[1], 1.0)))
+        C.add_empty(f"MK_enemy_mushiba_{i + 1}", p)
     C.add_empty("MK_pickup_heart_item_1", (8, -1, fz(8, -1, 1.0)))
     C.add_empty("MK_card_tooth", (-10.5, -11.5, fz(-10.5, -11.5, 1.0)))
     C.add_empty("MK_sign_throat", (0, 27, fz(0, 27, 1.0)))
-    for i, y in enumerate((-15.0, 5.0, 28.0, 52.0)):
+    for i, y in enumerate((START_Y, 5.0, 28.0, 52.0)):
         C.add_empty(f"MK_path_{i:03d}", (0, y, fz(0, y)))
     C.add_empty("MK_path_004", goal)
     return objs

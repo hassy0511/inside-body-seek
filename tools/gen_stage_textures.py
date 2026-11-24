@@ -4,10 +4,11 @@
   python3 tools/gen_stage_textures.py            # 全部
   python3 tools/gen_stage_textures.py mouth      # 口だけ
 
-出力：godot/assets/textures/stages/tex_<場所>_<役わり>.png（floor・wall）。
+出力：godot/assets/textures/stages/tex_<場所>_<役わり>.png（floor・wall）。もう ある ファイルは 上書き しない（--force で 上書き）。
+口（mouth）は 納品の 絵（W3-01）に 入れかえ ずみ（docs/art_orders/W3_01_口_取り込みの結果.md）。
 決まり は 発注書（docs/art_orders/W3_01_からだのぶたい.md 2.3）と 同じ：上下左右が つながる・均一な 光・影なし・
 1 枚 = 4 m 四方。Godot は ファイル名で さがすので、とどいた 絵を 同じ 名前で 置けば 差しかわる（GLB は 作りなおさない）。
-大きさは 1024 px（とどく 絵は 2048 px。.import の process/size_limit で 1024 に そろえて いる）。
+大きさは 1024 px（とどく 絵は 2048 px。.import の process/size_limit で 読みこむ 大きさを 決める。口は 512）。
 
 作りかた：色の 平らな 面に、大きく やわらかい むら（筆で ぬった ような 明るい・暗い ところ）と、
 その 場所らしい もよう（したの ぶつぶつ）を、ふちを ぼかして 重ねる。細かい ノイズは 入れない。
@@ -90,6 +91,9 @@ def save(name, rgb_lin, rng):
     os.makedirs(OUT, exist_ok=True)
     img = to_srgb(rgb_lin) * 255.0 + rng.uniform(-0.5, 0.5, rgb_lin.shape)   # 段が 見えない ように ほんの 少し ちらす
     path = os.path.join(OUT, name)
+    if os.path.exists(path) and "--force" not in sys.argv:
+        print(f"  skip {os.path.relpath(path, ROOT)}（もう ある。とどいた 絵を 上書き しない。仮に もどす ときは --force）")
+        return
     Image.fromarray(np.clip(np.round(img), 0, 255).astype(np.uint8), "RGB").save(path, optimize=True)
     print(f"  -> {os.path.relpath(path, ROOT)}  ({os.path.getsize(path) / 1024:.0f} KB)")
 

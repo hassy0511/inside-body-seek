@@ -427,6 +427,11 @@ static func _kind_and_index(rest: Array, default_kind: String) -> Dictionary:
 func _spawn_sign(text: String, pos: Vector3) -> void:
 	if not SIGN_TEXT.values().has(text):
 		push_warning("sign text not found for marker: %s" % text)
+	var board := _sign_board(text)
+	if board != null:
+		board.position = pos + Vector3.UP * 3.0
+		add_child(board)
+		return
 	var l := Label3D.new()
 	l.text = text
 	l.font = _sign_font
@@ -438,6 +443,94 @@ func _spawn_sign(text: String, pos: Vector3) -> void:
 	l.outline_size = 14
 	l.position = pos + Vector3.UP * 3.0
 	add_child(l)
+
+
+## かんばんの 板：res://assets/ui/sign_board.png（クリーム色の まるい ふきだし、下に しっぽ）に 文字を のせた 絵。
+## 板は 文字の 長さに あわせて よこに のばす（まるい はしと しっぽは そのまま、あいだの まっすぐな ところだけ）。
+## 板と 文字を 1 まいの 絵（SubViewport）に して から 出す（重なりの 順が くずれない）。画像が 無ければ null（文字だけの かんばん）
+const SIGN_BOARD := "res://assets/ui/sign_board.png"
+## 画像の 中の 板の 外形（px。2048 四方の 画像の まま）と、のばさない 部分（左の はし、しっぽ、右の はし）
+const SIGN_RECT := Rect2i(421, 698, 1204, 729)
+const SIGN_BODY_PX := 652.0          # しっぽを のぞいた 板の 高さ
+const SIGN_PARTS := [Vector2i(0, 380), Vector2i(439, 639), Vector2i(873, 1204)]   # 左はし・しっぽ・右はし（SIGN_RECT の 中の x）
+const SIGN_FILL := Vector2i(392, 428)                                             # のばす たての 帯
+const SIGN_INK := Color("#5A2630")
+const SIGN_EM_M := 1.28              # 文字の 大きさ m（前の 文字だけの かんばんと 同じ）
+const SIGN_MAX_W := 7.0            # 板の はばの 上限 m
+const SIGN_HIDE_NEAR := 4.0          # カメラから この m より 近い かんばんは 消す（画面を ふさがない）
+const SIGN_SCALE := 2                # 画像を この 分の 1 に してから つかう（かるく する）
+static var _sign_src: Image = null
+
+
+func _sign_board(text: String) -> Sprite3D:
+	if _sign_src == null:
+		if not ResourceLoader.exists(SIGN_BOARD):
+			return null
+		var tex := load(SIGN_BOARD) as Texture2D
+		if tex == null:
+			return null
+		_sign_src = tex.get_image().get_region(SIGN_RECT)
+		_sign_src.decompress()
+		_sign_src.convert(Image.FORMAT_RGBA8)
+		_sign_src.resize(SIGN_RECT.size.x / SIGN_SCALE, SIGN_RECT.size.y / SIGN_SCALE, Image.INTERPOLATE_LANCZOS)
+	var k := 1.0 / SIGN_SCALE
+	var h := _sign_src.get_height()
+	var body := SIGN_BODY_PX * k
+	# 文字（板の 絵の px で）
+	var lab := Label.new()
+	lab.text = text
+	lab.add_theme_font_override("font", _sign_font)
+	lab.add_theme_font_size_override("font_size", 64)
+	lab.add_theme_color_override("font_color", SIGN_INK)
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var ts := _sign_font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, 64)
+	# 板の 高さ ＝ 文字の 高さ ＋ よはく。絵ごと 大きさを 変える（2 行の 板は まるい はしも 大きく なる）
+	var grow := (ts.y + 64.0 * 0.8) / body
+	var fixed := int((SIGN_PARTS[0].y - SIGN_PARTS[0].x + SIGN_PARTS[1].y - SIGN_PARTS[1].x + SIGN_PARTS[2].y - SIGN_PARTS[2].x) * k)
+	var want := int((ts.x + body * grow * 0.75) / grow)          # 文字の よこに まるい はしの よはく
+	var fill := maxi(int((want - fixed) / 2), 2)
+	var img := Image.create(fixed + fill * 2, h, false, Image.FORMAT_RGBA8)
+	var strip := _sign_src.get_region(Rect2i(int(SIGN_FILL.x * k), 0, int((SIGN_FILL.y - SIGN_FILL.x) * k), h))
+	strip.resize(fill, h, Image.INTERPOLATE_BILINEAR)
+	var x := 0
+	for i in 3:
+		var part: Vector2i = SIGN_PARTS[i]
+		var w := int((part.y - part.x) * k)
+		img.blit_rect(_sign_src, Rect2i(int(part.x * k), 0, w, h), Vector2i(x, 0))
+		x += w
+		if i < 2:
+			img.blit_rect(strip, Rect2i(0, 0, fill, h), Vector2i(x, 0))
+			x += fill
+	img.resize(int(img.get_width() * grow), int(h * grow), Image.INTERPOLATE_BILINEAR)
+	var vp := SubViewport.new()
+	vp.name = "SignView"
+	vp.transparent_bg = true
+	vp.disable_3d = true
+	vp.size = img.get_size()
+	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	var tr := TextureRect.new()
+	tr.texture = ImageTexture.create_from_image(img)
+	tr.size = Vector2(img.get_size())
+	vp.add_child(tr)
+	lab.position = Vector2.ZERO
+	lab.size = Vector2(img.get_width(), body * grow)
+	vp.add_child(lab)
+	var sp := Sprite3D.new()
+	sp.name = "SignBoard"
+	sp.add_child(vp)
+	sp.texture = vp.get_texture()
+	# 長い かんばんは 小さく（くだの かべに はしが うまらない ように。前は 文字だけでも はしが かくれた）
+	sp.pixel_size = minf(SIGN_EM_M / 64.0, SIGN_MAX_W / float(img.get_width()))
+	sp.offset = Vector2(0, (h - body) * grow * 0.5)     # 板の まんなかを マーカーの 上に（しっぽは 下に 出る）
+	sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sp.shaded = false
+	sp.modulate = Color(0.94, 0.94, 0.94)      # つやなし。光る ゴールより 明るく しない
+	sp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sp.visibility_range_begin = SIGN_HIDE_NEAR
+	sp.visibility_range_begin_margin = 2.0
+	sp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	return sp
 
 
 func _add_card_point(key: String, pos: Vector3, node: Node) -> void:
