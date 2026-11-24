@@ -9,10 +9,13 @@ extends Node
 ## 5. タイトル、よそうの「もどる」、あたりの よそう、つづきから（場面の やりなおし・ポーズから やめる）、クイズの やりなおし、ずかん、
 ##    本物の 入力（矢印・決定・もどる の アクション）で 4 つの 画面を 動かす
 ## 6. 全部の 場所を 既定の ミッションで 自動操縦（カルテで まだ 使わない 場所も ここで 守る）
+## 7. そうじゅう：ひろい 場所（口・心ぞう）で ← を 1 びょう 押すと 船と カメラが まわる・↑ で まえへ・↓ で うしろへ
 ## --episode= は 4 を その 話だけ、--stage= は 6 を その 場所だけ 回す（5 は 全部 回す ときだけ）。
 ## セーブは user://save_test.json を 使う（本物の セーブを さわらない）。
 
 const MAX_SCENE_SECONDS := 420.0
+## 7. の そうじゅうを 見る 場所（arena と rooms から 1 つずつ）
+const STEER_PLACES := ["mouth", "heart"]
 const MAX_UI_SECONDS := 30.0
 ## 物語の ひとことは 出てから 2 秒 上書きされない（level.gd の say_story）。その 間を フレームで 数える（少し 短めに 見る）
 const HOLD_FRAMES := 110
@@ -103,6 +106,9 @@ func _ready() -> void:
 			for id in StageDB.stage_ids():
 				if _only_place == "" or id == _only_place:
 					await _run_place(id)
+			for id in STEER_PLACES:
+				if _only_place == "" or id == _only_place:
+					await _check_steering(id)
 	_remove_test_saves()
 	print("")
 	print("==================== SMOKE SUMMARY ====================")
@@ -1058,3 +1064,73 @@ func _run_place(id: String) -> void:
 	else:
 		_info("cleared %s in %.1fs (sim) / %.1fs (real)" % [id, t, (Time.get_ticks_msec() - t0) / 1000.0])
 	await get_tree().process_frame
+
+
+# ---------------------------------------------------------------- 7. そうじゅう
+## ひろい 場所の のりものの 操作（player.gd の is_steering）を 本物の アクションで 動かして 見る：
+## ← 1 びょうで 船が ひだりへ 80〜140 ど まわり、その場から ほぼ 動かない。はなして 0.5 びょうで カメラが 船の うしろ（10 ど いない）。
+## ↑ で 船の むきへ すすみ、↓ で うしろへ さがる（船も カメラも 向きが かわらない）
+func _check_steering(id: String) -> void:
+	Game.start_stage(id)
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	for i in 30:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var cam = lvl.camera
+	var where := "steer %s" % id
+	if not p.is_steering():
+		_fail("%s: のりものの 操作に なって いない" % where)
+	var flow := Vector3.ZERO
+	if lvl.flow_speed > 0.0 and lvl.path.is_valid():
+		flow = lvl.path.direction_at(p.global_position) * lvl.flow_speed   # ながれの ぶんは さしひく
+	var y0: float = HoverBody.yaw_for(p.heading)
+	var pos0: Vector3 = p.global_position
+	await _hold(["move_left"], 1.0)
+	await _hold([], 0.5)
+	var turned := rad_to_deg(angle_difference(y0, HoverBody.yaw_for(p.heading)))
+	var drift: Vector3 = p.global_position - pos0 - flow * 1.5
+	drift.y = 0.0
+	var cam_off := rad_to_deg(absf(angle_difference(cam.yaw, HoverBody.yaw_for(p.heading))))
+	_info("%s: ← 1s で %.1f ど、ずれ %.2f m、カメラの おくれ %.1f ど" % [where, turned, drift.length(), cam_off])
+	if turned < 80.0 or turned > 140.0:
+		_fail("%s: ← 1 びょうで 船が %.1f ど まわった（80〜140 の はず）" % [where, turned])
+	if drift.length() > 0.5:
+		_fail("%s: その場で まわる はずが %.2f m 動いた" % [where, drift.length()])
+	if cam_off > 10.0:
+		_fail("%s: カメラが 船の うしろに ついて こない（%.1f ど ずれ）" % [where, cam_off])
+	var h: Vector3 = p.heading
+	var y1: float = HoverBody.yaw_for(h)
+	pos0 = p.global_position
+	await _hold(["move_up"], 0.6)
+	var mv: Vector3 = p.global_position - pos0 - flow * 0.6
+	mv.y = 0.0
+	if mv.length() < 2.0 or mv.normalized().dot(h) < 0.8:
+		_fail("%s: ↑ で 船の むきへ すすまない（%.2f m、むきとの ずれ dot=%.2f）" % [where, mv.length(), mv.normalized().dot(h) if mv.length() > 0.01 else 0.0])
+	await _hold([], 0.4)
+	pos0 = p.global_position
+	await _hold(["move_down"], 0.8)
+	mv = p.global_position - pos0 - flow * 0.8
+	mv.y = 0.0
+	var flip := rad_to_deg(absf(angle_difference(y1, HoverBody.yaw_for(p.heading))))
+	var cam_flip := rad_to_deg(absf(angle_difference(y1, cam.yaw)))
+	if mv.length() < 1.0 or mv.normalized().dot(-h) < 0.8:
+		_fail("%s: ↓ で うしろへ さがらない（%.2f m）" % [where, mv.length()])
+	if flip > 2.0 or cam_flip > 3.0:
+		_fail("%s: ↓ で 船（%.1f ど）か カメラ（%.1f ど）が まわった" % [where, flip, cam_flip])
+	await _hold([], 0.2)
+	Game.unload_level()
+	await get_tree().process_frame
+
+
+## actions を sec びょう 押しつづける（物理フレームで 数える）
+func _hold(actions: Array, sec: float) -> void:
+	for a in actions:
+		Input.action_press(a)
+	var t := 0.0
+	while t < sec - 0.0001:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	for a in actions:
+		Input.action_release(a)

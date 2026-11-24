@@ -2,6 +2,11 @@ class_name FollowCamera
 extends Node3D
 ## 自動追尾カメラ。プレイヤーのうしろに回り込む。カメラ操作はいらない。
 ## くだ（tube）ステージでは道の向きを「前」にして、まっすぐ進みやすくする。
+## ひろい 場所で 船を のりものの ように うごかす ときは（Player.is_steering）、いつも 船の すぐ うしろに つく。
+## 船の 向きは なめらかに しか かわらないので、ここでは かるく おくれる だけに する（よわないように ゆらさない）。
+
+## のりものの ときの 回りこむ はやさ（1/秒）。まわって いる あいだの おくれは 約 12 ど、はなせば 0.3 びょうで ほぼ 0
+const STEER_FOLLOW := 9.5
 
 var target: Node3D = null
 var level: Node = null
@@ -89,7 +94,10 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector3(target.velocity.x, 0, target.velocity.z).length() > 1.0 if target is CharacterBody3D else true
 	var ty := _desired_yaw()
 	var yw := 1.0 - exp(-(2.6 if moving or tube_mode else 0.6) * delta)
-	if not tube_mode:
+	var steering: bool = target.has_method("is_steering") and target.is_steering()
+	if steering:
+		yw = 1.0 - exp(-STEER_FOLLOW * delta)
+	elif not tube_mode:
 		# カメラのほうへ下がるときは 回り込まない（くるくる回るのを防ぐ）
 		var cam_fwd := Vector3(-sin(yaw), 0, -cos(yaw))
 		var h: Vector3 = target.get("heading") if target.get("heading") != null else cam_fwd

@@ -1,7 +1,10 @@
 class_name Player
 extends HoverBody
 ## ミクロごう（プレイヤー）。
-## 操作：移動（カメラ基準）、action（おくすり／おうえん）、dash。
+## 操作：移動、action（おくすり／おうえん）、dash。
+## ひろい 場所（arena・rooms）は のりもの みたいに うごかす：←→ で その場で むきを かえ、↑ で まえへ、↓ で ゆっくり うしろへ。
+## カメラは いつも 船の うしろに つくので、まわると 景色が まわる。
+## くだ（tube）は カメラ基準：カメラが 道の むきを むき、←→ で くだを よこぎる。
 ## ハートは 3 つ。0 になると最後のチェックポイントへ戻る（ゲームオーバーなし）。
 
 signal hearts_changed(hearts: int)
@@ -13,6 +16,12 @@ const SPEED := 9.0
 const DASH_SPEED := 14.0
 const ACCEL := 32.0
 const SHOT_COOLDOWN := 0.32
+## のりものの 操作（ひろい 場所）。まわる はやさは 1 びょう おすと 約 110 ど（半回転は 1.7 びょう）
+const TURN_SPEED := 2.0
+const TURN_ACCEL := 18.0      # まわりはじめ（rad/s²）。ちょんと おしても くるっと ならない
+const TURN_STOP := 40.0       # はなしたら すぐ とまる（いきすぎは 2 ど くらい）
+const BACK_RATE := 0.45       # うしろへは まえの 半分より おそく
+const AIM_CONE := 40.0        # のりものの ときの じどうで ねらう はんい（船の まえ ±ど）
 const Projectile := preload("res://src/player/projectile.gd")
 
 var hearts := MAX_HEARTS
@@ -21,6 +30,8 @@ var heading := Vector3.FORWARD
 var control_enabled := true
 var speed_mult := 1.0
 var external_push := Vector3.ZERO
+## いまの まわる はやさ（rad/s。ひだりまわりが ＋）
+var turn_rate := 0.0
 var invulnerable := 0.0
 var shot_timer := 0.0
 var level: Node = null
@@ -133,16 +144,23 @@ func _physics_process(delta: float) -> void:
 			shoot = autopilot_shoot
 			dash = true
 		else:
-			input = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 			dash = Input.is_action_pressed("dash")
 			shoot = Input.is_action_pressed("action")
-			dir = _camera_relative(input)
+			if is_steering():
+				# ←→ と ↑↓ を べつべつに よむ（ななめでも まわる はやさ・すすむ はやさが へらない）
+				input = Vector2(Input.get_axis("move_left", "move_right"), Input.get_axis("move_up", "move_down"))
+				dir = _steer_input(input, delta)
+			else:
+				input = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+				dir = _camera_relative(input)
+	if not is_steering() or not control_enabled or _respawning or hit_stun > 0.0:
+		turn_rate = 0.0
 	if hit_stun > 0.0:
 		hit_stun -= delta
 	var target_speed := (DASH_SPEED if dash else SPEED) * speed_mult
 	var target_vel := dir * target_speed + external_push
 	steer(target_vel, ACCEL if hit_stun <= 0.0 else 5.0, delta)
-	if dir.length() > 0.1:
+	if dir.length() > 0.1 and not is_steering():
 		# slerp は 反対向きのとき 軸の正規化エラーを出すことがあるので、普通の補間＋正規化にする
 		var h := heading.lerp(dir, minf(1.0, 10.0 * delta))
 		heading = h.normalized() if h.length() > 0.05 else dir
@@ -150,13 +168,20 @@ func _physics_process(delta: float) -> void:
 
 	# 見た目
 	var yaw := HoverBody.yaw_for(heading)
-	model.rotation.y = lerp_angle(model.rotation.y, yaw, minf(1.0, 8.0 * delta))
+	if is_steering():
+		# 向きは もう なめらかに かわって いるので、そのまま 合わせる（カメラと ずれない）
+		model.rotation.y = yaw
+	else:
+		model.rotation.y = lerp_angle(model.rotation.y, yaw, minf(1.0, 8.0 * delta))
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	var lean := clampf(hv.length() / DASH_SPEED, 0.0, 1.0)
 	model.rotation.x = lerp(model.rotation.x, -0.18 * lean, 6.0 * delta)
 	var side := hv.length() > 0.5 and dir.length() > 0.1
 	var roll_target := 0.0
-	if side:
+	if is_steering():
+		# まがる ほうへ すこし かたむく（すすんで いる ときだけ）
+		roll_target = 0.3 * clampf(turn_rate / TURN_SPEED, -1.0, 1.0) * clampf(hv.length() / SPEED, 0.0, 1.0)
+	elif side:
 		var right := Vector3(-heading.z, 0, heading.x)
 		roll_target = -0.35 * clampf(dir.dot(right), -1.0, 1.0)
 	model.rotation.z = lerp(model.rotation.z, roll_target, 6.0 * delta)
@@ -189,6 +214,8 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 		if _stuck_count <= 2 and level.has_method("path_direction_at"):
 			# まず 3 m 後ろへ（くだなら道にそって）
 			var back: Vector3 = -level.path_direction_at(global_position) if level.path.is_valid() else -heading
+			if is_steering() and not level.path.is_valid():
+				back = -dir.normalized()   # すすもうと した むきの はんたいへ（うしろへ さがって はさまったら まえへ）
 			global_position += back * 3.0 + Vector3.UP * 0.5
 			velocity = back * 4.0
 			Game.say("はさまっちゃった！ ちょっと もどるね。", 2.0)
@@ -198,6 +225,29 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 			velocity = Vector3.ZERO
 			Game.say("あれ？ ぬけられない。チェックポイントから やりなおそう。", 3.0)
 		_stuck_from = global_position
+
+
+## のりものの 操作を つかうか（ひろい 場所で、自動操縦で ない とき）
+func is_steering() -> bool:
+	return autopilot_target == Vector3.INF and camera != null and not camera.get("tube_mode")
+
+
+## のりものの 操作：←→ で heading を まわし、↑↓ で heading の まえ／うしろへ。
+## うしろへ さがっても 船の むきは かわらない（カメラも くるっと まわらない）
+func _steer_input(input: Vector2, delta: float) -> Vector3:
+	var turn := -input.x
+	# スティックの すこしだけ たおした ところは ゆっくり（こまかく ねらえる）
+	var want := signf(turn) * pow(absf(turn), 1.4) * TURN_SPEED
+	var rate := TURN_ACCEL if absf(want) > absf(turn_rate) and signf(want) == signf(turn_rate) or turn_rate == 0.0 else TURN_STOP
+	turn_rate = move_toward(turn_rate, want, rate * delta)
+	if turn_rate != 0.0:
+		heading = heading.rotated(Vector3.UP, turn_rate * delta)
+		heading.y = 0.0
+		heading = heading.normalized()
+	var fwd := -input.y
+	if fwd < 0.0:
+		fwd *= BACK_RATE
+	return heading * fwd
 
 
 func _camera_relative(input: Vector2) -> Vector3:
@@ -217,13 +267,16 @@ func _camera_relative(input: Vector2) -> Vector3:
 func _shoot() -> void:
 	shot_timer = SHOT_COOLDOWN
 	var dir := heading
-	var target := _auto_aim()
+	var steering := is_steering()
+	var target := _auto_aim(steering)
 	if target != null:
 		var to := (target.global_position - global_position)
 		to.y = 0.0
 		if to.length() > 0.01:
 			dir = to.normalized()
-			heading = dir
+			# のりものの ときは 船の むきを かえない（たまは 船の まえの ほうへ とぶ）
+			if not steering:
+				heading = dir
 	var p := Projectile.new()
 	p.direction = dir
 	p.owner_level = level
@@ -232,7 +285,8 @@ func _shoot() -> void:
 	Sfx.play("shoot", randf_range(0.95, 1.1))
 
 
-func _auto_aim() -> Node3D:
+## front_only：船の まえ（AIM_CONE ど）の てきだけ ねらう（のりものの 操作の とき）
+func _auto_aim(front_only := false) -> Node3D:
 	var best: Node3D = null
 	var best_d := 16.0
 	var fallback: Node3D = null
@@ -248,6 +302,11 @@ func _auto_aim() -> Node3D:
 		if d < 0.1:
 			continue
 		var ang := rad_to_deg(heading.angle_to(to.normalized()))
+		if front_only:
+			if ang < AIM_CONE and d < best_d:
+				best = e
+				best_d = d
+			continue
 		if ang < 70.0 and d < best_d:
 			best = e
 			best_d = d
