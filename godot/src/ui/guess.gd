@@ -4,8 +4,8 @@ extends "res://src/ui/flow_screen.gd"
 ## - go の えらびは 押せなく ならないので、行き止まりに ならない（EpisodeDB.validate() が go を 1 つ 以上 求める）
 ## - さいしょに えらんだ 場所（first）を finished で 返す。あたり（hit）だったかは EpisodeDB.guess_is_hit() が 見る
 ## - 地図の しるしは 臓器の 位置に 置く。近すぎる しるしは おしはなして、臓器の 点と 線で つなぐ（重ならない）
-## - go を えらぶと、えらぶ ボタンの あった 所に「えらんだ 場所 ＋ しゅっぱつの ひとこと」の 箱が 出る
-##   （返事と つなげて ふきだしに 入れると 入りきらない）
+## - go を えらぶと、えらぶ ボタンの あった 所に「えらんだ 場所 ＋ だれの からだに 行くか」の 箱が 出る
+##   （返事と つなげて ふきだしに 入れると 入りきらない）。しゅっぱつの ひとこと（enter.say）は 次の たびの 画面（journey.gd）
 
 signal finished(first_guess: String)
 signal cancelled
@@ -14,7 +14,7 @@ signal cancelled
 const SAY_SIZE := 26
 const SAY_WIDTH := 540.0
 const SAY_LINES := 4
-## しゅっぱつの 箱（えらぶ ボタンの あった 所）：28 px、幅 640、3 行まで
+## しゅっぱつの 箱（えらぶ ボタンの あった 所）の 文：28 px、幅 640、3 行まで
 const DEPART_SIZE := 28
 const DEPART_WIDTH := 640.0
 const DEPART_LINES := 3
@@ -26,13 +26,14 @@ const BUBBLE_SIZE := Vector2(700, 212)
 const DEPART_BOX := Vector2(700, 276)   # しゅっぱつの 箱が 使える 高さ（えらぶ ボタン 3 つ分）
 const LIST_Y := 258.0
 const MARKS := ["Ａ", "Ｂ", "Ｃ"]
+const BodyMap := preload("res://src/ui/body_map.gd")
 const COLORS := [T.PINK, T.MINT, T.YELLOW]
 
 var ep: Dictionary
 var first := ""                 # さいしょの よそう（place）
 var buttons: Dictionary = {}    # place -> えらぶ ボタン（テストが 見る）
 var marks: Dictionary = {}      # place -> 地図の しるし
-var _map: Control
+var _map: BodyMap
 var _lines: Control             # 臓器の 点と、しるしへの 線
 var _anchors: Dictionary = {}   # place -> 臓器の 点（地図の 中の 座標）
 var _centers: Dictionary = {}   # place -> しるしの 中心
@@ -49,6 +50,11 @@ static func say_fits(text: String) -> bool:
 
 static func depart_fits(text: String) -> bool:
 	return lines_of(text, DEPART_SIZE, DEPART_WIDTH) <= DEPART_LINES
+
+
+## しゅっぱつの 箱の 文（だれの からだに 行くか。はいりかたと ピコの ひとことは たびの 画面で）
+static func depart_line(e: Dictionary) -> String:
+	return "ミクロごうに のって、%sの からだの なかへ！" % EpisodeDB.speaker(e["patient"])["name"]
 
 
 func setup(e: Dictionary) -> void:
@@ -140,24 +146,12 @@ func _set_face(mood: String) -> void:
 	_face_box.add_child(T.portrait("pico", mood, Vector2(90, 90), EpisodeDB.PICO["color"]))
 
 
-## からだの地図。絵は T.bodymap()（bodymap_<患者>.png → bodymap_hana.png → 仮の SVG）。無ければ コードで 描く
+## からだの地図（body_map.gd：絵 か、患者ごとに コードで 描く 仮の 地図）
 func _build_map(box: Control) -> void:
-	_map = Control.new()
+	_map = BodyMap.new()
+	_map.setup(ep["patient"], MAP_SIZE)
 	_map.position = MAP_POS
-	_map.size = MAP_SIZE
-	_map.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_map)
-	var tex := T.bodymap(ep["patient"])
-	if tex != null:
-		var tr := TextureRect.new()
-		tr.texture = tex
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_map.add_child(tr)
-	else:
-		_map.draw.connect(_draw_body)
 	_lines = Control.new()
 	_lines.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -165,21 +159,10 @@ func _build_map(box: Control) -> void:
 	_map.add_child(_lines)
 
 
-## 地図の 絵が 実際に 出ている わく（たてよこの 比を 保って 中央に 置かれる）。ORGAN_POS は この わくの 中の 0〜1
-func _image_rect() -> Rect2:
-	var tex := T.bodymap(ep["patient"])
-	if tex == null:
-		return Rect2(Vector2.ZERO, MAP_SIZE)
-	var ts := tex.get_size()
-	var k := minf(MAP_SIZE.x / ts.x, MAP_SIZE.y / ts.y)
-	return Rect2((MAP_SIZE - ts * k) * 0.5, ts * k)
-
-
 ## しるしの 中心を 決める：臓器の 点から 始めて、近すぎる もの どうしを おしはなす（くち と はな など）
 func _place_marks(places: Array[String]) -> void:
-	var r := _image_rect()
 	for p in places:
-		_anchors[p] = r.position + EpisodeDB.ORGAN_POS[p] * r.size
+		_anchors[p] = _map.to_local_pos(EpisodeDB.ORGAN_POS[p])
 		_centers[p] = _anchors[p]
 	for n in 30:
 		for a in places:
@@ -232,45 +215,6 @@ func _highlight(place: String) -> void:
 		var on: bool = p == place and not m.disabled
 		m.scale = Vector2.ONE * (1.2 if on else 1.0)
 		m.z_index = 1 if on else 0
-
-
-## 絵が 無い ときの 仮の からだの 絵（だれにでも 使える 形。かみの 色だけ 患者の 色）。臓器は ORGAN_POS の 位置
-func _draw_body() -> void:
-	var w := MAP_SIZE.x
-	var h := MAP_SIZE.y
-	var skin := Color(1.0, 0.9, 0.8)
-	var line := Color(0.35, 0.29, 0.33)
-	var col: Color = EpisodeDB.speaker(ep["patient"])["color"]
-	var P := func(x: float, y: float) -> Vector2: return Vector2(w * x, h * y)
-	# うで・あし
-	for sx in [-1.0, 1.0]:
-		_map.draw_style_box(T.rounded(skin, 28, 3, line), Rect2(w * (0.5 + sx * 0.3) - 28, h * 0.28, 56, h * 0.4))
-		_map.draw_style_box(T.rounded(Color(0.62, 0.72, 1.0), 26, 3, line), Rect2(w * (0.5 + sx * 0.1) - 29, h * 0.68, 58, h * 0.28))
-		_ellipse(P.call(0.5 + sx * 0.1, 0.965), 34, 13, Color(1.0, 0.82, 0.48))
-	# くび・どう・あたま
-	_map.draw_rect(Rect2(w * 0.44, h * 0.22, w * 0.12, h * 0.06), skin)
-	_map.draw_style_box(T.rounded(Color(0.9, 0.95, 1.0), 46, 3, line), Rect2(w * 0.27, h * 0.265, w * 0.46, h * 0.5))
-	_map.draw_circle(P.call(0.5, 0.125), w * 0.172, line)
-	T.draw_face(_map, P.call(0.5, 0.125), w * 0.165, col, "happy")
-	# のう・はい・しんぞう・い・ちょう・けっかん（かんたんな 形）
-	_ellipse(P.call(0.5, 0.075), w * 0.1, h * 0.032, Color(0.95, 0.68, 0.75))
-	_map.draw_line(P.call(0.5, 0.25), P.call(0.5, 0.36), Color(0.93, 0.62, 0.55), 9)
-	_map.draw_line(P.call(0.5, 0.36), P.call(0.56, 0.5), Color(0.93, 0.62, 0.55), 9)
-	_ellipse(P.call(0.38, 0.42), w * 0.085, h * 0.085, Color(0.96, 0.75, 0.8))
-	_ellipse(P.call(0.62, 0.42), w * 0.085, h * 0.085, Color(0.96, 0.75, 0.8))
-	T.draw_heart(_map, P.call(0.56, 0.405), w * 0.045, Color(0.9, 0.35, 0.42))
-	_ellipse(P.call(0.57, 0.54), w * 0.1, h * 0.04, Color(0.98, 0.72, 0.5))
-	for k in 3:
-		_map.draw_style_box(T.rounded(Color(0.95, 0.66, 0.6), 12, 0), Rect2(w * 0.33, h * (0.61 + k * 0.04), w * 0.34, h * 0.028))
-	_map.draw_dashed_line(P.call(0.2, 0.33), P.call(0.2, 0.64), Color(0.9, 0.35, 0.42), 5, 12)
-
-
-func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
-	var pts := PackedVector2Array()
-	for i in 24:
-		var a := TAU * i / 24.0
-		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
-	_map.draw_colored_polygon(pts, col)
 
 
 ## はみ出しの 説明（無ければ ""）：しるしが 重ならず 地図の 中に あり、ふきだしと しゅっぱつの 箱が 入って いるか
@@ -349,7 +293,7 @@ func choose(place: String) -> void:
 				break
 
 
-## しゅっぱつの 箱：えらんだ 場所（色つきの ふだ）＋ しゅっぱつの ひとこと
+## しゅっぱつの 箱：えらんだ 場所（色つきの ふだ）＋ だれの からだに 行くか
 func _show_depart(c: Dictionary, idx: int) -> void:
 	var col: Color = COLORS[idx % COLORS.size()]
 	_depart_box.add_theme_stylebox_override("panel", T.rounded(Color.WHITE, 28, 5, col.darkened(0.25)))
@@ -361,7 +305,7 @@ func _show_depart(c: Dictionary, idx: int) -> void:
 	chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	chip.add_child(T.label("%s　%s" % [MARKS[idx % MARKS.size()], EpisodeDB.place_label(c)], 32))
 	vb.add_child(chip)
-	var depart := T.body(ep["guess"]["depart"], DEPART_SIZE)
+	var depart := T.body(depart_line(ep), DEPART_SIZE)
 	depart.custom_minimum_size = Vector2(DEPART_WIDTH, 0)
 	vb.add_child(depart)
 	_depart_box.visible = true

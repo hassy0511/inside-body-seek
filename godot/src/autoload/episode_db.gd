@@ -8,6 +8,7 @@ extends Node
 ## - PATIENTS と PATTERNS は「"キー": {"name": "…"」の 形で 1 行に 書く（患者の 名前と、げんいんの タイプの 名前を 読む）
 ## - 文は ひらがな・カタカナ・わかち書き。漢字は「い（胃）」の ように（ ）の 中だけ（validate() が 調べる）
 ## - 大事な 種あかしは HUD（intro・goal_say など。時間で 消える）に 書かない。after（ボタンで 進む）と karte に 書く
+## - からだの 入口と 出口は 話ごとに "enter"／"exit"：{"way": ENTRANCES／EXITS の キー, "say": ピコの ひとこと}（たびの 画面に 出る）
 
 const SEASON_COMPLETE := false   # 10 話 そろったら true（さいごの カルテの あとに エンディングを 出す）
 
@@ -36,6 +37,37 @@ const ORGAN_POS := {
 	"stomach": Vector2(0.58, 0.54), "intestine": Vector2(0.50, 0.66), "vessel": Vector2(0.20, 0.58),
 }
 
+## からだの 入口と 出口（カルテの "enter"／"exit" の "way"）。たびの 画面（journey.gd）が ミクロごうを 動かす。
+##   at ＝ からだの 出入りする 点（ROUTE_POS か ORGAN_POS の 名前）
+##   out ＝ at から からだの 外へ 出る 道（地図の 中の 0〜1。1 を こえて よい。さいごの 点が 外で 止まる 所）
+##   name ＝ 画面の ふだ（「いりぐち： …」「でぐち： …」。9 字まで）、go ＝ 動いている あいだの ひとこと（地図の 下。18 字まで）
+##   （"name" を 先頭に 書かない：tools/build_dashboard.py が「"キー": {"name"」を 患者と みなす）
+##   fx ＝ 出入りの ときの しかけ（water：おみずの つぶ ／ open：おおきく あーん ／ breath：いき ／ spray：おみずが ふきだす ／
+##        puff：くうきの かたまり ／ drop：ぽとん ／ spark：きらきら）
+const ENTRANCES := {
+	"mouth": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "open", "name": "くち（口）", "go": "くち（口）から はいるよ！"},
+	"swallow": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "water", "name": "おみずで ごくん", "go": "おみずと いっしょに ごくん！"},
+	"nose": {"at": "nose", "out": [Vector2(0.84, 0.13), Vector2(1.0, 0.09)], "fx": "breath", "name": "はな（鼻）", "go": "いきと いっしょに すいこまれる！"},
+	"wound": {"at": "knee", "out": [Vector2(0.80, 0.84), Vector2(1.0, 0.80)], "fx": "spark", "name": "ひざの きずぐち", "go": "ひざの きずぐちから はいるよ！"},
+}
+const EXITS := {
+	"gargle": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "spray", "name": "うがい", "go": "うがいの おみずで そとへ！"},
+	"burp": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "puff", "name": "げっぷ", "go": "げっぷに のって そとへ！"},
+	"sneeze": {"at": "nose", "out": [Vector2(0.84, 0.13), Vector2(1.0, 0.09)], "fx": "puff", "name": "くしゃみ", "go": "くしゃみで そとへ！"},
+	"poop": {"at": "bottom", "out": [Vector2(0.50, 0.80), Vector2(0.72, 0.86), Vector2(1.0, 0.86)], "fx": "drop", "name": "うんち", "go": "うんちと いっしょに ぽとん！"},
+	"wound": {"at": "knee", "out": [Vector2(0.80, 0.84), Vector2(1.0, 0.80)], "fx": "spark", "name": "ひざの きずぐち", "go": "きずぐちから そとへ！"},
+}
+## 道の 点のうち 臓器（ORGAN_POS）で ない もの：のど・おしり・ひざ
+const ROUTE_POS := {"throat": Vector2(0.50, 0.27), "bottom": Vector2(0.50, 0.74), "knee": Vector2(0.43, 0.86)}
+## からだの 中の 道（となり どうし）。3 つめは あいだに はさむ 点（しょくどうの まがりかど など）。
+## 入口から さいしょの 場所へ、さいごの 場所から 出口へは、この 道を いちばん 少ない 数で たどる（route()）
+const ROUTE_LINKS := [
+	["mouth", "throat"], ["nose", "throat"], ["throat", "esophagus"], ["throat", "lungs", [Vector2(0.42, 0.33)]],
+	["esophagus", "stomach", [Vector2(0.50, 0.44)]], ["stomach", "intestine"], ["intestine", "bottom"],
+	["knee", "vessel", [Vector2(0.30, 0.72)]], ["vessel", "heart", [Vector2(0.30, 0.36)]], ["heart", "heart2"], ["heart", "lungs"],
+	["vessel", "brain", [Vector2(0.24, 0.30), Vector2(0.40, 0.14)]],
+]
+
 ## はじめて カルテを ひらいた ときだけ、そうだんの 前に 出す（1 ページ）
 const OPENING := [
 	{"who": "pico", "text": "ようこそ、ミクロしんりょうじょへ！ ぼくは ドクター・ピコ。\nきみは みならいの ちいさな おいしゃさん。からだの なかから みんなを なおしてあげよう！"},
@@ -46,9 +78,9 @@ const MISSION_TYPES := ["defeat", "boss", "cheer", "collect", "deliver", "gate",
 const SPAWN_LOCKED := ["player", "goal", "path", "checkpoint"]
 ## 文の 長さの 上限（字）。HUD に 出る 文（intro〜clear_say）は 短く：子どもは 操縦しながら 読む
 const MAX := {
-	"title": 24, "line": 90, "q": 40, "say": 70, "depart": 40, "label": 20,
+	"title": 24, "line": 90, "q": 40, "say": 70, "label": 20, "enter": 60, "exit": 60,
 	"intro": 45, "goal_say": 45, "clear_say": 30, "hint": 60, "mission": 30, "each_say": 30, "done_say": 30,
-	"banner": 20, "thanks": 60, "exit": 60, "karte": 62, "quiz_q": 40, "quiz_choice": 20, "explain": 90,
+	"banner": 20, "thanks": 60, "karte": 62, "quiz_q": 40, "quiz_choice": 20, "explain": 90,
 }
 ## 「い」「は」「ち」＋ 助詞 に 見えるが 臓器では ない ことば（_check_text が 見のがす）
 const OK_WORDS := ["はは", "いも", "はで"]
@@ -67,8 +99,9 @@ const EPISODES: Array[Dictionary] = [
 				{"place": "mouth", "go": true, "hit": true, "say": "うん、くち（口）が あやしいね！\nは（歯）が あるのは くちの なか。しらべに いこう！"},
 				{"place": "nose", "say": "いい かんがえだね！ はな（鼻）は くちの おとなり。\nでも いたいのは は（歯）。は（歯）が あるのは どこかな？"},
 			],
-			"depart": "はなちゃん、おおきく あーん！ ミクロごう、くちから はっしん！",
 		},
+		"enter": {"way": "mouth", "say": "はなちゃん、おおきく あーん！ ミクロごう、くちから はっしん！"},
+		"exit": {"way": "gargle", "say": "のどの おくで まわれみぎ！ ガラガラ うがいの おみずに のって、くちから そとへ ぴゅーっ！"},
 		"scenes": [
 			{
 				"place": "mouth",
@@ -90,7 +123,6 @@ const EPISODES: Array[Dictionary] = [
 		],
 		"karte": {
 			"thanks": "ズキズキが らくに なったよ。ありがとう！ はいしゃさんにも いってくるね。",
-			"exit": "のどの おくで まわれみぎ！ ガラガラ うがいの おみずに のって、くちから そとへ ぴゅーっ！",
 			"what": "むしばきんが「さん」を だして、おくの は（歯）を とかしていた。",
 			"why": "あまい ものを たべた あと、はみがきを しないで ねてしまった。",
 			"next": "ねる まえは かならず はみがき。あなの あいた は（歯）は、はいしゃさんに なおしてもらおう。",
@@ -110,8 +142,9 @@ const EPISODES: Array[Dictionary] = [
 				{"place": "mouth", "say": "いい かんがえだね！ くち（口）は たべものの いりぐち。\nのみこんだ ごはんが たまるのは どこかな？"},
 				{"place": "stomach", "go": true, "hit": true, "say": "うん、ごはんが たまる い（胃）が あやしいね！\nのどから しょくどう（食道）を とおって いこう。"},
 			],
-			"depart": "おとうさん、おみずと いっしょに ごくん！ ミクロごう、はっしん！",
 		},
+		"enter": {"way": "swallow", "say": "おとうさん、おみずと いっしょに ごくん！ ミクロごう、はっしん！"},
+		"exit": {"way": "burp", "say": "い（胃）の いりぐちまで もどって、げっぷに のって くちから そとへ ぽーん！"},
 		"scenes": [
 			{
 				"place": "esophagus",
@@ -150,7 +183,6 @@ const EPISODES: Array[Dictionary] = [
 		],
 		"karte": {
 			"thanks": "おなかが らくに なってきたよ。ありがとう！ これからは ゆっくり たべるね。",
-			"exit": "い（胃）の いりぐちまで もどって、げっぷに のって くちから そとへ ぽーん！",
 			"what": "い（胃）の かべに ピロリきんが すみついていた。おおきな かたまりも い（胃）を つかれさせていた。",
 			"why": "いそいで たべて、よく かんでいなかった。ピロリきんは、きづかない うちに い（胃）に ながく すんでいる ことが ある。",
 			"next": "ひとくち 30かい、よく かんで たべよう。ピロリきんは びょういんで しらべて、おくすりで なおせるよ。",
@@ -170,8 +202,9 @@ const EPISODES: Array[Dictionary] = [
 				{"place": "intestine", "go": true, "hit": true, "say": "いい よそうだね！ おぼえておこう。\nたべものが とおる じゅんばんに、まず い（胃）から しらべるよ。"},
 				{"place": "brain", "say": "いい かんがえだね！ でも のう（脳）は あたまの なか。\nいたいのは おなか。おなかに あるのは どこかな？"},
 			],
-			"depart": "はなちゃん、おみずと いっしょに ごくん！ ミクロごう、はっしん！",
 		},
+		"enter": {"way": "swallow", "say": "はなちゃん、おみずと いっしょに ごくん！ ミクロごう、はっしん！"},
+		"exit": {"way": "poop", "say": "かえりは…… うんちと いっしょに ぽとん！ ちゃんと あらうから だいじょうぶ。"},
 		"scenes": [
 			{
 				"place": "stomach",
@@ -218,7 +251,6 @@ const EPISODES: Array[Dictionary] = [
 		],
 		"karte": {
 			"thanks": "おなかが いたくなくなってきた！ ありがとう！ やさいも たべてみるね。",
-			"exit": "かえりは…… うんちと いっしょに ぽとん！ ちゃんと あらうから だいじょうぶ。",
 			"what": "ちょう（腸）で あくだまきんが ふえて、おなかの ちょうしが わるくなっていた。い（胃）は げんき だった。",
 			"why": "あまい もの ばかりで、やさいが たりなかった。",
 			"next": "やさいと ヨーグルトも たべよう。おなかが すごく いたい ときや ずっと いたい ときは、すぐ おとなに いおう。",
@@ -325,6 +357,70 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 	return st
 
 
+## 地図の 点の 位置（0〜1）：臓器（ORGAN_POS）か 道の 点（ROUTE_POS）。無ければ (-1, -1)
+func map_point(key: String) -> Vector2:
+	return ORGAN_POS.get(key, ROUTE_POS.get(key, Vector2(-1, -1)))
+
+
+## からだの 中の 道：点 a から 点 b まで（ROUTE_LINKS を いちばん 少ない 数で たどる）。地図の 中の 0〜1 の 点の 列。
+## a と b が 同じなら その 1 点。道が 無ければ 空
+func route(a: String, b: String) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if map_point(a).x < 0.0 or map_point(b).x < 0.0:
+		return out
+	var prev := {a: ""}
+	var queue: Array[String] = [a]
+	while not queue.is_empty() and not prev.has(b):
+		var cur: String = queue.pop_front()
+		for l in ROUTE_LINKS:
+			for k in 2:
+				if l[k] == cur and not prev.has(l[1 - k]):
+					prev[l[1 - k]] = cur
+					queue.append(l[1 - k])
+	if not prev.has(b):
+		return out
+	var keys: Array[String] = [b]
+	while keys[0] != a:
+		keys.push_front(prev[keys[0]])
+	for i in keys.size():
+		if i > 0:
+			out.append_array(_link_mids(keys[i - 1], keys[i]))
+		out.append(map_point(keys[i]))
+	return out
+
+
+## a から b への 道の あいだの 点（書いた 向きと 逆なら 逆順）
+func _link_mids(a: String, b: String) -> PackedVector2Array:
+	for l in ROUTE_LINKS:
+		if l.size() > 2 and l[0] == a and l[1] == b:
+			return PackedVector2Array(l[2])
+		if l.size() > 2 and l[0] == b and l[1] == a:
+			var r := PackedVector2Array(l[2])
+			r.reverse()
+			return r
+	return PackedVector2Array()
+
+
+## たびの 画面の 中身。mode ＝ "enter"（外 → 入口 → さいしょの 場所）か "exit"（さいごの 場所 → 出口 → 外）。
+## 返す もの：way（ENTRANCES／EXITS の 1 件）、say（ピコの ひとこと）、place（さいしょ／さいごの 場所 id）、
+## inside（からだの 中の 道。入口の 点 … 場所 の 順。exit も 同じ 向き）、out（入口の 点から 外への 道。さいごが 外）
+func journey(ep: Dictionary, mode: String) -> Dictionary:
+	var d: Dictionary = ep.get(mode, {})
+	var ways: Dictionary = ENTRANCES if mode == "enter" else EXITS
+	var way: Dictionary = ways.get(d.get("way", ""), {})
+	var scenes: Array = ep.get("scenes", [])
+	var place: String = "" if scenes.is_empty() else scenes[0 if mode == "enter" else scenes.size() - 1].get("place", "")
+	var inside := route(way.get("at", ""), place) if not way.is_empty() else PackedVector2Array()
+	var out := PackedVector2Array([map_point(way.get("at", ""))])
+	out.append_array(PackedVector2Array(way.get("out", [])))
+	if inside.is_empty() or out[0].x < 0.0:
+		# データの まちがい（validate() が 止める）。それでも 画面が こわれない ように、場所から 横へ 出入りする
+		var pp := map_point(place) if map_point(place).x >= 0.0 else Vector2(0.5, 0.5)
+		inside = PackedVector2Array([pp])
+		out = PackedVector2Array([pp, Vector2(1.0, pp.y)])
+	return {"way": way, "say": d.get("say", ""), "place": place, "inside": inside, "out": out}
+
+
 ## ずかんで 読みかえす カルテ（CardPopup が "karte" を 見て カルテの 紙を 出す）
 func karte_card(ep: Dictionary) -> Dictionary:
 	return {"tag": "カルテ %d" % ep["no"], "title": ep["title"], "karte": ep["id"]}
@@ -410,104 +506,150 @@ func validate() -> Array[String]:
 			for t in [cards[key]["title"], cards[key]["text"]]:
 				for p in text_problems(t):
 					bad.append("場所 %s の カード %s: %s" % [pid, key, p])
+	_check_ways(bad)
 	var no := 0
 	for ep in EPISODES:
 		no += 1
-		var id: String = ep["id"]
-		if id != "ep%02d" % no or int(ep["no"]) != no:
-			bad.append("%s: id と no は ep01 から 順番に" % id)
-		if not PATIENTS.has(ep["patient"]):
-			bad.append("%s: patient が PATIENTS に ない" % id)
-		if patterns(ep).size() < 1 or patterns(ep).size() > 2:
-			bad.append("%s: pattern は 1〜2 こ（「A・C」の ように 書く）" % id)
-		for p in patterns(ep):
-			if not PATTERNS.has(p):
-				bad.append("%s: pattern「%s」が PATTERNS に ない" % [id, p])
-		_check_text(bad, id + " title", ep["title"], MAX["title"])
-		_check_lines(bad, id + " consult", ep.get("consult", []))
-		if ep.has("guess"):
-			var g: Dictionary = ep["guess"]
-			var go := 0
-			var seen_places: Array = []
-			_check_text(bad, id + " guess.q", g["q"], MAX["q"])
-			_check_text(bad, id + " guess.depart", g["depart"], MAX["depart"])
-			if g["choices"].size() < 2 or g["choices"].size() > 3:
-				bad.append("%s: guess.choices は 2〜3 こ" % id)
-			for c in g["choices"]:
-				if seen_places.has(c["place"]):
-					bad.append("%s: guess の 場所「%s」が 2 回 ある" % [id, c["place"]])
-				seen_places.append(c["place"])
-				if not ORGAN_POS.has(c["place"]):
-					bad.append("%s: guess の 場所「%s」が ORGAN_POS に ない" % [id, c["place"]])
-				if place_label(c) == "":
-					bad.append("%s: guess の 場所「%s」に label が いる" % [id, c["place"]])
-				else:
-					_check_text(bad, id + " guess.label", place_label(c), MAX["label"])
-				_check_text(bad, id + " guess.say", c["say"], MAX["say"])
-				if c.get("go", false):
-					go += 1
-				elif c.get("hit", false):
-					bad.append("%s: guess の「%s」は hit なのに go で ない（はずれと 言った あとで あたりと 言う ことに なる）" % [id, c["place"]])
-			if go == 0:
-				bad.append("%s: guess に go: true の えらびが ない（行き止まりに なる）" % id)
-		var n: int = ep["scenes"].size()
-		if n < 1 or n > 3:
-			bad.append("%s: scenes は 1〜3 こ" % id)
-		for i in n:
-			var sc: Dictionary = ep["scenes"][i]
-			var where := "%s scene %d" % [id, i]
-			if not StageDB.stage_ids().has(sc.get("place", "")):
-				bad.append("%s: place「%s」が StageDB に ない" % [where, sc.get("place", "")])
-				continue
-			_check_text(bad, where + " intro", sc.get("intro", ""), MAX["intro"])
-			for key in ["goal_say", "clear_say"]:
-				if sc.has(key):
-					_check_text(bad, where + " " + key, sc[key], MAX[key])
-			if not (sc.get("hints") is Array):
-				bad.append("%s: hints を 書く（無ければ []。場所の ヒントは 引きつがない）" % where)
-			for h in sc.get("hints", []):
-				_check_text(bad, where + " hints", h.get("text", ""), MAX["hint"])
-				if h.has("text_touch"):
-					_check_text(bad, where + " hints", h["text_touch"], MAX["hint"])
-				if not h.has("at"):
-					bad.append("%s: hints に at が ない" % where)
-			if sc.has("arrow") and sc["arrow"] != "nearest":
-				bad.append("%s: arrow は \"nearest\" だけ" % where)
-			var ms: Array = sc.get("missions", [])
-			if ms.is_empty() or ms[ms.size() - 1].get("type", "") != "reach":
-				bad.append("%s: missions の さいごは reach に する" % where)
-			for m in ms:
-				if not MISSION_TYPES.has(m.get("type", "")):
-					bad.append("%s: 知らない ミッション type「%s」" % [where, m.get("type", "")])
-				_check_text(bad, where + " mission.text", m.get("text", ""), MAX["mission"])
-				for t in m.get("each_say", []):
-					_check_text(bad, where + " each_say", t, MAX["each_say"])
-				if m.has("done_say"):
-					_check_text(bad, where + " done_say", m["done_say"], MAX["done_say"])
-			var spawn: Dictionary = sc.get("spawn", {})
-			for key in spawn.keys():
-				if not ["skip", "swap"].has(key):
-					bad.append("%s: spawn の 知らない キー「%s」" % [where, key])
-			for p in spawn.get("skip", []) + spawn.get("swap", {}).keys():
-				if SPAWN_LOCKED.has(String(p).get_slice("_", 0)):
-					bad.append("%s: spawn で %s は かえられない" % [where, p])
-			if i == n - 1 and not sc.has("after"):
-				bad.append("%s: さいごの 場面には after を 書く（原因の 種あかしは ボタンで 進む 画面に）" % where)
-			if sc.has("after"):
-				_check_text(bad, where + " after.banner", sc["after"].get("banner", "—"), MAX["banner"])
-				_check_lines(bad, where + " after", sc["after"].get("lines", []))
-				if sc["after"].has("lines_hit"):
-					_check_lines(bad, where + " after.lines_hit", sc["after"]["lines_hit"])
-		for key in ["what", "why", "next"]:
-			_check_text(bad, "%s karte.%s" % [id, key], ep["karte"].get(key, ""), MAX["karte"])
-		for key in ["thanks", "exit"]:
-			if ep["karte"].has(key):
-				_check_text(bad, "%s karte.%s" % [id, key], ep["karte"][key], MAX[key])
-		var q: Dictionary = ep["quiz"]
-		_check_text(bad, id + " quiz.q", q["q"], MAX["quiz_q"])
-		_check_text(bad, id + " quiz.explain", q["explain"], MAX["explain"])
-		if q["choices"].size() != 3 or int(q["answer"]) < 0 or int(q["answer"]) > 2:
-			bad.append("%s: quiz は 3 たく、answer は 0〜2" % id)
-		for c in q["choices"]:
-			_check_text(bad, id + " quiz.choices", c, MAX["quiz_choice"])
+		bad.append_array(validate_episode(ep, no))
 	return bad
+
+
+## 1 話の データの まちがい（no ＝ 何話目か）。validate() が 全部の 話に 呼ぶ。テストは こわした 写しも わたす
+func validate_episode(ep: Dictionary, no: int) -> Array[String]:
+	var bad: Array[String] = []
+	var id: String = ep["id"]
+	if id != "ep%02d" % no or int(ep["no"]) != no:
+		bad.append("%s: id と no は ep01 から 順番に" % id)
+	if not PATIENTS.has(ep["patient"]):
+		bad.append("%s: patient が PATIENTS に ない" % id)
+	if patterns(ep).size() < 1 or patterns(ep).size() > 2:
+		bad.append("%s: pattern は 1〜2 こ（「A・C」の ように 書く）" % id)
+	for p in patterns(ep):
+		if not PATTERNS.has(p):
+			bad.append("%s: pattern「%s」が PATTERNS に ない" % [id, p])
+	_check_text(bad, id + " title", ep["title"], MAX["title"])
+	_check_lines(bad, id + " consult", ep.get("consult", []))
+	if ep.has("guess"):
+		var g: Dictionary = ep["guess"]
+		var go := 0
+		var seen_places: Array = []
+		_check_text(bad, id + " guess.q", g["q"], MAX["q"])
+		if g.has("depart"):
+			bad.append("%s: guess.depart は もう 使わない。しゅっぱつの ひとことは \"enter\": {\"way\": …, \"say\": …} の say に 書く" % id)
+		if g["choices"].size() < 2 or g["choices"].size() > 3:
+			bad.append("%s: guess.choices は 2〜3 こ" % id)
+		for c in g["choices"]:
+			if seen_places.has(c["place"]):
+				bad.append("%s: guess の 場所「%s」が 2 回 ある" % [id, c["place"]])
+			seen_places.append(c["place"])
+			if not ORGAN_POS.has(c["place"]):
+				bad.append("%s: guess の 場所「%s」が ORGAN_POS に ない" % [id, c["place"]])
+			if place_label(c) == "":
+				bad.append("%s: guess の 場所「%s」に label が いる" % [id, c["place"]])
+			else:
+				_check_text(bad, id + " guess.label", place_label(c), MAX["label"])
+			_check_text(bad, id + " guess.say", c["say"], MAX["say"])
+			if c.get("go", false):
+				go += 1
+			elif c.get("hit", false):
+				bad.append("%s: guess の「%s」は hit なのに go で ない（はずれと 言った あとで あたりと 言う ことに なる）" % [id, c["place"]])
+		if go == 0:
+			bad.append("%s: guess に go: true の えらびが ない（行き止まりに なる）" % id)
+	var n: int = ep["scenes"].size()
+	if n < 1 or n > 3:
+		bad.append("%s: scenes は 1〜3 こ" % id)
+	for i in n:
+		var sc: Dictionary = ep["scenes"][i]
+		var where := "%s scene %d" % [id, i]
+		if not StageDB.stage_ids().has(sc.get("place", "")):
+			bad.append("%s: place「%s」が StageDB に ない" % [where, sc.get("place", "")])
+			continue
+		_check_text(bad, where + " intro", sc.get("intro", ""), MAX["intro"])
+		for key in ["goal_say", "clear_say"]:
+			if sc.has(key):
+				_check_text(bad, where + " " + key, sc[key], MAX[key])
+		if not (sc.get("hints") is Array):
+			bad.append("%s: hints を 書く（無ければ []。場所の ヒントは 引きつがない）" % where)
+		for h in sc.get("hints", []):
+			_check_text(bad, where + " hints", h.get("text", ""), MAX["hint"])
+			if h.has("text_touch"):
+				_check_text(bad, where + " hints", h["text_touch"], MAX["hint"])
+			if not h.has("at"):
+				bad.append("%s: hints に at が ない" % where)
+		if sc.has("arrow") and sc["arrow"] != "nearest":
+			bad.append("%s: arrow は \"nearest\" だけ" % where)
+		var ms: Array = sc.get("missions", [])
+		if ms.is_empty() or ms[ms.size() - 1].get("type", "") != "reach":
+			bad.append("%s: missions の さいごは reach に する" % where)
+		for m in ms:
+			if not MISSION_TYPES.has(m.get("type", "")):
+				bad.append("%s: 知らない ミッション type「%s」" % [where, m.get("type", "")])
+			_check_text(bad, where + " mission.text", m.get("text", ""), MAX["mission"])
+			for t in m.get("each_say", []):
+				_check_text(bad, where + " each_say", t, MAX["each_say"])
+			if m.has("done_say"):
+				_check_text(bad, where + " done_say", m["done_say"], MAX["done_say"])
+		var spawn: Dictionary = sc.get("spawn", {})
+		for key in spawn.keys():
+			if not ["skip", "swap"].has(key):
+				bad.append("%s: spawn の 知らない キー「%s」" % [where, key])
+		for p in spawn.get("skip", []) + spawn.get("swap", {}).keys():
+			if SPAWN_LOCKED.has(String(p).get_slice("_", 0)):
+				bad.append("%s: spawn で %s は かえられない" % [where, p])
+		if i == n - 1 and not sc.has("after"):
+			bad.append("%s: さいごの 場面には after を 書く（原因の 種あかしは ボタンで 進む 画面に）" % where)
+		if sc.has("after"):
+			_check_text(bad, where + " after.banner", sc["after"].get("banner", "—"), MAX["banner"])
+			_check_lines(bad, where + " after", sc["after"].get("lines", []))
+			if sc["after"].has("lines_hit"):
+				_check_lines(bad, where + " after.lines_hit", sc["after"]["lines_hit"])
+	for key in ["what", "why", "next"]:
+		_check_text(bad, "%s karte.%s" % [id, key], ep["karte"].get(key, ""), MAX["karte"])
+	if ep["karte"].has("thanks"):
+		_check_text(bad, "%s karte.thanks" % id, ep["karte"]["thanks"], MAX["thanks"])
+	if ep["karte"].has("exit"):
+		bad.append("%s: karte.exit は もう 使わない。出口の ひとことは \"exit\": {\"way\": …, \"say\": …} の say に 書く" % id)
+	_check_journey(bad, ep, "enter")
+	_check_journey(bad, ep, "exit")
+	var q: Dictionary = ep["quiz"]
+	_check_text(bad, id + " quiz.q", q["q"], MAX["quiz_q"])
+	_check_text(bad, id + " quiz.explain", q["explain"], MAX["explain"])
+	if q["choices"].size() != 3 or int(q["answer"]) < 0 or int(q["answer"]) > 2:
+		bad.append("%s: quiz は 3 たく、answer は 0〜2" % id)
+	for c in q["choices"]:
+		_check_text(bad, id + " quiz.choices", c, MAX["quiz_choice"])
+	return bad
+
+
+## 入口（enter）・出口（exit）：かならず 書く。way は ENTRANCES／EXITS の キー。場所への 道が ROUTE_LINKS に ある こと
+func _check_journey(bad: Array[String], ep: Dictionary, mode: String) -> void:
+	var id: String = ep["id"]
+	var ways: Dictionary = ENTRANCES if mode == "enter" else EXITS
+	var what := "入口（からだに はいる 所）" if mode == "enter" else "出口（からだから でる 所）"
+	var keys := ", ".join(PackedStringArray(ways.keys()))
+	if not (ep.get(mode) is Dictionary):
+		bad.append("%s: %s が ない。\"%s\": {\"way\": <%s の どれか>, \"say\": ピコの ひとこと} を 書く" % [id, mode, mode, keys])
+		return
+	var d: Dictionary = ep[mode]
+	if not ways.has(d.get("way", "")):
+		bad.append("%s: %s.way「%s」を 知らない。%s は %s から えらぶ" % [id, mode, d.get("way", ""), what, keys])
+	_check_text(bad, "%s %s.say" % [id, mode], d.get("say", ""), MAX[mode])
+	if not ways.has(d.get("way", "")):
+		return
+	var j := journey(ep, mode)
+	if j["place"] != "" and StageDB.stage_ids().has(j["place"]) and j["inside"].is_empty():
+		bad.append("%s: %s「%s」と 場所「%s」の あいだの 道が ROUTE_LINKS に ない" % [id, mode, d["way"], j["place"]])
+
+
+## 入口・出口の 一覧の 文と 点（validate() が 1 回 見る）
+func _check_ways(bad: Array[String]) -> void:
+	for mode in ["enter", "exit"]:
+		var ways: Dictionary = ENTRANCES if mode == "enter" else EXITS
+		for k in ways.keys():
+			var w: Dictionary = ways[k]
+			_check_text(bad, "%s %s name" % [mode, k], w.get("name", ""), 9)
+			_check_text(bad, "%s %s go" % [mode, k], w.get("go", ""), 18)
+			if map_point(w.get("at", "")).x < 0.0:
+				bad.append("%s %s: at「%s」が ORGAN_POS にも ROUTE_POS にも ない" % [mode, k, w.get("at", "")])
+			if w.get("out", []).is_empty():
+				bad.append("%s %s: out（外への 道）が ない" % [mode, k])

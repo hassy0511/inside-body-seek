@@ -4,7 +4,7 @@ extends Node
 ## 1. src/ の 全スクリプトを 読みこむ
 ## 2. データを 調べる（EpisodeDB.validate ＋ 文が 箱に 入るか ＋ spawn の ルール）
 ## 3. セーブを 調べる（v1 からの 移行・こわれた ファイル・ほし・つづき）
-## 4. 全カルテを カルテえらび → そうだん → よそう → 場面 → カルテ まで 通す
+## 4. 全カルテを カルテえらび → そうだん → よそう → からだに はいる → 場面 → からだから でる → カルテ まで 通す
 ##    （画面は フォーカス中の ボタンを 押す ＝「いつも フォーカスが ある」ことも 見る。場面は 自動操縦）
 ## 5. タイトル、よそうの「もどる」、あたりの よそう、つづきから（場面の やりなおし・ポーズから やめる）、クイズの やりなおし、ずかん、
 ##    本物の 入力（矢印・決定・もどる の アクション）で 4 つの 画面を 動かす
@@ -24,6 +24,8 @@ const SelectScreen := preload("res://src/ui/episode_select.gd")
 const TalkScreen := preload("res://src/ui/talk.gd")
 const GuessScreen := preload("res://src/ui/guess.gd")
 const KarteScreen := preload("res://src/ui/karte.gd")
+const JourneyScreen := preload("res://src/ui/journey.gd")
+const HudScreen := preload("res://src/ui/hud.gd")
 const TitleScreen := preload("res://src/ui/title.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
 const KarteSheet := preload("res://src/ui/karte_sheet.gd")
@@ -71,6 +73,7 @@ func _ready() -> void:
 	_check_scripts()
 	_check_data()
 	_check_spawn_rules()
+	_check_journey_rules()
 	await _check_sheets()
 	_check_portraits()
 	_check_save()
@@ -194,8 +197,33 @@ func _check_data() -> void:
 			for t in [ep["guess"]["q"]] + ep["guess"]["choices"].map(func(c): return c["say"]):
 				if not GuessScreen.say_fits(t):
 					_fail("%s: よそうの 文が ふきだしに 入らない（%d 行）：%s" % [id, GuessScreen.lines_of(t, GuessScreen.SAY_SIZE, GuessScreen.SAY_WIDTH), t])
-			if not GuessScreen.depart_fits(ep["guess"]["depart"]):
-				_fail("%s: depart が 箱に 入らない" % id)
+			if not GuessScreen.depart_fits(GuessScreen.depart_line(ep)):
+				_fail("%s: しゅっぱつの 箱の 文が 入らない" % id)
+		# たびの 画面（入口・出口）：ピコの ひとことが ふきだしに 入る。地図の 下の ひとことも 文の きまりを 守る。
+		# 道は 入口の 点から さいしょの 場所へ（exit は 出口の 点から さいごの 場所へ）
+		for mode in ["enter", "exit"]:
+			var jd: Dictionary = EpisodeDB.journey(ep, mode)
+			if not JourneyScreen.say_fits(jd["say"]):
+				_fail("%s: %s.say が たびの 画面の ふきだしに 入らない（%d 行）：%s" % [id, mode, JourneyScreen.lines_of(jd["say"], JourneyScreen.SAY_SIZE, JourneyScreen.SAY_WIDTH), jd["say"]])
+			var want_place: String = ep["scenes"][0 if mode == "enter" else ep["scenes"].size() - 1]["place"]
+			var inside: PackedVector2Array = jd["inside"]
+			if jd["place"] != want_place or inside.is_empty() or inside[0] != EpisodeDB.map_point(jd["way"].get("at", "")) or inside[inside.size() - 1] != EpisodeDB.ORGAN_POS[want_place]:
+				_fail("%s: %s の 道が 入口／出口と 場所「%s」を むすんで いない" % [id, mode, want_place])
+			var js := JourneyScreen.new()
+			js.setup(ep, mode)
+			for c in js.captions():
+				for p in EpisodeDB.text_problems(c):
+					_fail("%s: たびの 画面の ひとこと「%s」: %s" % [id, c, p])
+			js.free()
+		# HUD の 題：だれの からだか（患者の 名前 ＋ 場所）。1 行で 入る
+		for i in ep["scenes"].size():
+			var title := HudScreen.title_text(EpisodeDB.scene_stage(ep, i))
+			if not title.begins_with(EpisodeDB.speaker(ep["patient"])["name"] + "の "):
+				_fail("%s scene %d: HUD の 題に 患者の 名前が ない：%s" % [id, i, title])
+			if not HudScreen.title_fits(title):
+				_fail("%s scene %d: HUD の 題が 入らない：%s" % [id, i, title])
+			for p in EpisodeDB.text_problems(title):
+				_fail("%s scene %d: HUD の 題「%s」: %s" % [id, i, title, p])
 		# あたりの よそう（hit）には lines_hit、それ以外には lines が 出る
 		for i in ep["scenes"].size():
 			var a: Dictionary = ep["scenes"][i].get("after", {})
@@ -206,7 +234,47 @@ func _check_data() -> void:
 						_fail("%s: after_lines が ちがう（%s）" % [id, c["place"]])
 				if EpisodeDB.after_lines(ep, i, "") != a["lines"]:
 					_fail("%s: よそうが 無い ときの after_lines が lines で ない" % id)
+	# どの 患者 × どの 場所でも 題が 入る（あとで 足す 話の ため）。場所だけの とき（テスト）は 名前だけ
+	for who in EpisodeDB.PATIENTS.keys():
+		for pid in StageDB.stage_ids():
+			var st := StageDB.get_stage(pid)
+			var t := "%sの %s（%s）" % [EpisodeDB.PATIENTS[who]["name"], st["name"], st["kanji"]]
+			if not HudScreen.title_fits(t):
+				_fail("HUD の 題が 入らない：%s" % t)
+	var plain := StageDB.get_stage("mouth")
+	if HudScreen.title_text(plain) != "%s（%s）" % [plain["name"], plain["kanji"]]:
+		_fail("HUD の 題：場所だけの ときは 場所の 名前だけ（%s）" % HudScreen.title_text(plain))
 	_info("episodes: %d, places: %d" % [EpisodeDB.EPISODES.size(), StageDB.STAGES.size()])
+
+
+## 入口・出口の データが 無い／知らない／古い 書きかたの 話を、validate_episode() が わかる 文で 止める
+## （こわした 写しで 見る。本物の データは _check_data の validate() が 見る）
+func _check_journey_rules() -> void:
+	var ep: Dictionary = EpisodeDB.EPISODES[0]
+	var cases := [
+		["enter", "erase", "enter が ない"],
+		["exit", "erase", "exit が ない"],
+		["enter", "rocket", "enter.way「rocket」を 知らない"],
+		["exit", "rocket", "exit.way「rocket」を 知らない"],
+	]
+	for c in cases:
+		var bad_ep: Dictionary = ep.duplicate(true)
+		if c[1] == "erase":
+			bad_ep.erase(c[0])
+		else:
+			bad_ep[c[0]]["way"] = c[1]
+		var msgs := EpisodeDB.validate_episode(bad_ep, 1)
+		if not msgs.any(func(m: String): return m.contains(c[2])):
+			_fail("journey rules: %s を こわしても「%s」と 言わない：%s" % [c[0], c[2], msgs])
+	# 前の 書きかた（guess.depart・karte.exit）は 2 回 出る もとに なるので 止める
+	var old: Dictionary = ep.duplicate(true)
+	old["guess"]["depart"] = "はっしん！"
+	old["karte"]["exit"] = "ぽーん！"
+	var msgs := EpisodeDB.validate_episode(old, 1)
+	if not msgs.any(func(m: String): return m.contains("guess.depart")) or not msgs.any(func(m: String): return m.contains("karte.exit")):
+		_fail("journey rules: guess.depart／karte.exit を 止めない：%s" % [msgs])
+	if not EpisodeDB.validate_episode(ep, 1).is_empty():
+		_fail("journey rules: 本物の ep01 で まちがいが 出る")
 
 
 ## spawn の ルール（skip／swap）の 読みかえ。番号は のこる。かえられない マーカーは そのまま
@@ -356,10 +424,12 @@ func _expected_phases(ep: Dictionary) -> Array[String]:
 	var out: Array[String] = ["consult"]
 	if ep.has("guess"):
 		out.append("guess")
+	out.append("enter")
 	for i in ep["scenes"].size():
 		out.append("scene%d" % i)
 		if ep["scenes"][i].has("after"):
 			out.append("after%d" % i)
+	out.append("exit")
 	out.append("karte")
 	return out
 
@@ -481,6 +551,7 @@ func _run_episode(id: String) -> void:
 	var select_done := false
 	var wrong_done := false
 	var checked_level = null
+	var journeys_seen := {}
 	# クイズは 話ごとに 正解・はずれを かわるがわる えらぶ（「せいかい！」も「おしい！」も 毎回 通る。ほしの 数も 毎回 同じ）
 	var quiz_right: bool = EpisodeDB.ids().find(id) % 2 == 0
 	var quiz_before: bool = SaveData.star_flags(id)[2]
@@ -498,6 +569,10 @@ func _run_episode(id: String) -> void:
 				checked_level = lvl
 				for w in lvl.data_warnings:
 					_fail("%s scene %d: %s" % [id, Game.scene_index, w])
+				# HUD の 題は だれの からだか（患者の 名前 ＋ 場所）
+				var title: String = Game.hud.title_label().text if Game.hud != null else ""
+				if title != HudScreen.title_text(lvl.stage) or not title.begins_with(EpisodeDB.speaker(ep["patient"])["name"]):
+					_fail("%s scene %d: HUD の 題が「%s」（患者の 名前が ない）" % [id, Game.scene_index, title])
 				for p in lvl.stage.get("spawn", {}).get("skip", []):
 					for m in lvl.markers:
 						if m["node"] != null and Level.spawn_rule_matches(String(m["node"].name).substr(3), p):
@@ -523,6 +598,10 @@ func _run_episode(id: String) -> void:
 			continue
 		nofocus = 0
 		_check_screen(scr, "%s %s" % [id, where])
+		_check_no_dup(scr, ep, "%s %s" % [id, where])
+		if scr is JourneyScreen and not journeys_seen.has(scr.mode):
+			journeys_seen[scr.mode] = true
+			_check_journey_screen(scr, ep)
 		if scr is SelectScreen and not select_done:
 			# カルテえらび：最初から この 話が えらばれ、スタートの ボタンに フォーカスが ある こと
 			select_done = true
@@ -545,6 +624,9 @@ func _run_episode(id: String) -> void:
 			continue
 		fo.pressed.emit()
 	var expect := _expected_phases(ep)
+	for m in ["enter", "exit"]:
+		if not journeys_seen.has(m):
+			_fail("%s: たびの 画面（%s）が 出なかった" % [id, m])
 	if _ep_done:
 		_info("cleared %s in %.1fs (sim) / %.1fs (real); scenes=%d stars=%d" % [id, total, (Time.get_ticks_msec() - t0) / 1000.0, _scene_clears, SaveData.stars(id)])
 		if _phases_at_end != expect:
@@ -568,6 +650,51 @@ func _run_episode(id: String) -> void:
 		if next == "" and (not Game.episode.is_empty() or not (Game.screen() is SelectScreen)):
 			_fail("%s: さいごの 話の あと カルテえらびに もどらない" % id)
 	await get_tree().process_frame
+
+
+## たびの 画面：この 話の 患者・入口／出口・道・ピコの ひとこと。ボタンに フォーカス
+func _check_journey_screen(scr, ep: Dictionary) -> void:
+	var id: String = ep["id"]
+	var mode: String = scr.mode
+	var where := "%s %s" % [id, mode]
+	if mode != Game.phase or scr.ep["id"] != id:
+		_fail("%s: たびの 画面の 形が ちがう（%s／%s）" % [where, mode, Game.phase])
+		return
+	var ways: Dictionary = EpisodeDB.ENTRANCES if mode == "enter" else EpisodeDB.EXITS
+	var way_id: String = ep.get(mode, {}).get("way", "")
+	if not ways.has(way_id):
+		return   # データの まちがいは validate() が 知らせる（画面は こわれずに 出る）
+	if scr.j["way"] != ways[way_id]:
+		_fail("%s: 入口／出口が データと ちがう" % where)
+	var place: String = ep["scenes"][0 if mode == "enter" else ep["scenes"].size() - 1]["place"]
+	var pts: PackedVector2Array = scr.path_points()
+	var outside: Vector2 = scr._map.to_local_pos(ways[way_id]["out"][-1])
+	var inner: Vector2 = scr._map.point(place)
+	var first := pts[0]
+	var last := pts[pts.size() - 1]
+	if mode == "enter" and (first.distance_to(outside) > 1.0 or last.distance_to(inner) > 1.0):
+		_fail("%s: ミクロごうが 外 → %s に 行かない（%s → %s）" % [where, place, first, last])
+	if mode == "exit" and (first.distance_to(inner) > 1.0 or last.distance_to(outside) > 1.0):
+		_fail("%s: ミクロごうが %s → 外 に 行かない（%s → %s）" % [where, place, first, last])
+	var texts: Array = scr.find_children("*", "Label", true, false).filter(func(l): return l.is_visible_in_tree()).map(func(l): return String(l.text).replace(T.WJ, ""))
+	for want in [ep[mode].get("say", ""), EpisodeDB.speaker(ep["patient"])["name"]]:
+		if not texts.has(want):
+			_fail("%s: 画面に「%s」が ない" % [where, want])
+	if get_viewport().gui_get_focus_owner() != scr.button:
+		_fail("%s: ボタンに フォーカスが ない" % where)
+	if Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible:
+		_fail("%s: タッチの ボタンが 画面の 上に のこって いる" % where)
+
+
+## 入口・出口の ひとことは たびの 画面だけに 出る（よそう・カルテには 出さない ＝ 2 回 読ませない）
+func _check_no_dup(scr: Control, ep: Dictionary, where: String) -> void:
+	for n in scr.find_children("*", "Label", true, false):
+		if not n.is_visible_in_tree():
+			continue
+		var t := String(n.text).replace(T.WJ, "")
+		for m in ["enter", "exit"]:
+			if t == ep.get(m, {}).get("say", "—") and not (scr is JourneyScreen and scr.mode == m):
+				_fail("%s: %s の ひとことが ほかの 画面にも 出て いる：%s" % [where, m, t])
 
 
 # ---------------------------------------------------------------- 5. 画面の 行き来
@@ -698,9 +825,13 @@ func _check_resume() -> void:
 		_fail("resume: カルテえらびに「つづきから」「さいしょから」「クイズに もういちど」が そろわない")
 		return
 	_check_screen(scr, "resume カルテえらび")
+	_phases.clear()
 	if not await _play_until(func(): return Game.phase == "scene" and Game.level != null and Game.level.started, MAX_UI_SECONDS, "resume"):
 		_fail("resume: つづきから 場面に 入れない（%s）" % Game.phase)
 		return
+	# つづきからは からだの 中に もどる（入口の たびの 画面を もう一度 通らない）
+	if _phases.has("enter") or _phases != ["after0", "scene1"]:
+		_fail("resume: つづきからの 流れが ちがう（%s。after0 → scene1 の はず。enter は 通らない）" % [_phases])
 	if Game.scene_index != 1 or Game.level.stage_id != ep["scenes"][1]["place"]:
 		_fail("resume: 場面 2 では ない（scene %d %s）" % [Game.scene_index, Game.level.stage_id])
 	else:
@@ -748,11 +879,15 @@ func _check_resume() -> void:
 			_fail("resume: クリアずみの %s を 遊びなおしたら %s の つづきが 消えた" % [other, id])
 	# クリアずみの 話の クイズだけ もういちど：クリアの 記録も つづきも 変わらない
 	SaveData.record_clear(id)
+	_phases.clear()
 	Game.review_karte(id)
 	if Game.phase != "karte" or SaveData.resume().get("ep", "") != id:
 		_fail("resume: review_karte が つづきを 消した")
 	if not await _play_until(func(): return Game.screen() is SelectScreen, MAX_UI_SECONDS, "review"):
 		_fail("resume: クイズの やりなおしから カルテえらびに もどらない")
+	# クイズの やりなおしは カルテだけ（出口の たびの 画面は 出ない）
+	if _phases != ["karte"]:
+		_fail("resume: クイズの やりなおしの 流れが ちがう（%s。karte だけの はず）" % [_phases])
 	SaveData.clear_resume()
 	await get_tree().process_frame
 
@@ -968,6 +1103,27 @@ func _check_keys() -> void:
 		_fail("keys: よそう：もどるで そうだんの さいごの ページに もどらない")
 	elif not await _key_until(func(): return Game.screen() is SelectScreen, "ui_cancel"):
 		_fail("keys: そうだん：もどるを つづけても カルテえらびに もどらない")
+	# ---- たびの 画面：ボタン 1 つ。矢印でも フォーカスは ボタンの まま、もどるは 何も しない、決定で 進む
+	for m in ["enter", "exit"]:
+		Game.start_episode(id, m, 0 if m == "enter" else ep["scenes"].size() - 1)
+		await _wait_focus()
+		var jr := Game.screen()
+		if not (jr is JourneyScreen) or get_viewport().gui_get_focus_owner() != jr.button:
+			_fail("keys: たびの 画面（%s）の ボタンに フォーカスが ない" % m)
+			continue
+		for a in ["ui_up", "ui_down", "ui_left", "ui_right", "ui_cancel"]:
+			await _tap_expect(a, jr.button, "たびの 画面 %s" % m)
+		if Game.screen() != jr or Game.phase != m:
+			_fail("keys: たびの 画面（%s）：もどるで 画面が 変わった" % m)
+			continue
+		await _wait_focus()
+		await _tap("ui_accept")
+		await get_tree().process_frame
+		var want := "scene" if m == "enter" else "karte"
+		if Game.phase != want:
+			_fail("keys: たびの 画面（%s）：決定で %s に 進まない（%s）" % [m, want, Game.phase])
+	Game.show_episode_select()
+	await get_tree().process_frame
 	# ---- カルテ：もどるは 何も しない。決定で 段を 進む。クイズは 上下、ほしの 段は 左右
 	Game.start_episode(id, "karte")
 	await _wait_focus()
@@ -1044,6 +1200,9 @@ func _run_place(id: String) -> void:
 		return
 	for w in lvl.data_warnings:
 		_fail("place %s: %s" % [id, w])
+	var st := StageDB.get_stage(id)
+	if Game.hud == null or Game.hud.title_label().text != "%s（%s）" % [st["name"], st["kanji"]]:
+		_fail("place %s: 場所だけの ときの HUD の 題が ちがう" % id)
 	_finished = false
 	var t := 0.0
 	var last_report := 0.0

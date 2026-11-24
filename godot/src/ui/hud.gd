@@ -2,6 +2,10 @@ extends Control
 ## ゲーム中の表示：ハート・ミッション・メッセージ（ドクター・ピコ）・ポケット。
 
 const T := preload("res://src/ui/ui_theme.gd")
+## 上の 題（だれの からだの どこか）：26 px、幅 TITLE_WIDTH まで（テストが 全部の 話と 場所で はかる）
+const TITLE_SIZE := 26
+const TITLE_WIDTH := 650.0
+const TITLE_FACE := 40.0
 
 var level: Node = null
 var _hearts := 3
@@ -14,6 +18,7 @@ var _msg_timer := 0.0
 var _msg_hold := 0.0     # 物語の ひとことが 出てから、ほかの 文に 上書きさせない 残り時間
 var _pocket: Label
 var _stage_label: Label
+var _title_face: Control
 var _pause_btn: Button
 
 
@@ -34,13 +39,23 @@ func _ready() -> void:
 	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	top.anchor_left = 0.5
 	top.anchor_right = 0.5
-	top.offset_left = -220
-	top.offset_right = 220
+	top.offset_left = -350
+	top.offset_right = 350
 	top.offset_top = 14
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_theme_stylebox_override("panel", T.rounded(Color(1, 1, 1, 0.8), 20, 0))
-	_stage_label = T.label("", 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	top.add_child(_stage_label)
+	var th := HBoxContainer.new()
+	th.alignment = BoxContainer.ALIGNMENT_CENTER
+	th.add_theme_constant_override("separation", 10)
+	th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_child(th)
+	_title_face = Control.new()   # 患者の 顔（カルテの 場面だけ）
+	_title_face.custom_minimum_size = Vector2(TITLE_FACE, TITLE_FACE)
+	_title_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title_face.visible = false
+	th.add_child(_title_face)
+	_stage_label = T.label("", TITLE_SIZE, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	th.add_child(_stage_label)
 	add_child(top)
 
 	var mp := PanelContainer.new()
@@ -117,10 +132,37 @@ func _ready() -> void:
 
 func bind_level(l: Node) -> void:
 	level = l
-	_stage_label.text = "%s（%s）" % [l.stage["name"], l.stage["kanji"]]
+	_stage_label.text = title_text(l.stage)
+	var ep := EpisodeDB.get_episode(l.stage["ep"]) if l.stage.has("ep") else {}
+	if not ep.is_empty():
+		var who: Dictionary = EpisodeDB.speaker(ep["patient"])
+		_title_face.add_child(T.portrait(ep["patient"], "sick", Vector2(TITLE_FACE, TITLE_FACE), who["color"]))
+		_title_face.visible = true
 	l.missions_changed.connect(_refresh_missions)
 	l.hearts_changed.connect(func(h): _hearts = h; _heart_box.queue_redraw())
 	_refresh_missions()
+
+
+## 上の 題：カルテの 場面は「おとうさんの しょくどう（食道）」（だれの からだか。2 話の しょくどうを
+## 1 話の はなちゃんの 中と 思わない ように）。場所モード（テスト）は 場所の 名前だけ
+static func title_text(stage: Dictionary) -> String:
+	var place := "%s（%s）" % [stage["name"], stage["kanji"]]
+	if not stage.has("ep"):
+		return place
+	var ep := EpisodeDB.get_episode(stage["ep"])
+	if ep.is_empty():
+		return place
+	return "%sの %s" % [EpisodeDB.speaker(ep["patient"])["name"], place]
+
+
+## 題が 1 行で 入るか（本物の フォントで はかる）
+static func title_fits(text: String) -> bool:
+	var f: Font = Game.font_bold
+	return f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_SIZE).x <= TITLE_WIDTH - TITLE_FACE - 10.0
+
+
+func title_label() -> Label:
+	return _stage_label
 
 
 func _refresh_missions() -> void:

@@ -1,5 +1,5 @@
 extends Node
-## ゲーム全体の進行（タイトル → カルテえらび → そうだん → よそう → 場面 1〜3 こ → カルテ）。
+## ゲーム全体の進行（タイトル → カルテえらび → そうだん → よそう → からだに はいる → 場面 1〜3 こ → からだから でる → カルテ）。
 ## 画面は src/ui/ の Control をコードで組み立てて UILayer に置く。
 ## - カルテ（1 話）の 流れは _enter() の 1 か所で 切りかえる。データは EpisodeDB、設計は docs/episodes.md 3 章。
 ## - 「画面」と「Level」は 同時に 生きない（画面を 出す 前に unload_level()）。
@@ -20,6 +20,7 @@ const TitleScreen := preload("res://src/ui/title.gd")
 const EpisodeSelectScreen := preload("res://src/ui/episode_select.gd")
 const TalkScreen := preload("res://src/ui/talk.gd")
 const GuessScreen := preload("res://src/ui/guess.gd")
+const JourneyScreen := preload("res://src/ui/journey.gd")
 const KarteScreen := preload("res://src/ui/karte.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
 const CardPopup := preload("res://src/ui/card.gd")
@@ -47,7 +48,7 @@ var _popup_open := false
 ## いまの カルテ（空なら「場所だけ」モード：テストと 撮影用）
 var episode: Dictionary = {}
 var scene_index := 0
-var phase := ""            # "consult" / "guess" / "scene" / "after" / "karte" / ""
+var phase := ""            # "consult" / "guess" / "enter" / "scene" / "after" / "exit" / "karte" / ""
 var first_guess := ""
 var _review := false       # クリアずみの カルテを 読みかえして いる（クリアの 記録を しない）
 
@@ -173,7 +174,8 @@ func start_episode(ep_id: String, from_phase := "consult", from_scene := 0, gues
 	_enter(from_phase)
 
 
-## 「つづきから」：さいごに おえた 場面の「あとの はなし」から 入る（おさらいに なる）。無ければ 次の 場面か カルテへ
+## 「つづきから」：さいごに おえた 場面の「あとの はなし」から 入る（おさらいに なる）。無ければ 次の 場面か 出口へ。
+## からだの 入口（enter）は 通らない（ミクロごうは もう からだの 中に いる）
 func resume_episode() -> void:
 	var r := SaveData.resume()
 	if r.is_empty():
@@ -182,7 +184,7 @@ func resume_episode() -> void:
 	start_episode(r["ep"], "after", int(r["cleared"]) - 1, r.get("guess", ""))
 
 
-## クリアずみの カルテの 紙と クイズだけ もういちど（クイズの ほしを 取りなおせる）
+## クリアずみの カルテの 紙と クイズだけ もういちど（クイズの ほしを 取りなおせる）。出口（exit）は 通らない
 func review_karte(ep_id: String) -> void:
 	if not SaveData.is_cleared(ep_id):
 		show_episode_select()
@@ -220,15 +222,22 @@ func _enter(p: String, back := false) -> void:
 			_set_screen(t)
 		"guess":
 			if not episode.has("guess"):
-				_enter("scene")
+				_enter("enter")
 				return
 			var g := GuessScreen.new()
 			g.setup(episode)
 			g.finished.connect(func(first: String):
 				first_guess = first
-				_enter("scene"), CONNECT_ONE_SHOT)
+				_enter("enter"), CONNECT_ONE_SHOT)
 			g.cancelled.connect(func(): _enter("consult", true))   # もどる ＝ そうだんの さいごの ページへ
 			_set_screen(g)
+		"enter", "exit":
+			# からだに はいる（よそうの あと）／からだから でる（さいごの あとの はなしの あと）。たびの 画面
+			unload_level()
+			var jr := JourneyScreen.new()
+			jr.setup(episode, p)
+			jr.finished.connect(func(): _enter("scene" if p == "enter" else "karte"), CONNECT_ONE_SHOT)
+			_set_screen(jr)
 		"scene":
 			_start_level(EpisodeDB.scene_stage(episode, scene_index))
 		"after":
@@ -261,13 +270,13 @@ func _enter(p: String, back := false) -> void:
 	phase_changed.emit(p, scene_index)
 
 
-## あとの はなしが おわった：つぎの 場面へ。さいごの 場面なら カルテへ
+## あとの はなしが おわった：つぎの 場面へ。さいごの 場面なら からだから でる（出口 → カルテ）
 func _after_done() -> void:
 	if scene_index + 1 < episode["scenes"].size():
 		scene_index += 1
 		_enter("scene")
 	else:
-		_enter("karte")
+		_enter("exit")
 
 
 ## カルテ画面を 閉じた：つぎの カルテへ（go_next）か、カルテえらびへ

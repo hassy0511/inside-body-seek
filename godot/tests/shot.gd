@@ -14,6 +14,9 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ##   guess:ep03        よそう
 ##   guess_wrong:ep01  はずれを 1 回 えらんだ あと
 ##   guess_go:ep01     go の えらびを 押した あと（しゅっぱつの 箱）。+hit で「あたり」の えらびを 押す
+##   enter:ep02        からだに はいる たびの 画面（よそうの あと）。+t0／+t50／+t100 で 動きの 進みぐあい（％。無ければ おわり）
+##   exit:ep02         からだから でる たびの 画面（カルテの 前）。しるしは enter と 同じ
+##   bodymaps          4 人の からだの地図を ならべる（絵が 無い 人は コードで 描く 仮の 地図）
 ##   after:ep03:0      場面 0 の あとの はなし
 ##   karte:ep03[:n]    カルテ画面の 段 0（n ＝ 1 紙／2 クイズ／3 ほし）
 ##   review:ep02[:n]   クリアずみの カルテの 読みかえし（紙から。n ＝ 1 クイズ／2 ほし）
@@ -24,6 +27,7 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ##   +p<N>   はなしの N ページ目（0 から）      +hit    さいしょの よそうが あたり だった 子
 ##   +wrong  クイズで はずれを えらぶ            +hurt   ハートが へった 場面が ある（2 つめ。1 場面の 話は 1 つめ）
 ##   +touch  タッチそうさ（--touch と 同じ）
+##   +t<N>   たびの 画面の 動きを N ％ の 所で 止める（+t0 はじめ、+t50 とちゅう、+t100 おわり）
 ## セーブは user://save_shot.json を 使う（本物の セーブを さわらない）。
 
 var _frames := 60
@@ -117,6 +121,10 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 		if f.begins_with("p") and f.substr(1).is_valid_int():
 			page = int(f.substr(1))
 	var guess := _hit_place(ep_id) if flags.has("hit") else ""
+	var progress := 100
+	for f in flags:
+		if f.begins_with("t") and f.substr(1).is_valid_int():
+			progress = int(f.substr(1))
 	if stage == "title":
 		Game.show_title()
 	elif stage == "select_new":
@@ -145,6 +153,10 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 				if c.get("go", false) == (mode == "guess_go") and (guess == "" or c["place"] == guess):
 					Game.screen().choose(c["place"])
 					break
+	elif mode == "enter" or mode == "exit":
+		Game.start_episode(ep_id, mode, 0 if mode == "enter" else EpisodeDB.scene_count(ep_id) - 1, guess)
+		await get_tree().process_frame
+		Game.screen().freeze_at(progress / 100.0)
 	elif mode == "after":
 		Game.start_episode(ep_id, "after", num, guess)
 		await _press(page)
@@ -178,6 +190,8 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 			await get_tree().process_frame
 			Game.screen().karte_buttons[ep_id].pressed.emit()
 			await get_tree().create_timer(0.9, true).timeout   # 「わかった！」が 押せる ように なる まで
+	elif stage == "bodymaps":
+		_show_bodymaps()
 	elif stage.begins_with("model:"):
 		# キャラクターモデルを 大きく 1 体だけ映す（Blender の作り直し確認用）
 		_show_model(stage.substr(6))
@@ -230,6 +244,26 @@ func _press(n: int) -> void:
 		var fo := get_viewport().gui_get_focus_owner()
 		if fo is BaseButton:
 			fo.pressed.emit()
+
+
+func _show_bodymaps() -> void:
+	var BodyMap := load("res://src/ui/body_map.gd")
+	var c := ColorRect.new()
+	c.color = Color(0.93, 0.95, 1.0)
+	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var i := 0
+	for who in ["hana", "kenta", "papa", "jiji"]:
+		var m = BodyMap.new()
+		m.setup(who, Vector2(300, 640))
+		m.position = Vector2(20 + i * 315, 50)
+		c.add_child(m)
+		var l := Label.new()
+		l.text = EpisodeDB.PATIENTS[who]["name"]
+		l.position = Vector2(20 + i * 315 + 100, 8)
+		l.add_theme_font_size_override("font_size", 28)
+		c.add_child(l)
+		i += 1
+	Game._set_screen(c)
 
 
 func _show_model(name: String) -> void:

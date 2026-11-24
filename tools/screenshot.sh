@@ -2,10 +2,10 @@
 # ソフトウェアレンダリング（Xvfb + Mesa llvmpipe）でスクリーンショットを撮る。
 #   使い方: GODOT=/path/to/godot tools/screenshot.sh <なにを> <出力.png> [--play=秒] [--frames=N] [--touch]
 #   <なにを> ＝ title / select_new / select / resume / opening / consult:ep03 / guess:ep03 / guess_wrong:ep01 / guess_go:ep01 /
-#               after:ep03:0 / karte:ep03[:1〜3] / review:ep02[:1〜2] / zukan / zukan_karte:ep02 / ep03:1 / card / pause /
+#               enter:ep02 / exit:ep02（たびの 画面。+t0／+t50／+t100 で 動きの 進みぐあい）/ after:ep03:0 / karte:ep03[:1〜3] / review:ep02[:1〜2] / zukan / zukan_karte:ep02 / ep03:1 / card / pause /
 #               model:pod / 場所の id（mouth など）
 #   「,」で ならべると 1 回の 起動で 何枚も 撮る（<出力> は フォルダ）：tools/screenshot.sh consult:ep01,consult:ep01+p1 /tmp/shots/
-#   しるし（+p1、+hit、+wrong、+hurt、+touch）と くわしい 説明は godot/tests/shot.gd の 先頭。
+#   しるし（+p1、+hit、+wrong、+hurt、+touch、+t50）と くわしい 説明は godot/tests/shot.gd の 先頭。
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="${GODOT:-godot}"

@@ -1,5 +1,6 @@
 extends "res://src/ui/flow_screen.gd"
 ## カルテの 画面：かいけつ → カルテの 紙 → クイズ → ほし。段ごとに 中身を 作りなおし、主ボタンへ フォーカスを 入れる。
+## からだから 出る ところ（出口の ひとこと）は、この 前の たびの 画面（journey.gd）で 見せる。
 ## setup() の opts：
 ##   "guess_hit"  さいしょの よそうが あたり だった（かいけつの 段に ひとこと 出す）
 ##   "review"     クリアずみの カルテの 読みかえし（紙から 始まり、「つぎの カルテへ」は 出さない。「もどる」で カルテえらびへ）
@@ -142,10 +143,9 @@ func _show_solved() -> void:
 	_vb.add_child(head)
 	_vb.add_child(T.label(_title(), 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
 	var k: Dictionary = ep["karte"]
+	_spacer()
 	if k.has("thanks"):
-		_speech(ep["patient"], "happy", 150.0, k["thanks"], 28)
-	if k.has("exit"):
-		_speech("pico", "happy", 90.0, k["exit"], 24)
+		_speech(ep["patient"], "happy", 200.0, k["thanks"], 32)
 	if opts.get("guess_hit", false):
 		_vb.add_child(T.label("★ きみの さいしょの よそう、あたっていたね！", 24, Color(0.75, 0.5, 0.1), HORIZONTAL_ALIGNMENT_CENTER))
 	_spacer()

@@ -253,12 +253,11 @@ static func draw_person(ci: CanvasItem, size: Vector2, color: Color, mood: Strin
 	draw_face(ci, c, r, color, mood)
 
 
-## からだの地図の 絵：bodymap_<who>.png → bodymap_hana.png → 仮の SVG（はなちゃんの 絵なので はなちゃんだけ）。
-## null なら 呼ぶ 側が コードで 描く（guess.gd の _draw_body）
+## からだの地図の 絵：bodymap_<who>.png →（はなちゃんだけ）仮の SVG → null。
+## ほかの 人の 絵で 代わりに しない（おとうさんに はなちゃんの 体が 出ると、同じ 子の 体の 中に 見える）。
+## null なら body_map.gd が コードで 描く（患者の 色・大人と 子どもの 体）
 static func bodymap(who: String) -> Texture2D:
 	var tex := art("bodymap_%s" % who)
-	if tex == null:
-		tex = art("bodymap_hana")
 	if tex == null and who == "hana" and ResourceLoader.exists("res://assets/ui/body_map.svg"):
 		tex = load("res://assets/ui/body_map.svg")
 	return tex

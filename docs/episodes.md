@@ -10,7 +10,8 @@
 
 ## 1. ねらいと 用語
 
-「10 ステージを 順に 遊ぶ」から「**カルテ（1 話）を 1 本ずつ 解く**」へ。1 話 ＝ そうだん → よそう → 場面 1〜3 こ（場面の あとに「あとの はなし」）→ カルテ（3 行 ＋ げんいんの タイプ ＋ クイズ ＋ ほし）。
+「10 ステージを 順に 遊ぶ」から「**カルテ（1 話）を 1 本ずつ 解く**」へ。1 話 ＝ そうだん → よそう → **からだに はいる**（たびの 画面）→ 場面 1〜3 こ（場面の あとに「あとの はなし」）→ **からだから でる**（たびの 画面）→ カルテ（3 行 ＋ げんいんの タイプ ＋ クイズ ＋ ほし）。
+話ごとに かならず 患者の からだに はいって、なおしたら 出る。つぎの 話は べつの 人の からだに もう一度 はいる（1 話の はなちゃんの のどから 2 話の おとうさんの しょくどうへ そのまま 続いて 見えない ように）。
 
 | 用語 | コードでの名前 | 意味 |
 |------|--------------|------|
@@ -20,6 +21,8 @@
 | 患者 | patient ＝ `EpisodeDB.PATIENTS` の キー（`hana` `kenta` `papa` `jiji`） | そうだんに 来る 人 |
 | そうだん | phase `consult`（画面 `talk.gd`） | 患者と ピコの 会話 1〜3 ページ |
 | よそう | phase `guess`（画面 `guess.gd`） | からだの地図で 行き先を えらぶ。はずれは ヒントが 出て えらびなおし（しかられない・ほしに 関係なし） |
+| たびの 画面 | phase `enter`／`exit`（画面 `journey.gd`） | からだに はいる（よそうの あと）／からだから でる（さいごの あとの はなしの あと）。患者の 名前と 顔・からだの地図の 上の 道・ミクロごうの 動き・ピコの ひとこと |
+| 入口・出口 | 話の `enter`／`exit`、`EpisodeDB.ENTRANCES`／`EXITS` | どこから はいって どこから 出るか（くち・おみずで ごくん・はな・きずぐち ／ うがい・げっぷ・くしゃみ・うんち・きずぐち） |
 | あとの はなし | phase `after`（画面 `talk.gd`） | 場面の あとの 会話（ボタンで 進む）。「い（胃）は げんき！」の どんでん返しと、さいごの 場面の「ピコッと はっけん！」（種あかし）は これ |
 | カルテ画面 | phase `karte`（画面 `karte.gd`） | かいけつ → カルテの 紙（なにが おきていた／どうして／これからは ＋ げんいんの タイプ）→ クイズ → ほし |
 | カルテの 紙 | `karte_sheet.gd` | 3 行 ＋ げんいんの タイプ。カルテ画面と ずかんが 同じ ものを 使う |
@@ -44,7 +47,7 @@
 | ファイル | 役目 | おぼえて おく こと |
 |---------|------|-------------|
 | `godot/src/autoload/stage_db.gd`（`StageDB`） | **場所**の 定義。`STAGES`・`KIND_NAMES`・ものしりカード | `STAGES` の キー・ミッション・数は 前の まま（`tools/build_dashboard.py` の `stages()` と、場所モードの テストが これを 読む）。話の 順番に かかわる もの（`STORY_INTRO`・`next_stage_id()` など）は 消した |
-| `godot/src/autoload/episode_db.gd`（`EpisodeDB`、**新規**） | **カルテ**の 定義と 読み出し。`PATIENTS`・`PATTERNS`・`ORGAN_POS`・`OPENING`・`ENDING`・`EPISODES`・`scene_stage()`・`validate()`・`text_problems()` | 中身の 地図は 2.3。先頭の コメントに 書きかたの きまり |
+| `godot/src/autoload/episode_db.gd`（`EpisodeDB`、**新規**） | **カルテ**の 定義と 読み出し。`PATIENTS`・`PATTERNS`・`ORGAN_POS`・`ENTRANCES`・`EXITS`・`ROUTE_POS`・`ROUTE_LINKS`・`OPENING`・`ENDING`・`EPISODES`・`scene_stage()`・`journey()`・`validate()`・`text_problems()` | 中身の 地図は 2.3。先頭の コメントに 書きかたの きまり |
 | `godot/project.godot` | autoload | `EpisodeDB` は `StageDB` の 次（`SaveData` が `EpisodeDB.ids()` を 使うので `SaveData` より 前） |
 | `blender/stages.py`、`godot/assets/models/stages/*.glb` | 場所の 形と マーカー | 変えて いない |
 
@@ -68,6 +71,8 @@
 | `difficulty` | int | ○ | 1〜3。カルテえらびの「むずかしさ」 |
 | `consult` | Array[LINE] | ○ | そうだん。**1〜3 ページ**（空は だめ：カルテえらびが 1 ページ目を 見せる）。患者が 話さない 話（10 話：ピコの おさらい）も 1 ページは 書く |
 | `guess` | GUESS | — | 無ければ よそうを とばす |
+| `enter` | ENTER | ○ | からだの 入口（たびの 画面。よそうの あと） |
+| `exit` | EXIT | ○ | からだの 出口（たびの 画面。さいごの 場面の `after` の あと、カルテの 前） |
 | `scenes` | Array[SCENE] | ○ | 1〜3 こ。同じ 場所を 2 回 使って よい（5 話：はな → はい → はな） |
 | `karte` | KARTE | ○ | カルテ画面の 文 |
 | `quiz` | QUIZ | ○ | `StageDB` の quiz と 同じ 形 |
@@ -84,7 +89,29 @@
 |------|----|:---:|------|
 | `q` | String | ○ | ピコの 問い（40 字まで） |
 | `choices` | Array[CHOICE] | ○ | 2〜3 こ。**書いた 順に** 上から ならぶ（まぜない。最初の フォーカスは 1 つめ）。答えの 位置は 話ごとに 変える。同じ `place` を 2 回 書かない |
-| `depart` | String | ○ | しゅっぱつの ひとこと（入口。40 字まで）。`go` の えらびを 押した あと、**ふきだしとは 別の 箱**に 出る（3.4 C。28 px・幅 640 で **3 行まで**） |
+
+（しゅっぱつの ひとこと `depart` は 話の `enter.say` に うつした。`guess` に `depart` が あると `validate()` が 止める。）
+
+**ENTER**／**EXIT**：`{"way": "swallow", "say": "おとうさん、おみずと いっしょに ごくん！ ミクロごう、はっしん！"}`
+
+| キー | 型 | 必須 | 内容 |
+|------|----|:---:|------|
+| `way` | String | ○ | `enter` は `ENTRANCES` の キー（`mouth`・`swallow`・`nose`・`wound`）、`exit` は `EXITS` の キー（`gargle`・`burp`・`sneeze`・`poop`・`wound`）。知らない 名前や 書きわすれは `validate()` が 止める |
+| `say` | String | ○ | ピコの ひとこと（60 字まで。たびの 画面の ふきだし 28 px・幅 430 で **5 行まで**）。enter は「だれに 何を して もらって はいるか」、exit は **その 話の さいごの 場所から つじつまが 合う 出かた**（のどの おくで まわれみぎ → うがい、い（胃）の いりぐちまで もどって → げっぷ） |
+
+**ENTRANCES**／**EXITS**（`episode_db.gd` の 定数。入口・出口の 一覧。新しい 出入りを 足す ときだけ 書く）：`"キー": {"at": 点, "out": [外への 道], "fx": しかけ, "name": ふだ, "go": ひとこと}`。
+
+| キー | 内容 |
+|------|------|
+| `at` | からだの 出入りする 点。`ORGAN_POS` か `ROUTE_POS`（のど `throat`・おしり `bottom`・ひざ `knee`）の 名前 |
+| `out` | `at` から 外へ 出る 道（地図の 中の 0〜1。1 を こえて よい）。さいごの 点で ミクロごうが 大きく なる／ちいさく なる |
+| `fx` | 出入りの しかけ：`water`（おみずの つぶ）・`open`（おおきく あーん）・`breath`（いき）・`spray`（おみずが ふきだす）・`puff`（くうきの かたまり）・`drop`（ぽとん）・`spark`（きらきら）。`journey.gd` の `_draw_way_fx()` |
+| `name` | 画面の ふだ「いりぐち： …」「でぐち： …」（9 字まで） |
+| `go` | ミクロごうが 出入りする ときに 地図の 下に 出る ひとこと（18 字まで） |
+
+`"name"` を 先頭に 書かない（`build_dashboard.py` が「`"キー": {"name"`」を 患者と みなす）。
+
+**ROUTE_LINKS**（からだの 中の 道）：となり どうしの 点の 組（`["esophagus", "stomach", [あいだの 点]]`）。入口の `at` から さいしょの 場面の 場所へ、さいごの 場面の 場所から 出口の `at` へは、`EpisodeDB.route()` が この 道を いちばん 少ない 数で たどる。いまの 道：くち・はな → のど → しょくどう → い（胃）→ しょうちょう → おしり、のど → はい、ひざ → けっかん → しんぞう → しんぞう ひだり、しんぞう → はい、けっかん → のう。道が つながらない 組は `validate()` が 止める。
 
 **CHOICE**
 
@@ -141,7 +168,8 @@
 | キー | 必須 | 内容 |
 |------|:---:|------|
 | `thanks` | — | 患者の おれい（かいけつの 画面。60 字まで） |
-| `exit` | — | 出口の ひとこと（ピコ。60 字まで）。**その 話の ゴールの 場所から つじつまが 合う 出かた**を 書く（のどの おくで まわれみぎ → うがい、い（胃）の いりぐちまで もどって → げっぷ） |
+
+（出口の ひとこと `exit` は 話の `exit.say` に うつした。`karte` に `exit` が あると `validate()` が 止める。）
 | `what` `why` `next` | ○ | 「なにが おきていた？」「どうして？」「これからは？」（それぞれ **62 字まで**。カルテの 紙で 2 行）。`next` には 予防と「びょういんに 行く めやす」を 入れる。紙 全体は 405 px まで（`KarteSheet.MAX_HEIGHT`。テストが はかる） |
 
 **QUIZ**：`{"q", "choices": [3 つ], "answer": 0〜2, "explain"}`（表示の ときに まぜる）。
@@ -169,10 +197,10 @@
 | 部分 | 中身 |
 |------|------|
 | 先頭の コメント | 書きかたの きまり。`tools/build_dashboard.py` が 正規表現で 読むので 守る：各話の 1 行目は `"id"`〜`"difficulty"` を 1 行に／場面の `"place": "…",` は 4 タブで 単独の 行／`PATIENTS`・`PATTERNS` は `"キー": {"name": "…"` の 形 |
-| 定数 | `SEASON_COMPLETE`（10 話 そろったら `true`）、`PATIENTS`、`PICO`、`PATTERNS`、`ORGAN_POS`、`OPENING`（1 ページ）、`ENDING`、`MISSION_TYPES`、`SPAWN_LOCKED`、`MAX`（文の 長さの 上限）、`OK_WORDS` |
+| 定数 | `SEASON_COMPLETE`（10 話 そろったら `true`）、`PATIENTS`、`PICO`、`PATTERNS`、`ORGAN_POS`、`ENTRANCES`・`EXITS`・`ROUTE_POS`・`ROUTE_LINKS`（2.2）、`OPENING`（1 ページ）、`ENDING`、`MISSION_TYPES`、`SPAWN_LOCKED`、`MAX`（文の 長さの 上限）、`OK_WORDS` |
 | `EPISODES` | 話の 配列（下の 表） |
-| 読み出し | `get_episode(id)`、`ids()`、`next_id(id)`、`scene_count(id)`、`used_places()`、`speaker(who)`、`select_line(ep)`（カルテえらびに 出す 患者の ひとこと）、`patterns(ep)`、`place_label(choice)`、`guess_is_hit(ep, first_guess)`、`after_lines(ep, i, first_guess)`、`scene_stage(ep, i)`、`karte_card(ep)` |
-| 検査 | `text_problems(text)`（static。文の きまり）、`kanji_outside_paren(text)`、`validate()`（データの まちがいを 文の 配列で 返す。空なら OK） |
+| 読み出し | `get_episode(id)`、`ids()`、`next_id(id)`、`scene_count(id)`、`used_places()`、`speaker(who)`、`select_line(ep)`（カルテえらびに 出す 患者の ひとこと）、`patterns(ep)`、`place_label(choice)`、`guess_is_hit(ep, first_guess)`、`after_lines(ep, i, first_guess)`、`scene_stage(ep, i)`、`karte_card(ep)`、`map_point(key)`、`route(a, b)`、`journey(ep, mode)`（たびの 画面の 中身：入口／出口・ひとこと・場所・道） |
+| 検査 | `text_problems(text)`（static。文の きまり）、`kanji_outside_paren(text)`、`validate()`（データの まちがいを 文の 配列で 返す。空なら OK）、`validate_episode(ep, no)`（1 話ぶん。テストは こわした 写しも わたす） |
 
 `scene_stage()` が Level に わたす 辞書（これが「場面」の 正体）：
 
@@ -190,11 +218,11 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 
 1〜3 話（★ ＝ `hit`、○ ＝ `go`）：
 
-| 話 | 患者 | パターン | よそう（書いた 順） | 場面（場所：上書き → ミッション） | あとの はなし |
+| 話 | 患者 | パターン | よそう（書いた 順） | 入口 → 場面（場所：上書き → ミッション）→ 出口 | あとの はなし |
 |----|------|--------|----------------|----------------------------|-------------|
-| ep01 は（歯）が ズキズキ | hana | A・C | い（胃）／くち（口）★○／はな（鼻） | ① mouth：そうさ説明の `hints` → `defeat mushiba 4` → reach | 「ピコッと はっけん！」 |
-| ep02 おとうさんの い（胃）が しくしく | papa | A・C | はい（肺）／くち（口）／い（胃）★○ | ① esophagus：reach だけ（かたまりを よける） ② stomach：`defeat pylori 4`・`cheer wallcell 3`（どちらにも `done_say`）→ reach | ①「てがかり はっけん！」（2 ページ）②「ピコッと はっけん！」 |
-| ep03 おなかが いたい…どこ？ | hana | E・C | い（胃）○／しょうちょう（小腸）★○／のう（脳） | ① stomach：`skip: ["enemy_pylori"]`、`cheer wallcell 3`（`each_say` で しらべた 結果）→ reach ② intestine：`arrow: "nearest"`、`collect nutrient 6`・`deliver villus 6`・`cheer zendama 3` → reach | ①「い（胃）は げんき！」（`lines_hit` あり）②「ピコッと はっけん！」 |
+| ep01 は（歯）が ズキズキ | hana | A・C | い（胃）／くち（口）★○／はな（鼻） | 入口 `mouth`（おおきく あーん）→ ① mouth：そうさ説明の `hints` → `defeat mushiba 4` → reach → 出口 `gargle`（うがい） | 「ピコッと はっけん！」 |
+| ep02 おとうさんの い（胃）が しくしく | papa | A・C | はい（肺）／くち（口）／い（胃）★○ | 入口 `swallow`（おみずで ごくん）→ ① esophagus：reach だけ（かたまりを よける） ② stomach：`defeat pylori 4`・`cheer wallcell 3`（どちらにも `done_say`）→ reach → 出口 `burp`（げっぷ） | ①「てがかり はっけん！」（2 ページ）②「ピコッと はっけん！」 |
+| ep03 おなかが いたい…どこ？ | hana | E・C | い（胃）○／しょうちょう（小腸）★○／のう（脳） | 入口 `swallow`（おみずで ごくん。くち → しょくどう → い（胃））→ ① stomach：`skip: ["enemy_pylori"]`、`cheer wallcell 3`（`each_say` で しらべた 結果）→ reach ② intestine：`arrow: "nearest"`、`collect nutrient 6`・`deliver villus 6`・`cheer zendama 3` → reach → 出口 `poop`（うんちと いっしょに） | ①「い（胃）は げんき！」（`lines_hit` あり）②「ピコッと はっけん！」 |
 
 使う マーカー（`blender/stages.py`）：くち `MK_enemy_mushiba_1..4`／しょくどう `MK_checkpoint_1..2`（かたまりは GLB の `FoodChunks`）／い（胃）`MK_enemy_pylori_1..5`・`MK_friend_wallcell_1..3`・`MK_hazard_acid_*`／しょうちょう `MK_pickup_nutrient_*` 6・`MK_deliver_villus_1..2`・`MK_friend_zendama_1..3`・`MK_enemy_akudama_1..3`（たおさなくて よい）。
 
@@ -204,10 +232,10 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 - **3 話の しょうちょうは `"arrow": "nearest"`**。えいよう（道の 12〜72 %）・じゅうもう（52 %・93 %）・ぜんだまきん（18・45・66 %）が まざって ならぶ。リスト順の 矢印だと ぜんだまきんを 指すのは いちばん おくまで 行った あとで、通りすぎた 子は 流れに さからって もどる ことに なる。ヒントにも「ぜんだまきんにも さわって」と 書いた。
 - **3 話は「ちょう（腸）で あくだまきんが ふえた」**と 言う（「しょうちょうで」とは 言わない。9.3）。場面の 場所は しょうちょうの まま。カルテの `next` は「すごく いたい ときや ずっと いたい とき」の 両方。
 - **3 話の `after`**：見出しは「い（胃）は げんき！」。はずれたのは はなちゃんの 思いこみ、と 言う。さいしょに しょうちょうを えらんだ 子（`hit`）には `lines_hit`（「きみの よそうどおり」）。
-- **2 話の カルテ**：ピロリきんは「きづかない うちに い（胃）に ながく すんでいる ことが ある」（おとなが うつる、とは 言わない）。出口は「い（胃）の いりぐちまで もどって、げっぷ」。ミッションの 文は「ゴールの わっかへ いこう」。1 話の 出口は「のどの おくで まわれみぎ → うがい」。
+- **2 話の カルテ**：ピロリきんは「きづかない うちに い（胃）に ながく すんでいる ことが ある」（おとなが うつる、とは 言わない）。出口（`exit.say`）は「い（胃）の いりぐちまで もどって、げっぷ」。ミッションの 文は「ゴールの わっかへ いこう」。1 話の 出口は「のどの おくで まわれみぎ → うがい」。
 - **1 話の そうさ説明**は 場面の `hints` に ある（場所の ヒントは 引きつがない）。
 
-`validate()` が 見る もの（`tests/smoke.gd` が 1 件ずつ 失敗に する）：id と no が `ep01` から 順／患者と パターンが ある／そうだん 1〜3 ページ／よそうは 2〜3 たく・場所の 重複なし・`ORGAN_POS` に ある・`go` が 1 つ 以上・`hit` は `go` の えらびだけ／場面 1〜3 こ・場所が `StageDB` に ある・`intro` と `hints` を 書く・ミッションの さいごは reach・型は `MISSION_TYPES`・`arrow` は `"nearest"` だけ・`spawn` の キーは `skip`／`swap` だけ・`SPAWN_LOCKED` を 書かない・さいごの 場面に `after`／カルテの 3 行・クイズは 3 たく／全部の 文の 長さ（`MAX`）と 文の きまり／**カルテで 行く 場所**の ものしりカードと まとめの 文の きまり。
+`validate()` が 見る もの（`tests/smoke.gd` が 1 件ずつ 失敗に する）：id と no が `ep01` から 順／患者と パターンが ある／**`enter`・`exit` が ある・`way` が `ENTRANCES`／`EXITS` に ある・入口から さいしょの 場所、さいごの 場所から 出口への 道が ある・`say` の 長さと きまり**（無い／知らない ときの 文は「ep02: enter が ない。"enter": {"way": <mouth, swallow, nose, wound の どれか>, "say": ピコの ひとこと} を 書く」「ep03: exit.way「rocket」を 知らない。…」）／古い `guess.depart`・`karte.exit` が 無い／`ENTRANCES`・`EXITS` の `name`・`go` の 文と `at` の 点／そうだん 1〜3 ページ／よそうは 2〜3 たく・場所の 重複なし・`ORGAN_POS` に ある・`go` が 1 つ 以上・`hit` は `go` の えらびだけ／場面 1〜3 こ・場所が `StageDB` に ある・`intro` と `hints` を 書く・ミッションの さいごは reach・型は `MISSION_TYPES`・`arrow` は `"nearest"` だけ・`spawn` の キーは `skip`／`swap` だけ・`SPAWN_LOCKED` を 書かない・さいごの 場面に `after`／カルテの 3 行・クイズは 3 たく／全部の 文の 長さ（`MAX`）と 文の きまり／**カルテで 行く 場所**の ものしりカードと まとめの 文の きまり。
 
 ### 2.4 4〜10 話の スケッチ（データの 形が 足りる ことの 確認。くわしい 手順は 8 章）
 
@@ -239,6 +267,8 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
             ▼            │ ui_cancel／← もどる（そうだんの さいごの ページへ。カルテえらびまで もどさない）
         guess（guess.gd）           ※ guess が 無い 話は とばす。はずれ → ヒント → えらびなおし（画面は そのまま）
             │ finished(first_guess)
+        enter（journey.gd）         からだに はいる：外で ちいさく なる → 入口 → 道 → さいしょの 場所。もどる は 無い
+            │ finished
    ┌──▶ scene[i]（Level）           intro（短い ひとこと）→ あそぶ → ゴール。遊ぶ 前に カードは 出さない
    │        │ cleared           ┌── ポーズ「カルテえらびへ」（おえた 場面までは「つづきから」で もどれる）
    │        │                   │   ポーズ「この ばめんを やりなおす」→ 同じ scene[i] を 最初から
@@ -247,6 +277,8 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
    │        │ finished
    └────────┤ i+1 < 場面の 数
             ▼ さいごの 場面の あと
+        exit（journey.gd）          からだから でる：さいごの 場所 → 道 → 出口 → 外で もとの 大きさ → 患者が げんきな 顔
+            │ finished
         karte（karte.gd：かいけつ → カルテの 紙 → クイズ → ほし）  ※ 入った ときに クリアを 記録し「つづき」を 消す
             ├─[カルテえらびへ]→ カルテえらび
             └─[つぎの カルテへ ▶]→ start_episode(つぎ)　／　さいごの 話 かつ SEASON_COMPLETE →［エンディングへ ▶］
@@ -254,8 +286,9 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 
 - 流れは 一直線。よそうは 道順を 変えない（分岐の グラフは 作らない）。
 - 「画面」と「Level」は 同時に 生きない：画面を 出す 前に かならず `unload_level()`（ポーズは `level != null` の ときしか 開かないので、画面の 上に ポーズは 出ない）。場所の カードだけは、クリアした Level の 上に ポップアップで 出る。
-- **はじめて 遊ぶ 子が 動きだす までの ボタン**：しんさつ スタート → OPENING 1 → そうだん 2 → よそう（えらぶ ＋ しゅっぱつ）＝ 6 回。
-- BGM：カルテえらび・そうだん・よそう ＝ `bgm_title`。場面 ＝ `stage.get("bgm")`、無ければ `difficulty >= 3` で `bgm_boss`、ほかは `bgm_stage`。after と karte は 鳴っている ものの まま。
+- **はじめて 遊ぶ 子が 動きだす までの ボタン**：しんさつ スタート → OPENING 1 → そうだん 2 → よそう（えらぶ ＋ しゅっぱつ）→ たびの 画面（しらべに いこう）＝ 7 回。
+- **入口と 出口は かならず 通る**（話の とちゅうから 入る とき だけ 通らない）：「つづきから」は からだの 中（さいごに おえた 場面の `after`）に もどるので 入口は 出ない。「クイズに もういちど」は カルテだけなので 出口は 出ない。テストと 撮影の `start_episode(id, "scene", n)` も 入口を 通らない。
+- BGM：カルテえらび・そうだん・よそう ＝ `bgm_title`。場面 ＝ `stage.get("bgm")`、無ければ `difficulty >= 3` で `bgm_boss`、ほかは `bgm_stage`。enter・after・exit・karte は 鳴っている ものの まま。
 
 ### 3.2 `game.gd`（`Game`）
 
@@ -265,13 +298,13 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 | `signal phase_changed(phase, index)` | フェーズに 入った とき（テストが 順番を 見る） |
 | `signal said(text)` | HUD に 文が 出た とき（テストが `goal_say` などを 見る） |
 | `signal stage_started(id)`／`stage_finished(id, stars)` | Level を 始めた／クリアした とき（場面でも 場所モードでも）。`stars` は いつも 0 |
-| `var episode`／`scene_index`／`phase`／`first_guess`／`_review` | いまの カルテ（空 ＝ 場所モード）、場面の 番号、フェーズ（`consult`／`guess`／`scene`／`after`／`karte`）、さいしょの よそう、読みかえし中か |
+| `var episode`／`scene_index`／`phase`／`first_guess`／`_review` | いまの カルテ（空 ＝ 場所モード）、場面の 番号、フェーズ（`consult`／`guess`／`enter`／`scene`／`after`／`exit`／`karte`）、さいしょの よそう、読みかえし中か |
 | `show_title()`／`show_episode_select()`／`show_zukan()` | 画面を 出す。前の 2 つは `episode` と `phase` を 空に もどす |
-| `start_episode(ep_id, from_phase := "consult", from_scene := 0, guess := "")` | カルテの 入口。うしろ 3 つの 引数は「つづきから」と テスト・撮影用（`start_episode("ep03", "scene", 1)`、`("ep03", "karte")`） |
-| `resume_episode()` | つづきから：`SaveData.resume()` の 話を、**さいごに おえた 場面の `after`** から 始める（おさらいに なる。`after` が 無ければ 次の 場面か カルテへ） |
-| `review_karte(ep_id)` | クリアずみの カルテの 紙と クイズだけ もういちど（クイズの ほしを 取りなおせる）。クリアの 記録も ハートの 印も「つづき」も さわらない |
+| `start_episode(ep_id, from_phase := "consult", from_scene := 0, guess := "")` | カルテの 入口。うしろ 3 つの 引数は「つづきから」と テスト・撮影用（`start_episode("ep03", "scene", 1)`、`("ep03", "karte")`、`("ep02", "enter")`、`("ep02", "exit", 1)`） |
+| `resume_episode()` | つづきから：`SaveData.resume()` の 話を、**さいごに おえた 場面の `after`** から 始める（おさらいに なる。`after` が 無ければ 次の 場面か 出口へ）。入口は 通らない（ミクロごうは もう からだの 中） |
+| `review_karte(ep_id)` | クリアずみの カルテの 紙と クイズだけ もういちど（クイズの ほしを 取りなおせる）。出口は 通らない。クリアの 記録も ハートの 印も「つづき」も さわらない |
 | `_enter(phase, back := false)` | フェーズの 切りかえは **ここ 1 か所**。データが 無い フェーズ（よそう・あとの はなし・空の そうだん）は 自分で 次へ 進む。`back` は よそうから そうだんへ もどる とき（さいごの ページを 出す） |
-| `_after_done()`／`_on_karte_finished(go_next)` | つぎの 場面 or カルテへ／つぎの 話 or カルテえらびへ |
+| `_after_done()`／`_on_karte_finished(go_next)` | つぎの 場面 or 出口（`exit` → カルテ）へ／つぎの 話 or カルテえらびへ |
 | `start_stage(place_id)` | 場所モード（テスト・撮影専用） |
 | `_start_level(stage)` | Level と HUD を 作って 始める（`stage` ＝ 場所の 辞書か `scene_stage()` の 辞書） |
 | `retry_stage()` | カルテの 中なら いまの 場面だけ やりなおす |
@@ -294,7 +327,7 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 
 ### 3.3 画面の 共通の きまり
 
-カルテえらび・はなし・よそう・カルテの 4 画面は `src/ui/flow_screen.gd` を 継ぐ。
+カルテえらび・はなし・よそう・たびの 画面・カルテの 5 画面は `src/ui/flow_screen.gd` を 継ぐ。
 
 | 名前 | 内容 |
 |------|------|
@@ -347,11 +380,12 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 - 右上：ピコの ふきだし（700×212。文は 26 px・幅 540・**4 行まで**）。最初は `guess.q`。
 - 右下：えらぶ ボタン（「Ａ　くち（口）」。書いた 順。名前は `EpisodeDB.place_label()`）。フォーカスが 来ると その しるしが 大きく なる。上下だけで 動く（左右は 動かない）。
 - はずれ（`go` で ない）：ふきだしが 返事（ほめる ＋ ヒント）に 変わる。その ボタンは 灰色に なり、右に 小さく「かんがえたよ」（ボタンの 文には 足さない：「い（胃）（…）」と かっこが ならぶと 読みにくい）。音は `card`（`wrong` は 使わない）。フォーカスは のこりの 上から 1 つめへ。
-- あたり（`go`）：ふきだしは 返事だけ。**えらぶ ボタンを かくし、その 場所に「えらんだ 場所の ふだ ＋ しゅっぱつの ひとこと（`depart`。28 px・幅 640・3 行まで）」の 箱**を 出す。地図には えらんだ しるしだけ のこる（色も そのまま）。「しゅっぱつ！ ▶」に フォーカス → `finished(first)`。
+- あたり（`go`）：ふきだしは 返事だけ。**えらぶ ボタンを かくし、その 場所に「えらんだ 場所の ふだ ＋ だれの からだに 行くか（`depart_line()`「ミクロごうに のって、おとうさんの からだの なかへ！」。28 px・幅 640・3 行まで）」の 箱**を 出す。地図には えらんだ しるしだけ のこる（色も そのまま）。「しゅっぱつ！ ▶」に フォーカス → `finished(first)` → たびの 画面（3.4 E）。しゅっぱつの ひとこと（`enter.say`）は たびの 画面だけに 出す（2 回 読ませない）。
+- 地図は `body_map.gd`（3.5）。絵が 無い 患者は 患者ごとに コードで 描く。
 - `first` は さいしょに えらんだ 場所。あたり（`hit`）だったかは `EpisodeDB.guess_is_hit()` が 見る。
 - **行き止まりに ならない 理由**：`go` の えらびは 押せなく ならない。はずれは 多くて 2 回。`validate()` が「`go` が 1 つ 以上」を 保証する。
 - 画面は「せいかい／ざんねん」と 言わない。ほしにも 入れない。
-- テストが 見る もの：`buttons`、`marks`、`choose(place)`、`say_fits()`・`depart_fits()`（static）、`fits()`／`overflow()`、`SAY_*`・`DEPART_*` の 定数（箱の 大きさを 変えたら 定数も 直す）。
+- テストが 見る もの：`buttons`、`marks`、`choose(place)`、`say_fits()`・`depart_fits()`・`depart_line()`（static）、`fits()`／`overflow()`、`SAY_*`・`DEPART_*` の 定数（箱の 大きさを 変えたら 定数も 直す）。
 
 #### D. カルテ `src/ui/karte.gd`
 
@@ -359,7 +393,7 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 
 | 段（`step`） | 中身 | 主ボタン |
 |------------|------|---------|
-| 0 かいけつ | 「かいけつ！」／「カルテ 1　だいめい」／患者（`happy`）の おれい `karte.thanks` と ピコの 出口の ひとこと `karte.exit` を ふきだし 2 つで／`guess_hit` なら「★ きみの さいしょの よそう、あたっていたね！」。`Sfx.play("clear")` | 「カルテを かく ▶」 |
+| 0 かいけつ | 「かいけつ！」／「カルテ 1　だいめい」／患者（`happy`。顔 200 px）の おれい `karte.thanks`（32 px）／（出口の ひとことは 前の たびの 画面に うつした）／`guess_hit` なら「★ きみの さいしょの よそう、あたっていたね！」。`Sfx.play("clear")` | 「カルテを かく ▶」 |
 | 1 カルテの 紙 | `SaveData.mark_card(ep_id, "karte")`。`karte_sheet.gd` の 紙：「なにが おきていた？／どうして？／これからは？」＋「げんいんの タイプ」（パターンの 名前の ふだ ＋ ひとこと）。挿絵 `cards/card_<ep>_karte.png` が あれば 左に | 「クイズに ちょうせん！」 |
 | 2 クイズ | `ep["quiz"]`。えらびは まぜて「Ａ／Ｂ／Ｃ」で 出す | 1 つめの えらび |
 | 3 ほし | `answered.emit(correct)` の あと `SaveData.star_flags()` を 読む。「せいかい！」／「おしい！」＋ ピコの `explain`／ほし 3 つ ＋「ほし 2 こ！」／「● カルテ かんせい！」「● ハートを へらさずに」「● クイズに せいかい」。まだの 行は「○ …」に どうすれば とれるかを そえる：**「（ばめん 2 が まだ）」**（場面が 1 つの 話と クイズは「（また こんど！）」） | 「つぎの カルテへ ▶」→ `finished(true)`（つぎの 話が ある とき。さいごの 話で `SEASON_COMPLETE` なら「エンディングへ ▶」）。となりに いつも「カルテえらびへ」→ `finished(false)` |
@@ -369,13 +403,24 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 - ふつうの カルテ画面では `ui_cancel` は 何も しない（もどる 先が 無い）。
 - テストが 見る もの：`step`、`opts`、`panel`、`quiz_buttons`、`quiz_answer`、`back_btn`、`fits()`。
 
-#### E. そのほかの 画面
+#### E. たびの 画面 `src/ui/journey.gd`（からだに はいる／でる）
+
+- `setup(ep, mode)`（`mode` ＝ `"enter"`／`"exit"`）。シグナル `finished`。中身は `EpisodeDB.journey(ep, mode)`。
+- 見出し：「おとうさんの からだに はいるよ！」／「おとうさんの からだから でるよ！」。
+- 左（560×560）：からだの地図（`body_map.gd`。患者の 絵か、患者ごとの 仮の 地図）の 上に、道（これから 行く 道 ＝ 白い 点線、とおった 道 ＝ きいろ）、場所の 輪と 名前の ふだ（「い（胃）」）、ミクロごう（コードで 描く 横から 見た 形。からだの 中では 白い 光の 輪）、出入りの しかけ（`fx`）。下に 動きに 合わせた ひとこと（「ちいさく なあれ……」→ 入口の `go` →「しょくどう（食道）へ すすむよ」→「しょくどう（食道）に とうちゃく！」。exit は「い（胃）から でぐちへ」→ 出口の `go` →「もとの おおきさに もどるよ」→「おとうさん、げんきに なったね！」）。
+- 右上（580×210）：患者の 顔（170 px。enter は `sick`、exit は 外に 出た ときに `happy` に かわって ぽよん）・「かんじゃさん」・名前（40 px）・「いりぐち： おみずで ごくん」／「でぐち： げっぷ」の ふだ。
+- 右なか：ピコの ふきだし（`enter.say`／`exit.say`。28 px・幅 430・5 行まで）。
+- 右下：「しらべに いこう！ ▶」（enter）／「つぎへ ▶」（exit）。**はじめから 出て いて フォーカスが ある**。動きの とちゅうで 押して よい。時間で 勝手に 進まない。`ui_cancel` は 何も しない（もどる 先が 無い）。上下左右でも ボタンから 動かない。
+- 動き（`_process` の delta で 数える）：enter ＝ 外で 大きく 出る（0.35 秒）→ ちいさく なる（0.9 秒。きらきら）→ 入口へ（0.8 秒。しかけ）→ 道を すすむ（長さ ÷ 190 px／秒、0.9 秒 以上）→ 場所の 輪が ひかる。exit ＝ 場所で 出る → 道を もどる → 出口から 外へ（0.8 秒。しかけ）→ もとの 大きさ（0.8 秒）・患者が にっこり。音は `pop`・`heal`・`goal_open`・`cheer`。
+- テストが 見る もの：`mode`、`ep`、`j`、`button`、`captions()`、`path_points()`、`place_point()`、`say_fits()`（static）、`fits()`／`overflow()`（ふきだし・患者の ふだ・道の 点・下の ひとこと）。撮影用に `freeze_at(割合)`・`rest_time()`。
+
+#### F. そのほかの 画面
 
 | ファイル | いまの 形 |
 |---------|---------|
 | `pause.gd` | 「つづける」「この ばめんを やりなおす」「カルテえらびへ」。その 話に つづきが あれば 3 つめは「カルテえらびへ（つづきから できるよ）」。パネルは 不透明（うしろの HUD の 文が すけない） |
 | `title.gd` | 「はじめる」→ `Game.show_episode_select()`。ほしの 分母は `EpisodeDB.EPISODES.size() * 3`。エンディングの 文は `EpisodeDB.ENDING` |
-| `hud.gd` | 題は 場所の「なまえ（漢字）」だけ（番号も 場面の「1 / 2」も 出さない：3 話の ねたばれに なる）。ピコの 顔は `T.portrait("pico", "normal", …)`。`say(text, seconds, hold)` は 出せたら `true` を 返す |
+| `hud.gd` | 題は **患者の 顔 ＋「おとうさんの しょくどう（食道）」**（だれの からだか。`title_text(stage)`。場所モード（テスト）は 場所の「なまえ（漢字）」だけ）。26 px・幅 650 まで（`title_fits()`。テストが 全部の 患者 × 場所で はかる）。番号も 場面の「1 / 2」も 出さない（3 話の ねたばれに なる）。ピコの 顔は `T.portrait("pico", "normal", …)`。`say(text, seconds, hold)` は 出せたら `true` を 返す |
 | `card.gd` | カードに `"tag"` が あれば 上の 小さい 見出しに 使う（無ければ「ものしりカード」）。`"karte"`（話の id）が あれば 絵の 列の かわりに カルテの 紙を 出す（ずかんの 読みかえし）。`panel_height()`・`button()` は テスト用 |
 | `zukan.gd` | 5.3 |
 
@@ -386,7 +431,8 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 | 関数 | さがす 順 |
 |------|---------|
 | `T.portrait(who, mood, size, color, prefer_full := false)` | （`prefer_full` なら）`<who>_fullbody_<mood>.png` → `<who>_face_<mood>.png` →（ピコだけ）`pico_face_normal.png` → コードで 描く 仮の 絵（ピコ ＝ `draw_pico`、患者の 顔 ＝ `draw_face`、`prefer_full` の 患者 ＝ 顔 ＋ 上半身の `draw_person`） |
-| `T.bodymap(who)` | `bodymap_<who>.png` → `bodymap_hana.png` → `body_map.svg`（はなちゃんだけ）→ `null`（`guess.gd` の `_draw_body` が コードで 描く） |
+| `T.bodymap(who)` | `bodymap_<who>.png` → `body_map.svg`（はなちゃんだけ）→ `null`（`body_map.gd` が コードで 描く）。**ほかの 人の 地図で 代わりに しない**（前は `bodymap_hana.png` に おちて いた。おとうさんの 話で 女の子の 体が 出ると、同じ 子の 中に いる ように 見える） |
+| `body_map.gd`（`BodyMap`） | よそうと たびの 画面の 地図。絵 か コードで 描く 仮の 地図：患者の 色の 服。大人（papa・jiji）は えり・ベルト・長ズボン・茶色の くつ・大人の かみがた（おとうさんは 茶色の みじかい かみ・そでを まくった シャツ、おじいちゃんは ふんわりした 白っぽい かみ・カーディガン）、子どもは 半ズボン・はだの ひざ・ほっぺ。体の 配置と 臓器は 4 人 同じ（W1_02 4.3・4.4）。`point(key)`／`to_local_pos(p)` で 地図の 点を 聞く。4 人を ならべた 撮影は `tools/screenshot.sh bodymaps` |
 | `T.art(name)`／`T.art_rect(name, size)` | `res://assets/ui/<name>.png` が あれば それ |
 
 `mood`：患者は `sick`／`happy`。ピコは `normal`／`happy`／`surprised`／`worried`（いま 使うのは `normal` と `happy`）。色は `EpisodeDB.speaker(who)["color"]`。
@@ -398,14 +444,14 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 | 患者の 顔 | `<who>_face_sick.png`、`<who>_face_happy.png`（who ＝ hana／kenta／papa／jiji） | カルテえらび・カルテ・ずかん | hana は 納品ずみ。papa・kenta・jiji は 仮の 顔 |
 | 患者の 全身 | `<who>_fullbody_sick.png`、`<who>_fullbody_happy.png` | はなし（顔より 先に さがす） | hana は 納品ずみ。ほかは 仮の 上半身 |
 | ピコ | `pico_face_<mood>.png`、`pico_fullbody_<mood>.png` | HUD・よそう・カルテ（顔）、はなし（全身 → 顔） | 顔 4 つは 納品ずみ。全身は まだ（顔が 出る） |
-| からだの地図 | `bodymap_<who>.png` | よそう | 仮の SVG（はなちゃん）と コードの 絵（ほかの 患者） |
+| からだの地図 | `bodymap_<who>.png` | よそう・たびの 画面 | 仮の SVG（はなちゃん）と コードの 絵（ほかの 患者。`body_map.gd`） |
 | そうだんの 背景 | `consult_bg.png` | はなし | コードで 描く しんりょうじょ |
 | カルテの 挿絵 | `cards/card_<ep>_karte.png`（`card_ep01_karte.png`） | カルテの 紙（カルテ画面・ずかん） | 無し（文が 幅 いっぱい） |
 
 絵を 頼む ときの 注意：
 
 - **からだの地図は、臓器が `EpisodeDB.ORGAN_POS`（絵の 中の 0〜1 の 位置）に 来る ように 描いて もらう**。ちがう 体つきの 絵だと しるしが ずれる。位置を 変えるなら `ORGAN_POS` を 直す。
-- `bodymap_hana.png` だけが 先に 届くと、ほかの 患者にも はなちゃんの 体が 出る（さがす 順の とおり）。4 人分を いっしょに 入れるか、届く までは 置かない。
+- `bodymap_hana.png` だけが 先に 届いても、ほかの 患者は コードの 仮の 地図の まま（はなちゃんの 体には ならない）。届いた 人から 置いて よい。絵の 中の 外がわ（たびの 画面で ミクロごうが 外に 出る 所、`ENTRANCES`／`EXITS` の `out`）は 透明に して もらう。
 - `consult_bg.png` は 落ち着いた 色に（左に 人物、右に ふきだしが 乗る。名前と ページの まるは 白い ふだに のせて ある）。
 - 前の ステージえらびに あった 場所の アイコン（`stage_icons/stage_icon_<id>.png`）の 口は、画面ごと 無くなった。出す 場所（よそうの えらぶ ボタンか、ずかんの 見出しか）は まだ 決めて いない。
 - 新しい 患者・絵の 口を 足したら、発注書と `docs/dashboard.md` 4 章にも 書く（開発メモの 約束）。
@@ -496,11 +542,11 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 | 順 | 見る もの |
 |----|---------|
 | 1 スクリプト | `src/` の 全スクリプトが 読みこめる |
-| 2 データ | `EpisodeDB.validate()`／はなし・よそうの 文が 箱に 入る（本物の フォントで 行数を はかる）／`lines_hit` の えらびかた／`spawn` の ルールの 表（境目・えいようの 2 つの 番号・かえられない マーカー）／カルテの 紙の 高さ（挿絵 あり・なし）／`T.portrait()` が 絵と 仮の 顔の 両方を 通る |
+| 2 データ | `EpisodeDB.validate()`／はなし・よそう・**たびの 画面の ふきだし**の 文が 箱に 入る（本物の フォントで 行数を はかる）／入口・出口の 道が 入口の 点と 場所を むすぶ／たびの 画面の 下の ひとことの 文の きまり／**HUD の 題**（患者の 名前で 始まる・1 行に 入る・文の きまり。全部の 患者 × 場所でも はかる。場所だけなら 名前だけ）／**入口・出口を こわした 写し**（`enter` を 消す・`exit` を 消す・知らない `way`・古い `guess.depart`／`karte.exit`）を `validate_episode()` が わかる 文で 止める／`lines_hit` の えらびかた／`spawn` の ルールの 表（境目・えいようの 2 つの 番号・かえられない マーカー）／カルテの 紙の 高さ（挿絵 あり・なし）／`T.portrait()` が 絵と 仮の 顔の 両方を 通る |
 | 3 セーブ | v1 からの 移行、こわれた ファイル、型ちがい、ほしの たまりかた、つづき |
-| 4 全カルテ | カルテえらびから 始め、**フォーカス中の ボタンを 押して** そうだん → よそう（まず はずれを 1 回）→ 場面（自動操縦）→ カルテ（クイズは 話ごとに あたり・はずれを 交互に）→「つぎの カルテへ」。フェーズの 列／場面の クリア数／`data_warnings` が 空／`skip` が きいている／記録／おわった あとに Level と ポーズが のこって いない。画面ごとに 文の きまり・はみ出し・重なりも 見る |
-| 5 そのほかの 道 | タイトル、よそうの「もどる」、あたりの よそう（`lines_hit` と「あたっていたね」）、つづきから（場面の やりなおし・ポーズから やめる・クリアずみの 話が つづきを 上書きしない）、クイズの やりなおし、ずかん（カルテを 開いて 閉じる）、**本物の 入力**（矢印・決定・もどる の アクション）で 4 つの 画面を 動かして フォーカスの 行き先を 見る（`_check_keys`） |
-| 6 全部の 場所 | 10 場所を 場所モードで 自動操縦（カルテで まだ 使わない 場所も ここで 守る） |
+| 4 全カルテ | カルテえらびから 始め、**フォーカス中の ボタンを 押して** そうだん → よそう（まず はずれを 1 回）→ **からだに はいる**（動きの とちゅうで 押す）→ 場面（自動操縦）→ **からだから でる** → カルテ（クイズは 話ごとに あたり・はずれを 交互に）→「つぎの カルテへ」。フェーズの 列／場面の クリア数／`data_warnings` が 空／`skip` が きいている／記録／おわった あとに Level と ポーズが のこって いない。画面ごとに 文の きまり・はみ出し・重なりも 見る。たびの 画面は 2 つとも 出たか・患者・入口／出口・道の 始まりと おわり・ひとことと 名前が 出て いるか・ボタンに フォーカス・タッチの ボタンが かくれて いるか。入口・出口の ひとことが ほかの 画面（よそう・カルテ）に 出て いないか。場面ごとに HUD の 題が 患者の 名前で 始まるか |
+| 5 そのほかの 道 | タイトル、よそうの「もどる」、あたりの よそう（`lines_hit` と「あたっていたね」）、つづきから（**入口を 通らず** after0 → scene1。場面の やりなおし・ポーズから やめる・クリアずみの 話が つづきを 上書きしない）、クイズの やりなおし（**karte だけ。出口を 通らない**）、ずかん（カルテを 開いて 閉じる）、**本物の 入力**（矢印・決定・もどる の アクション）で 5 つの 画面を 動かして フォーカスの 行き先を 見る（`_check_keys`） |
+| 6 全部の 場所 | 10 場所を 場所モードで 自動操縦（カルテで まだ 使わない 場所も ここで 守る）。HUD の 題は 場所の 名前だけ |
 
 - HUD の 文：場面ごとに `intro`・`each_say`・`goal_say`・`clear_say` が 出たか、`goal_say` が 出てから 2 秒の うちに ほかの 文に 上書きされて いないか（`Game.said` を 記録して 見る）。出た 文にも 文の きまりを かける。
 - 引数：`--episode=<epNN>`（4 を その 話だけ）、`--stage=<場所id>`（6 を その 場所だけ）。5 は 全部 回す ときだけ。知らない id は 失敗に なる。`--debug` は 2 秒ごとに ミッションの 進みを 出す。
@@ -521,6 +567,8 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 | `select_new`／`select`／`resume` | カルテえらび：はじめて／ep01 クリアずみ／つづき ＋ クイズの やりなおし（ボタンが いちばん 多い 形） |
 | `opening`、`consult:ep03` | はじめての そうだん（OPENING）、そうだん |
 | `guess:ep03`、`guess_wrong:ep01`、`guess_go:ep01` | よそう：えらぶ 前／はずれを 1 回 えらんだ あと／`go` を 押した あと（しゅっぱつの 箱） |
+| `enter:ep02`、`exit:ep02` | たびの 画面（からだに はいる／でる）。`+t0`／`+t50`／`+t100` で 動きを その ％ で 止める（無ければ おわり） |
+| `bodymaps` | 4 人の からだの地図を ならべる（絵が 無い 人は コードの 仮の 地図） |
 | `after:ep03:0` | 場面 0 の あとの はなし |
 | `karte:ep03[:n]` | カルテ画面の 段 0（n ＝ 1 紙／2 クイズ／3 ほし） |
 | `review:ep02[:n]` | クリアずみの カルテの 読みかえし（紙から。n ＝ 1 クイズ／2 ほし） |
@@ -528,7 +576,7 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 | `ep03:1` | 3 話の 2 つめの 場面（＋`--play=秒`） |
 | `<場所id>` | 場所モード（＋`--play=秒`） |
 
-しるし（「+」で つなぐ）：`+p<N>`（はなしの N ページ目）、`+hit`（さいしょの よそうが あたりの 子）、`+wrong`（クイズで はずれ）、`+hurt`（ハートが へった 場面が ある）、`+touch`。例：`after:ep03:0+hit+p1`、`karte:ep02:3+wrong+hurt`。
+しるし（「+」で つなぐ）：`+p<N>`（はなしの N ページ目）、`+hit`（さいしょの よそうが あたりの 子）、`+wrong`（クイズで はずれ）、`+hurt`（ハートが へった 場面が ある）、`+touch`、`+t<N>`（たびの 画面の 動きの ％）。例：`after:ep03:0+hit+p1`、`karte:ep02:3+wrong+hurt`。
 
 `tools/make_screenshots.sh` は 主な 画面と 10 場所を `docs/screenshots/` に まとめて 撮る。CI では 撮らない。
 
@@ -595,7 +643,9 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 - 絵が 無い 患者（papa・kenta・jiji）、からだの地図、そうだんの 背景、カルテの 挿絵は 仮（3.5）。くちと はなの しるしは 顔の 上に 乗る。
 - 「つづき」は 1 つだけ。
 - HUD の ミッションの 一覧で、長い 文は 数（「0 / 6」）が 次の 行に 折れる（読める。前からの 形）。
-- 3 話で しょうちょうを えらぶと、しゅっぱつの 箱の ふだは「しょうちょう（小腸）」の まま、ピコが「まず い（胃）から」と 言う。文を 見なおす ときに 見る。
+- 3 話で しょうちょうを えらぶと、しゅっぱつの 箱の ふだは「しょうちょう（小腸）」の まま、ピコが「まず い（胃）から」と 言う。文を 見なおす ときに 見る（たびの 画面は い（胃）へ 行く）。
+- たびの 画面の ミクロごうと 出入りの しかけ（おみずの つぶ・げっぷの くうき など）は コードで 描いた 仮の 絵。からだの地図は はなちゃん（仮の SVG）と、ほかの 3 人（コードで 描く 仮の 地図）で 画風が ちがう。4 人分の `bodymap_<who>.png` が 届けば そろう（W1_02）。
+- 1 話は 入口も 出口も くち（場所も くち）なので、からだの 中の 道は 短い（外から くちへ 入る／くちから 外へ 出る だけ）。
 - のうの パズルの「ざんねん！ もういちど みてね。」は 場所の 前からの 文（7 話を 作る ときに 見なおす。8 章）。
 - けっかん・しんぞう（みぎ・ひだり）・はい の ものしりカードと まとめには、一文字の 臓器名の 書きもらし（「ちを」「ちが」など）が 10 か所あまり のこって いる。その 場所を 使う 話を 足すと `validate()` が 止めるので、そこで 直す。
 - テストの すきま（わざと こわしても 通って しまう もの）：ハートの ほし（ノーダメージ）の 数を 確かめて いない。`Level._fit_missions()` の 呼び出しだけを 消しても 気づかない。ヒントが 画面に 出たかを 見て いない。「あたっていたね」は 画面の 文で なく `opts["guess_hit"]` を 見て いる。4〜10 話を 足す 前に ふさぐ。
@@ -613,9 +663,18 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 どの 話も 共通で：
 
 1. `EPISODES` に 1 件 足す（2.2 の 形。1 行目の 書きかたを 守る）。`hints` と、さいごの 場面の `after` を わすれない。原因に あたる えらびに `hit`。
+   **入口と 出口**も かならず 書く（`guess` の 次に `enter`、`scenes` の 次に `exit`。どちらも 1 行）：
+   ```gdscript
+   "enter": {"way": "nose", "say": "はなちゃん、おおきく いきを すって！ ミクロごう、はなから はっしん！"},
+   ...（scenes）
+   "exit": {"way": "sneeze", "say": "はなの おくまで もどって…… はっくしょん！ くしゃみに のって そとへ！"},
+   ```
+   - `way` は 2.2 の `ENTRANCES`／`EXITS` から えらぶ。入口は「さいしょの 場面の 場所へ 行ける 所」、出口は「さいごの 場面の 場所から もどれる 所」に する（はなから はいって い（胃）へ は 行けない。道は `ROUTE_LINKS`。つながらないと `validate()` が 止める）。
+   - `say` は ピコの ひとこと 1 つ（60 字まで）。enter は 患者への 声かけ ＋「ミクロごう、はっしん！」、exit は 出かたを 体の 事実に 合わせて（うがい・げっぷ・くしゃみ・なみだ・あせ・きずぐち・うんち。story.md 2 章）。
+   - 合う 入口・出口が 無い ときは `ENTRANCES`／`EXITS` に 1 件 足す（`at` は 地図の 点、`out` は 外への 道、`fx` は いまの しかけから えらぶ。新しい しかけは `journey.gd` の `_draw_way_fx()` に）。道が 足りなければ `ROUTE_LINKS`（と 臓器で ない 点なら `ROUTE_POS`）に 足す。
 2. 新しい 場所・人が 地図に 出るなら `ORGAN_POS`、患者なら `PATIENTS`。
 3. `tools/run_tests.sh --episode=epNN` → 全部。`validate()` が 文の 長さ・きまり・その 場所の カードの 文を 見る。テストは `EpisodeDB.ids()` を 回るので、足した 話は 自動で 対象に なる。
-4. `tools/screenshot.sh` で そうだん・よそう（はずれ・あたり）・あとの はなし・カルテの 4 段を 撮って 見る。
+4. `tools/screenshot.sh` で そうだん・よそう（はずれ・あたり）・**たびの 画面（`enter:epNN+t0`・`+t50`・`enter:epNN`、`exit:epNN` も 同じ）**・あとの はなし・カルテの 4 段を 撮って 見る。
 5. 仮モデルを 作るのと 同時に 発注書へ（`docs/art_orders/`：患者は `W1_02`、てき・なかまは `W2_04`、小物は `W2_03`、場所は `W3_01`、カードと カルテの 挿絵は `W4_02`）。`docs/dashboard.md` と `docs/progress.md` を 更新。
 
 新しい しくみを 足す ときの 受け口（いまの コード）：
@@ -629,6 +688,7 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 
 - **データ**：① `{"place": "nose", "reverse": true, "flow_speed": 3.0, "spawn": {"skip": ["card_sneeze"], "add": [{"mk": "enemy_virus", "path": 0.35, "side": 1.5}, … 4 つ]}, missions: defeat virus 3 → reach}` ② lungs：`cheer wbc 3`・`boss 1` → reach ③ nose（くしゃみで 出る）。よそう：nose が `go` ＋ `hit`、lungs も `go`。
 - **文（F10）**：かぜは はなと のどで ふえる 話。はいの 場面は「はいほうに すみついた」と 言わない。場面 ② の `intro` は「ウイルスが はい（肺）の いりぐちまで きた！ ひろがる まえに おいだそう！」（39 字）。長い 説明は 場面 ① の `after` に。カルテの `next` に「せきや ねつが ながく つづく ときは、おとなに いって びょういんへ いこう。」（9〜10 話の 前ふり）。場所の 既定の `intro`（「ここは はいほう。かぜウイルスだいおうが いる！」）は 場面の `intro` が 上書きするので 出ない。はいの ものしりカードは 5 話と 10 話の 両方で 出るので、どちらの 話でも 正しい 文の ままに する（いまは「はい（肺）は いきを する ところ」で、どちらにも 合う）。
+- **入口・出口**：入口 `nose`、出口 `sneeze`（どちらも はなの 場所から つながる）。
 - **コード**（`level.gd`）：
   - `spawn.add`：`_ready()` の `_build_path()` と `_spawn_all()` の 間に `_add_spawns()`。1 件ごとに `markers.append({"node": null, "kind": …, "rest": […], "name": "MK_<mk>_a<i>", "position": pos, "basis": Basis.IDENTITY})`。`pos` は `"path": 0.35`（道の 割合 ＋ 右へ `side` m）か、`"near": "neuron_2", "offset": Vector3(3, 0, 2)`（いまある マーカーの そば。ep7）。`mk` の 1 語目は `enemy`／`friend`／`pickup`／`deliver` だけ。`_fit_missions()` は `markers` を 数えるので そのまま 効く。
   - 床の 検査：GLB に 無い 点は `probe.gd` が 見ない。Level が 始まって 0.5 秒後、`add` した 点の 真下に ゆかが あるかを 調べ、無ければ `data_warnings`（テストが 失敗に する）。
@@ -660,6 +720,7 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 - **データ**：`StageDB.STAGES` に 場所 `skin`（`"id": "skin", "order": 11, "name": "ひふ", "kanji": "皮膚", "env": "stage_skin", "kind": "arena"`、既定の ミッション ＝ 下の ①、`cards`：stage・platelet・bacteria・scab、`summary`、`quiz`）。`ORGAN_POS["skin"] = Vector2(0.43, 0.86)`（ひざ）。① skin：`collect platelet 6` → `{"type": "deliver", "target": "wound", "item": "platelet", "count": 6}`・`defeat bacteria 3` → reach ② vessel：`"hide_nodes": ["Cholesterol"]`、`"spawn": {"skip": ["card_cholesterol", "sign_heart"], "swap": {"friend_rbc_2": "friend_wbc", "friend_rbc_4": "friend_wbc", "friend_rbc_6": "friend_wbc"}}`、`cheer wbc 3`「はっけっきゅうを きずへ よぼう」（`each_say`：「きずの ところへ いそいで！」）→ reach「ひざの きずの ほうへ いこう」。
 - **事実（F11）**：**ばいきんは ひふの 場面だけ**。けっかんの 中に ばいきんを 出さない・たおさない（血の 中を しんぞうへ 流れる ばいきんは、すりきずとは べつの 重い 病気）。けっかんの 場面は「おうえんを よびに 行く」だけで、ゴールも しんぞうへ 向かう 話に しない。あかく あつく なるのは たたかって いる しるし、と カルテに 書く。
 - **コード**：`blender/stages.py` に `build_skin()` と `BUILDERS["stage_skin"]`（マーカー：`MK_player`、`MK_goal`、`MK_path_00N`、`MK_pickup_platelet_1..6`、`MK_deliver_wound_1`、`MK_enemy_bacteria_1..4`、`MK_pickup_heart_item_1`）。`Enemy.CONFIG` に `bacteria`、`pickup.gd` に `"platelet": {"pocket": true}`。`hide_nodes`：`_load_env()` で `_ensure_collisions()` の 前に `env.find_child(name)` を `free()`。`probe.gd` と テストの 場所の 回は `STAGES` を 回るので 自動で 対象に なる。
+- **入口・出口**：入口 `wound`（ひざの きずぐち）。いまの `wound` の `at` は 道の 点 `knee`（`ROUTE_POS`、ひざ）なので、`ORGAN_POS["skin"]` を 足す ときに `ROUTE_LINKS` に `["knee", "skin"]` を 足すか、`wound` の `at` を `"skin"` に かえる（`validate()` が 道の 有る・無しを 見る）。出口は けっかんの 場面の あとなので、もどる 道の ある `wound` か、出口を 1 つ 足す。
 - **仮モデル**：`stage_skin.glb`、`bacteria`、`platelet`、`wound`。**発注書**：`W3_01`（ひふ）、`W2_04`（bacteria）、`W2_03`（platelet・wound）、`W4_02`（`card_skin_*.png`）、けんたくんは `W1_02`。
 
 ### ep09「なんか さいきん だるい（前編）」（けっかん → しんぞう みぎ。手がかりあつめ）
@@ -695,7 +756,9 @@ Level は 話を 知らない。`setup()` に わたされた `stage` 辞書（�
 | 10 | ダッシュボードは `episode_db.gd` を 正規表現で 読む ＋ `run_tests.sh` で 毎回 試しに 作る | テストログが 無くても 表が 出る。こわれたら テストで 分かる |
 | 11 | ずかんは「カルテの 段 ＋ 使った 場所の 段」 | 知識カードは 場所の もの（2 話と 3 話が 同じ い（胃）の カードを 使う） |
 | 12 | 矢印は ふつう リスト順。まざって ならぶ 場面だけ `"arrow": "nearest"` | 3 話の しょうちょうで、通りすぎた 子が 流れに さからって もどらない（F22） |
-| 13 | HUD の 題は 場所の 名前だけ | 場面の 数は 3 話の ねたばれ。長い 題は はみ出す |
+| 13 | HUD の 題は「患者の 顔 ＋ 患者の 名前の 場所」（場面の 数は 出さない） | だれの からだか 分かる（1 話の あと 2 話の しょくどうが はなちゃんの 中に 見えた）。場面の 数は 3 話の ねたばれ。幅は 650 px まで 広げた |
+| 18 | 話ごとに 入口と 出口の たびの 画面（`journey.gd`）を 1 回ずつ 通る。入口・出口は データ（`enter`／`exit`）、道は `ROUTE_LINKS` | 「なおしたら 出て、つぎの 人に また はいる」を 目で 見せる（文 1 つだと 読みとばされる）。つづきから・クイズの やりなおしは 通らない |
+| 19 | 絵の 無い 患者の からだの地図は ほかの 人の 絵で 代わりに しない（コードで 描く 仮の 地図） | おとうさんの 話で 女の子の 体が 出ると、同じ 子の 中に 見える |
 | 14 | 場所の カードは はじめて クリアした あとに 1 回。「まとめ」は クリアで 既読に（ポップアップなし） | 遊ぶ 前の ボタンを へらす。内容は ずかんで 読める |
 | 15 | はじめての 1 回だけ `OPENING`（1 ページ）を そうだんの 前に | 「ミクロしんりょうじょの 見習い」の 設定を 伝える 場所が 要る |
 | 16 | 大事な 種あかしは HUD に 書かず、`after` と カルテに | HUD の 文は 時間で 消え、子どもは 操縦しながら 読む（F5） |
