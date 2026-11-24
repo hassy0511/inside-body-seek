@@ -2,6 +2,7 @@
 ## カルテ画面の 段 1 と、ずかんの ポップアップ（card.gd）が 同じ ものを 使う（見た目と はみ出しの 検査を 1 か所に）。
 ## 「げんいんの タイプ」は シリーズで 学ぶ こと（EpisodeDB.PATTERNS）：同じ タイプの 話を 子どもが つなげて 読める。
 ## 挿絵 cards/card_<ep>_karte.png が あれば 3 つの 段の 左に 出す（無ければ 文が 幅 いっぱい）。
+## いちばん 下に「とおった みち」（入口から とおった 場所の 順。やじるしは 形）と「げんいんの タイプ」。
 
 const T := preload("res://src/ui/ui_theme.gd")
 
@@ -12,6 +13,8 @@ const WIDTH := 848.0         # 紙の 幅（パネル 940 − ふち）
 const MAX_HEIGHT := 405.0    # これより 高いと 入らない（カルテ画面の 段 1 は 417、ずかんの ポップアップは 427 まで 入る）
 const PIC_SIZE := Vector2(176, 220)   # 挿絵の わく。広く すると 文の 幅が へって 行が ふえる
 const STAMP := Color(0.85, 0.42, 0.25)
+const ROUTE_INK := Color(0.55, 0.42, 0.1)
+const RouteLine := preload("res://src/ui/route_line.gd")
 
 
 ## reserve_pic は テスト用：挿絵が 無くても 挿絵の 列を 空けて 作る（絵が 届いた ときの 高さを 先に 調べる）
@@ -53,6 +56,16 @@ static func build(ep: Dictionary, reserve_pic := false) -> VBoxContainer:
 		col.add_child(body)
 		row.add_child(col)
 		sections.add_child(row)
+	# とおった みち（1 行）と げんいんの タイプ は 間を つめて ならべる（紙の 高さを ふやさない）
+	var foot := VBoxContainer.new()
+	foot.add_theme_constant_override("separation", 2)
+	vb.add_child(foot)
+	var rrow := HBoxContainer.new()
+	rrow.name = "Route"
+	rrow.add_theme_constant_override("separation", 12)
+	rrow.add_child(T.label("とおった みち", 18, ROUTE_INK))
+	rrow.add_child(RouteLine.inline(EpisodeDB.stops(ep), 18, T.INK))
+	foot.add_child(rrow)
 	# げんいんの タイプ：はんこの ような ふだ ＋ ひとこと を 1 行ずつ
 	var prow := HBoxContainer.new()
 	prow.add_theme_constant_override("separation", 12)
@@ -79,5 +92,5 @@ static func build(ep: Dictionary, reserve_pic := false) -> VBoxContainer:
 		line.add_child(ml)
 		list.add_child(line)
 	prow.add_child(list)
-	vb.add_child(prow)
+	foot.add_child(prow)
 	return vb

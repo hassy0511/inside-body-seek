@@ -15,17 +15,23 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ##   guess_wrong:ep01  はずれを 1 回 えらんだ あと
 ##   guess_go:ep01     go の えらびを 押した あと（しゅっぱつの 箱）。+hit で「あたり」の えらびを 押す
 ##   enter:ep02        からだに はいる たびの 画面（よそうの あと）。+t0／+t50／+t100 で 動きの 進みぐあい（％。無ければ おわり）
-##   exit:ep02         からだから でる たびの 画面（カルテの 前）。しるしは enter と 同じ
+##   exit:ep02         からだから でる たびの 画面（カルテの 前。とおった みち つき）。しるしは enter と 同じ
+##                     enter:ep02+cleared で クリアずみ（遊びなおし）：「とおりみちを とばす」の ボタンが 出る
+##   hop:ep02:0        みちの ちず：場面 0 を おえた あと（つぎの 場面へ）。hop:ep02:-1 は「とおりみちを とばす」を
+##                     えらんだ とき（入口 → さいしょの ふつうの 場面）。+t0／+t50／+t100 で ミクロごうの 動き。
+##                     +as_kenta などで ほかの 患者の 地図に して 見る
+##   guide:mouth       はじめての そうじゅうの てびき（場所だけ。+touch で タッチの 絵）
 ##   bodymaps          4 人の からだの地図を ならべる（絵が 無い 人は コードで 描く 仮の 地図）
 ##   after:ep03:0      場面 0 の あとの はなし
 ##   karte:ep03[:n]    カルテ画面の 段 0（n ＝ 1 紙／2 クイズ／3 ほし）
 ##   review:ep02[:n]   クリアずみの カルテの 読みかえし（紙から。n ＝ 1 クイズ／2 ほし）
 ##   zukan_karte:ep02  ずかんで カルテを 開いた ところ
-##   ep03:1            3 話の 2 つめの 場面（＋ --play=秒）
+##   ep03:1            3 話の 2 つめの 場面（＋ --play=秒。ep03:0 は くちの とおりみち、ep03:1 は しょくどうの とおりみち）
 ##   <場所 id>         場所だけを 既定の ミッションで（＋ --play=秒）
 ## 1 枚ごとの しるし（「+」で つなぐ。例：after:ep03:0+hit+p1、karte:ep02:3+wrong+hurt、guess:ep01+touch）：
 ##   +p<N>   はなしの N ページ目（0 から）      +hit    さいしょの よそうが あたり だった 子
-##   +wrong  クイズで はずれを えらぶ            +hurt   ハートが へった 場面が ある（2 つめ。1 場面の 話は 1 つめ）
+##   +cleared その 話を クリアずみに する（遊びなおし）
+##   +wrong  クイズで はずれを えらぶ            +hurt   ハートが へった 場面が ある（とおりみちで ない 2 つめ。1 つしか ない 話は 1 つめ）
 ##   +touch  タッチそうさ（--touch と 同じ）
 ##   +t<N>   たびの 画面の 動きを N ％ の 所で 止める（+t0 はじめ、+t50 とちゅう、+t100 おわり）
 ## セーブは user://save_shot.json を 使う（本物の セーブを さわらない）。
@@ -84,6 +90,7 @@ func _reset(touch: bool) -> void:
 	SaveData.set_setting("volume", 0.0)
 	SaveData.set_setting("touch", "on" if touch else "off")
 	SaveData.data["opening_seen"] = true
+	SaveData.data["steer_guide_seen"] = true   # てびきは guide: の とき だけ 出す
 
 
 ## カード・ポーズを とじる（次の 1 枚に のこさない）
@@ -113,7 +120,9 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 	var is_scene := EpisodeDB.ids().has(mode)
 	var ep_id := mode if is_scene else (parts[1] if parts.size() > 1 else "ep01")
 	var num := int(parts[1 if is_scene else 2]) if parts.size() > (1 if is_scene else 2) else 0
-	if mode != "model" and mode != "card" and not EpisodeDB.ids().has(ep_id):
+	if flags.has("cleared") and EpisodeDB.ids().has(ep_id):
+		SaveData.record_clear(ep_id)
+	if mode != "model" and mode != "card" and mode != "guide" and not EpisodeDB.ids().has(ep_id):
 		push_error("unknown episode: %s" % ep_id)
 		return false
 	var page := 0
@@ -157,13 +166,36 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 		Game.start_episode(ep_id, mode, 0 if mode == "enter" else EpisodeDB.scene_count(ep_id) - 1, guess)
 		await get_tree().process_frame
 		Game.screen().freeze_at(progress / 100.0)
+	elif mode == "hop":
+		var who := ""
+		for f in flags:
+			if f.begins_with("as_"):
+				who = f.substr(3)
+		Game.start_episode(ep_id, "hop", num, guess)
+		if who != "":
+			# ほかの 患者の 地図で 見る（+as_kenta など。まだ その 患者の 話が 無くても 地図の 形を 見られる）
+			var e: Dictionary = EpisodeDB.get_episode(ep_id).duplicate(true)
+			e["patient"] = who
+			var h = load("res://src/ui/hop.gd").new()
+			h.setup(e, Game.hop_from, Game.hop_to)
+			Game._set_screen(h)
+		await get_tree().process_frame
+		if Game.screen() != null and Game.screen().has_method("freeze_at"):
+			Game.screen().freeze_at(progress / 100.0)
+	elif mode == "guide":
+		SaveData.data["steer_guide_seen"] = false
+		Game.start_stage(parts[1] if parts.size() > 1 else "mouth")
+		var w := 0
+		while (Game.level == null or not Game.level.started) and w < 600:
+			await get_tree().process_frame
+			w += 1
 	elif mode == "after":
 		Game.start_episode(ep_id, "after", num, guess)
 		await _press(page)
 	elif mode == "karte" or mode == "review":
-		var n_scenes := EpisodeDB.scene_count(ep_id)
-		for i in n_scenes:
-			SaveData.record_scene(ep_id, i, not (flags.has("hurt") and i == mini(1, n_scenes - 1)))
+		var hs := SaveData.heart_scenes(ep_id)
+		for k in hs.size():
+			SaveData.record_scene(ep_id, hs[k], not (flags.has("hurt") and k == mini(1, hs.size() - 1)))
 		if mode == "review":
 			SaveData.record_clear(ep_id)
 			Game.review_karte(ep_id)

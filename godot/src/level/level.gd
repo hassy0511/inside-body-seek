@@ -8,6 +8,7 @@ extends Node3D
 ## Level は カルテ（話）を 知らない。setup() に わたされた stage 辞書だけを 読む：
 ## 場所の 辞書（StageDB）か、それに 場面の 上書きを 重ねた もの（EpisodeDB.scene_stage()）。
 ## 場面が 上書きできる キー：missions・intro・hints・spawn（skip／swap）・arrow・goal_say・clear_say・flow_speed・bgm など。
+## "pass": true（とおりみち）の ときは、やる ことも あぶない ものも 出さない（PASS_KEEP の マーカーだけ）。ゴールは はじめから 開く。
 ##
 ## マーカー名のきまり: MK_<種類>_<名前>[_<番号>]
 ##   MK_player            プレイヤーの開始位置
@@ -47,6 +48,9 @@ const MissionScript := preload("res://src/level/mission.gd")
 
 ## spawn の ルール（skip／swap）で かえられない マーカーの 種類（EpisodeDB.SPAWN_LOCKED と 同じ）
 const SPAWN_LOCKED := ["player", "goal", "path", "checkpoint"]
+## とおりみちで 出す マーカーの 種類（てき・ボス・いえき・ドア・しんけい・なかま・とどけ先は 出さない）。
+## ひろうもの は げんきの つぶ（heart_item）だけ（ミッションが 数える ものは 出さない）
+const PASS_KEEP := ["player", "goal", "path", "checkpoint", "sign", "card"]
 ## マーカー名に 種類の ことばが 無い ときの 種類（MK_enemy_1 → mushiba）
 const DEFAULT_KIND := {"enemy": "mushiba", "friend": "zendama", "pickup": "nutrient", "deliver": "villus"}
 
@@ -139,9 +143,50 @@ func _load_env() -> void:
 		push_warning("stage model not found: %s (fallback arena)" % stage["env"])
 		env = _fallback_env()
 	env.name = "Env"
+	if is_pass():
+		_clean_spots(env, stage.get("pass_clean", {}))
 	add_child(env)
 	_ensure_collisions(env)
 	StageLook.apply(env, stage)
+
+
+## とおりみちで 見せない しるし（むしばの あな）：まるの 中の 頂点の 色を、まるの まわり（半径〜半径＋1 m）の 色の 平均に ぬりかえる。
+## メッシュは 写しを 作って かえる（ほかの 場面の GLB は そのまま）
+func _clean_spots(root: Node3D, spots: Dictionary) -> void:
+	for mesh_name in spots.keys():
+		var mi := root.find_child(String(mesh_name), true, false) as MeshInstance3D
+		if mi == null or not (mi.mesh is ArrayMesh):
+			data_warnings.append("%s: pass_clean の「%s」が GLB に ない" % [stage_id, mesh_name])
+			continue
+		var src := mi.mesh as ArrayMesh
+		var out := ArrayMesh.new()
+		for si in src.get_surface_count():
+			var arrays := src.surface_get_arrays(si)
+			var pos: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			if arrays[Mesh.ARRAY_COLOR] is PackedColorArray and not (arrays[Mesh.ARRAY_COLOR] as PackedColorArray).is_empty():
+				var col: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+				for spot in spots[mesh_name]:
+					var c: Vector3 = spot[0]
+					var r := float(spot[1])
+					var sum := Color(0, 0, 0, 0)
+					var cnt := 0
+					for k in pos.size():
+						var d := pos[k].distance_to(c)
+						if d >= r and d < r + 1.0:
+							sum += col[k]
+							cnt += 1
+					if cnt == 0:
+						continue
+					var ring := sum / float(cnt)
+					for k in pos.size():
+						var d := pos[k].distance_to(c)
+						if d < r:
+							col[k] = col[k].lerp(ring, 1.0 - smoothstep(r * 0.75, r, d))
+				arrays[Mesh.ARRAY_COLOR] = col
+			out.add_surface_from_arrays(src.surface_get_primitive_type(si), arrays)
+			out.surface_set_material(si, src.surface_get_material(si))
+			out.surface_set_name(si, src.surface_get_name(si))
+		mi.mesh = out
 
 
 ## GLB が無いときの代わりの広場（平らな円＋かべ）。マーカーも適当に置く。
@@ -230,6 +275,8 @@ func _collect_markers() -> void:
 			continue
 		var kind := String(parts[1])
 		var rest: Array = Array(parts.slice(2))
+		if is_pass() and not PASS_KEEP.has(kind) and not (kind == "pickup" and _kind_and_index(rest, DEFAULT_KIND["pickup"])["kind"] == "heart_item"):
+			continue
 		markers.append({"node": n, "kind": kind, "rest": rest, "name": mk_name, "position": (n as Node3D).global_position, "basis": (n as Node3D).global_transform.basis})
 	for p in rules.get("skip", []) + rules.get("swap", {}).keys():
 		if not used.has(p):
@@ -266,6 +313,12 @@ static func _apply_spawn_rules(mk_name: String, rules: Dictionary, used: Diction
 ## spawn の ルール p が マーカー（「MK_」を 取った 名前 key）に 合うか：同じ、または p + "_" で 始まる
 static func spawn_rule_matches(key: String, p: String) -> bool:
 	return key == p or key.begins_with(p + "_")
+
+
+## とおりみち（とおるだけの 場面）か
+func is_pass() -> bool:
+	var v = stage.get("pass", false)
+	return v is bool and v
 
 
 func _markers_of(kind: String) -> Array[Dictionary]:

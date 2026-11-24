@@ -1,5 +1,6 @@
 extends Node
-## ゲーム全体の進行（タイトル → カルテえらび → そうだん → よそう → からだに はいる → 場面 1〜3 こ → からだから でる → カルテ）。
+## ゲーム全体の進行（タイトル → カルテえらび → そうだん → よそう → からだに はいる → 場面（入口から じゅんばんに。
+## とおりみちも ふくめ 1〜5 こ。場面と 場面の あいだに みちの ちず）→ からだから でる → カルテ）。
 ## 画面は src/ui/ の Control をコードで組み立てて UILayer に置く。
 ## - カルテ（1 話）の 流れは _enter() の 1 か所で 切りかえる。データは EpisodeDB、設計は docs/episodes.md 3 章。
 ## - 「画面」と「Level」は 同時に 生きない（画面を 出す 前に unload_level()）。
@@ -21,11 +22,13 @@ const EpisodeSelectScreen := preload("res://src/ui/episode_select.gd")
 const TalkScreen := preload("res://src/ui/talk.gd")
 const GuessScreen := preload("res://src/ui/guess.gd")
 const JourneyScreen := preload("res://src/ui/journey.gd")
+const HopScreen := preload("res://src/ui/hop.gd")
 const KarteScreen := preload("res://src/ui/karte.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
 const CardPopup := preload("res://src/ui/card.gd")
 const PauseMenu := preload("res://src/ui/pause.gd")
 const HudScene := preload("res://src/ui/hud.gd")
+const SteerGuide := preload("res://src/ui/steer_guide.gd")
 const TouchControlsScene := preload("res://src/ui/touch_controls.gd")
 const LevelScene := preload("res://src/level/level.tscn")
 
@@ -48,9 +51,12 @@ var _popup_open := false
 ## いまの カルテ（空なら「場所だけ」モード：テストと 撮影用）
 var episode: Dictionary = {}
 var scene_index := 0
-var phase := ""            # "consult" / "guess" / "enter" / "scene" / "after" / "exit" / "karte" / ""
+var phase := ""            # "consult" / "guess" / "enter" / "scene" / "after" / "hop" / "exit" / "karte" / ""
 var first_guess := ""
 var _review := false       # クリアずみの カルテを 読みかえして いる（クリアの 記録を しない）
+var skip_pass := false     # 遊びなおしで「とおりみちを とばす」を えらんだ（とおりみちの 場面を 遊ばない）
+var hop_from := -1         # みちの ちず：おえた 場面（-1 は 入口）。つぎの 場面は hop_to
+var hop_to := 0
 
 ## 自動テスト用：true のとき カードやメッセージの待ちを短くする
 var testing := false
@@ -170,6 +176,14 @@ func start_episode(ep_id: String, from_phase := "consult", from_scene := 0, gues
 	scene_index = clampi(from_scene, 0, ep["scenes"].size() - 1)
 	first_guess = guess
 	_review = false
+	skip_pass = false
+	if from_phase == "hop":
+		# とちゅうから みちの ちずへ（撮影・テスト用）：from_scene を おえた ところ。-1 は 入口（とおりみちを とばす）
+		skip_pass = from_scene < 0
+		hop_from = maxi(from_scene, -1)
+		hop_to = EpisodeDB.next_scene(ep, hop_from, skip_pass)
+		if hop_to < 0:
+			from_phase = "exit"
 	Sfx.play_bgm("bgm_title")
 	_enter(from_phase)
 
@@ -237,6 +251,11 @@ func _enter(p: String, back := false) -> void:
 			var jr := JourneyScreen.new()
 			jr.setup(episode, p)
 			jr.finished.connect(func(): _enter("scene" if p == "enter" else "karte"), CONNECT_ONE_SHOT)
+			if p == "enter":
+				# 遊びなおし（クリアずみ）で とおりみちが ある 話：「とおりみちを とばす」→ みちの ちずで 入口から さいしょの 場面へ
+				jr.skipped.connect(func():
+					skip_pass = true
+					_hop(-1, EpisodeDB.next_scene(episode, -1, true)), CONNECT_ONE_SHOT)
 			_set_screen(jr)
 		"scene":
 			_start_level(EpisodeDB.scene_stage(episode, scene_index))
@@ -252,6 +271,15 @@ func _enter(p: String, back := false) -> void:
 			t.setup(after_lines, {"mood": "sick", "banner": a.get("banner", ""), "last_label": "つぎへ ▶" if last else "つぎへ いこう ▶"})
 			t.finished.connect(_after_done, CONNECT_ONE_SHOT)
 			_set_screen(t)
+		"hop":
+			# みちの ちず：おえた 場面（hop_from）から つぎの 場面（hop_to）へ。ボタンで 進む
+			unload_level()
+			var h := HopScreen.new()
+			h.setup(episode, hop_from, hop_to)
+			h.finished.connect(func():
+				scene_index = hop_to
+				_enter("scene"), CONNECT_ONE_SHOT)
+			_set_screen(h)
 		"karte":
 			unload_level()
 			var id: String = episode["id"]
@@ -270,13 +298,20 @@ func _enter(p: String, back := false) -> void:
 	phase_changed.emit(p, scene_index)
 
 
-## あとの はなしが おわった：つぎの 場面へ。さいごの 場面なら からだから でる（出口 → カルテ）
+## あとの はなしが おわった：みちの ちずを 見て つぎの 場面へ。さいごの 場面なら からだから でる（出口 → カルテ）
 func _after_done() -> void:
-	if scene_index + 1 < episode["scenes"].size():
-		scene_index += 1
-		_enter("scene")
+	var next := EpisodeDB.next_scene(episode, scene_index, skip_pass)
+	if next >= 0:
+		_hop(scene_index, next)
 	else:
 		_enter("exit")
+
+
+## みちの ちずを 出す（from ＝ おえた 場面。-1 は 入口）
+func _hop(from: int, to: int) -> void:
+	hop_from = from
+	hop_to = to
+	_enter("hop")
 
 
 ## カルテ画面を 閉じた：つぎの カルテへ（go_next）か、カルテえらびへ
@@ -312,6 +347,11 @@ func _start_level(stage: Dictionary) -> void:
 	ui_layer.add_child(hud)
 	hud.bind_level(level)
 	_ensure_touch_controls()
+	if SteerGuide.wanted(stage):
+		# はじめての ひろい 場所：そうじゅうの てびき（やったら 消えて、もう 出ない）
+		var g := SteerGuide.new()
+		g.setup(touch_controls.visible)
+		hud.add_child(g)
 	Sfx.play_bgm(stage.get("bgm", "bgm_boss" if stage["difficulty"] >= 3 else "bgm_stage"))
 	stage_started.emit(current_stage_id)
 	level.cleared.connect(_on_level_cleared)

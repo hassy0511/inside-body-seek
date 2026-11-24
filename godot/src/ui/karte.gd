@@ -250,17 +250,23 @@ func _show_stars() -> void:
 	sv.add_child(T.label("ほし %d こ！" % flags.count(true), 30, T.INK, HORIZONTAL_ALIGNMENT_CENTER))
 	mid.add_child(sv)
 	# まだの ほしは「どうすれば とれるか」を そえる（ハートは 場面ごと・回を またいで たまる）
+	# ハートの ほしは とおりみちを 数えない。まだの 場面は 場所の 名前で 書く（場面の 番号は とおりみちが 入ると わかりにくい）
 	var miss: Array[String] = []
 	var sf := SaveData.scene_flags(id)
+	var hs := SaveData.heart_scenes(id)
 	for i in sf.size():
 		if not sf[i]:
-			miss.append(str(i + 1))
-	var heart_todo := "（また こんど！）" if sf.size() <= 1 else "（ばめん %s が まだ）" % "・".join(PackedStringArray(miss))
+			miss.append(EpisodeDB.place_name(ep["scenes"][hs[i]]["place"]))
+	var heart_todo := "（また こんど！）" if sf.size() <= 1 else ""
 	var rows := VBoxContainer.new()
 	rows.alignment = BoxContainer.ALIGNMENT_CENTER
 	rows.add_theme_constant_override("separation", 6)
 	rows.add_child(_star_row(flags[0], "カルテ かんせい！", ""))
 	rows.add_child(_star_row(flags[1], "ハートを へらさずに", heart_todo))
+	if not flags[1] and sf.size() > 1 and not miss.is_empty():
+		var todo := T.label("　　まだ： %s" % "・".join(PackedStringArray(miss)), 20, GREY)
+		todo.add_theme_font_override("font", Game.font_regular)
+		rows.add_child(todo)
 	rows.add_child(_star_row(flags[2], "クイズに せいかい", "（また こんど！）"))
 	mid.add_child(rows)
 	_vb.add_child(mid)

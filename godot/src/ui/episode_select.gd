@@ -247,7 +247,11 @@ func _select(id: String, go_to_start: bool) -> void:
 	sub.alignment = BoxContainer.ALIGNMENT_CENTER
 	sub.add_theme_constant_override("separation", 12)
 	if main_is_resume:
-		_right.add_child(T.label("ばめん %d まで おわっているよ" % int(r["cleared"]), 20, T.GREY, HORIZONTAL_ALIGNMENT_CENTER))
+		# 場面の 番号は とおりみちも 数えるので、おえた 場所の 名前で 言う（「しょくどう（食道）まで おわっているよ」）
+		var done_at := int(r["cleared"]) - 1
+		var place_done: String = EpisodeDB.get_episode(id)["scenes"][done_at]["place"] if done_at >= 0 and done_at < EpisodeDB.scene_count(id) else ""
+		var where_text := "%sまで おわっているよ" % EpisodeDB.place_name(place_done) if place_done != "" else "とちゅうまで おわっているよ"
+		_right.add_child(T.label(where_text, 20, T.GREY, HORIZONTAL_ALIGNMENT_CENTER))
 		main_btn = _action("つづきから ▶", 34, func(): Game.resume_episode(), _right)
 		restart_btn = _action("さいしょから", 22, func(): Game.start_episode(id), sub)
 	else:

@@ -9,6 +9,9 @@ extends Node
 ## - 文は ひらがな・カタカナ・わかち書き。漢字は「い（胃）」の ように（ ）の 中だけ（validate() が 調べる）
 ## - 大事な 種あかしは HUD（intro・goal_say など。時間で 消える）に 書かない。after（ボタンで 進む）と karte に 書く
 ## - からだの 入口と 出口は 話ごとに "enter"／"exit"：{"way": ENTRANCES／EXITS の キー, "say": ピコの ひとこと}（たびの 画面に 出る）
+## - 場面は 入口から じゅんばんに。とちゅうの 場所も とばさない（validate_episode() の「みちの きまり」）。
+##   とおるだけの 場所は「とおりみち」の 場面："pass": true と "say"（ピコの ひとこと：場所の 名前と しごと）と "hints": []。
+##   ミッション・てきは 書かない（Level が ゴールまで いくだけに する）。さいごの 場面は とおりみちに しない
 
 const SEASON_COMPLETE := false   # 10 話 そろったら true（さいごの カルテの あとに エンディングを 出す）
 
@@ -46,7 +49,7 @@ const ORGAN_POS := {
 ##        puff：くうきの かたまり ／ drop：ぽとん ／ spark：きらきら）
 const ENTRANCES := {
 	"mouth": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "open", "name": "くち（口）", "go": "くち（口）から はいるよ！"},
-	"swallow": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "water", "name": "おみずで ごくん", "go": "おみずと いっしょに ごくん！"},
+	"swallow": {"at": "mouth", "out": [Vector2(0.80, 0.21), Vector2(1.0, 0.17)], "fx": "water", "name": "おみずに のって", "go": "おみずに のって くち（口）へ！"},
 	"nose": {"at": "nose", "out": [Vector2(0.84, 0.13), Vector2(1.0, 0.09)], "fx": "breath", "name": "はな（鼻）", "go": "いきと いっしょに すいこまれる！"},
 	"wound": {"at": "knee", "out": [Vector2(0.80, 0.84), Vector2(1.0, 0.80)], "fx": "spark", "name": "ひざの きずぐち", "go": "ひざの きずぐちから はいるよ！"},
 }
@@ -81,7 +84,13 @@ const MAX := {
 	"title": 24, "line": 90, "q": 40, "say": 70, "label": 20, "enter": 60, "exit": 60,
 	"intro": 45, "goal_say": 45, "clear_say": 30, "hint": 60, "mission": 30, "each_say": 30, "done_say": 30,
 	"banner": 20, "thanks": 60, "karte": 62, "quiz_q": 40, "quiz_choice": 20, "explain": 90,
+	"pass_say": 70, "pass_to": 30,
 }
+## 1 話の 場面の 数：ぜんぶで MAX_SCENES こまで、とおりみちで ない 場面は MAX_PLAY_SCENES こまで
+const MAX_SCENES := 5
+const MAX_PLAY_SCENES := 3
+## とおりみちの 場面に 書けない キー（Level が ゴールまで いくだけに する。種あかしの after も 無い）
+const PASS_FORBIDDEN := ["missions", "after", "spawn", "goal_say"]
 ## 「い」「は」「ち」＋ 助詞 に 見えるが 臓器では ない ことば（_check_text が 見のがす）
 const OK_WORDS := ["はは", "いも", "はで"]
 
@@ -140,12 +149,18 @@ const EPISODES: Array[Dictionary] = [
 			"choices": [
 				{"place": "lungs", "say": "いい かんがえだね！ はい（肺）は いきを する ところ。\nたべた ごはんが たまるのは どこかな？"},
 				{"place": "mouth", "say": "いい かんがえだね！ くち（口）は たべものの いりぐち。\nのみこんだ ごはんが たまるのは どこかな？"},
-				{"place": "stomach", "go": true, "hit": true, "say": "うん、ごはんが たまる い（胃）が あやしいね！\nのどから しょくどう（食道）を とおって いこう。"},
+				{"place": "stomach", "go": true, "hit": true, "say": "うん、ごはんが たまる い（胃）が あやしいね！\nくち（口）から しょくどう（食道）を とおって いこう。"},
 			],
 		},
-		"enter": {"way": "swallow", "say": "おとうさん、おみずと いっしょに ごくん！ ミクロごう、はっしん！"},
+		"enter": {"way": "swallow", "say": "おとうさん、おみずを ひとくち のんで！ ミクロごうは おみずに のって くち（口）へ。"},
 		"exit": {"way": "burp", "say": "い（胃）の いりぐちまで もどって、げっぷに のって くちから そとへ ぽーん！"},
 		"scenes": [
+			{
+				"place": "mouth",
+				"pass": true,
+				"say": "ここは くち（口）。は（歯）で たべものを かみくだいて、だえきで やわらかく する ところだよ。",
+				"hints": [],
+			},
 			{
 				"place": "esophagus",
 				"intro": "よく かまずに のみこんだ かたまりが ごろごろ！ よけて い（胃）まで くだろう。",
@@ -203,9 +218,21 @@ const EPISODES: Array[Dictionary] = [
 				{"place": "brain", "say": "いい かんがえだね！ でも のう（脳）は あたまの なか。\nいたいのは おなか。おなかに あるのは どこかな？"},
 			],
 		},
-		"enter": {"way": "swallow", "say": "はなちゃん、おみずと いっしょに ごくん！ ミクロごう、はっしん！"},
+		"enter": {"way": "swallow", "say": "はなちゃん、おみずを ひとくち のんで！ ミクロごうは おみずに のって くち（口）へ。"},
 		"exit": {"way": "poop", "say": "かえりは…… うんちと いっしょに ぽとん！ ちゃんと あらうから だいじょうぶ。"},
 		"scenes": [
+			{
+				"place": "mouth",
+				"pass": true,
+				"say": "ここは くち（口）。は（歯）で たべものを かみくだいて、だえきで やわらかく する ところだよ。",
+				"hints": [],
+			},
+			{
+				"place": "esophagus",
+				"pass": true,
+				"say": "ここは しょくどう（食道）。かべが なみの ように うごいて、たべものを い（胃）へ おくる くだだよ。",
+				"hints": [],
+			},
 			{
 				"place": "stomach",
 				"spawn": {"skip": ["enemy_pylori"]},
@@ -288,6 +315,69 @@ func scene_count(id: String) -> int:
 	return 0
 
 
+## 場面 i が とおりみち（とおるだけの 場所）か
+static func is_pass(ep: Dictionary, i: int) -> bool:
+	var sc: Array = ep.get("scenes", [])
+	if i < 0 or i >= sc.size():
+		return false
+	var v = sc[i].get("pass", false)
+	return v is bool and v   # 「== true」で くらべると 文字や 数の ときに 型の エラー（まちがいは validate_episode が 知らせる）
+
+
+## とおりみちの 場面が 1 つでも あるか（遊びなおしの「とおりみちを とばす」を 出すか）
+static func has_pass(ep: Dictionary) -> bool:
+	for i in ep.get("scenes", []).size():
+		if is_pass(ep, i):
+			return true
+	return false
+
+
+## i より あとの 場面の 番号（skip_pass なら とおりみちを とばす）。無ければ -1。i ＝ -1 は 入口
+static func next_scene(ep: Dictionary, i: int, skip_pass := false) -> int:
+	for k in range(i + 1, ep.get("scenes", []).size()):
+		if not (skip_pass and is_pass(ep, k)):
+			return k
+	return -1
+
+
+## 場所の 表示名「しょくどう（食道）」
+func place_name(place: String) -> String:
+	if not StageDB.stage_ids().has(place):
+		return ""
+	var s := StageDB.get_stage(place)
+	return "%s（%s）" % [s["name"], s["kanji"]]
+
+
+## 1 話で とおる 場所（場面の 順）。みちの ちず・出口の 画面・カルテの「とおった みち」が 使う
+func stops(ep: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	for sc in ep.get("scenes", []):
+		out.append(String(sc.get("place", "")))
+	return out
+
+
+## とおりみちの ミッションの 文（"to"。無ければ つぎの 場所から 作る：「しょくどう（食道）へ すすもう」）
+func pass_to(ep: Dictionary, i: int) -> String:
+	var sc: Dictionary = ep["scenes"][i]
+	if sc.has("to"):
+		return sc["to"]
+	var n := next_scene(ep, i)
+	if n < 0:
+		return "ゴールへ すすもう"
+	return "%sへ すすもう" % place_name(ep["scenes"][n]["place"])
+
+
+## みちの ちずの ピコの ひとこと（from ＝ おえた 場面。-1 は 入口。to ＝ つぎの 場面）。
+## とおりみちの あとは その say（場所の 名前と しごと）。ふつうの 場面の あとは つぎの 場所の 名前
+func hop_say(ep: Dictionary, from: int, to: int) -> String:
+	if is_pass(ep, from):
+		return ep["scenes"][from].get("say", "")
+	var nm := place_name(ep["scenes"][to]["place"]) if to >= 0 and to < ep["scenes"].size() else ""
+	if from < 0:
+		return "とおりみちは もう しっているね。 いっきに %sまで いこう！" % nm
+	return "つぎは %s。\nミクロごう、しゅっぱつ！" % nm
+
+
 ## どれかの 話が 使う 場所（はじめて 出てくる 順）。ずかんが 使う
 func used_places() -> Array[String]:
 	var out: Array[String] = []
@@ -350,8 +440,16 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 	var sc: Dictionary = ep["scenes"][i]
 	var st: Dictionary = StageDB.get_stage(sc["place"]).duplicate(true)   # const は 読み取り専用。かならず 写しに 書く
 	for k in sc.keys():
-		if k != "place" and k != "after":
+		if k != "place" and k != "after" and k != "say" and k != "to":
 			st[k] = sc[k]
+	if is_pass(ep, i):
+		# とおりみち：やる ことは ゴールまで いくだけ。HUD は「いま 何を するか」だけ（場所の 説明は みちの ちずの say）
+		var to := pass_to(ep, i)
+		st["missions"] = [{"type": "reach", "text": to}]
+		st["intro"] = sc.get("intro", to + "！")
+		st["clear_say"] = sc.get("clear_say", "%sを とおりぬけた！" % place_name(sc["place"]))
+		st["hints"] = sc.get("hints", [])
+		st.erase("goal_say")
 	st["ep"] = ep["id"]
 	st["scene"] = i
 	return st
@@ -366,8 +464,20 @@ func map_point(key: String) -> Vector2:
 ## a と b が 同じなら その 1 点。道が 無ければ 空
 func route(a: String, b: String) -> PackedVector2Array:
 	var out := PackedVector2Array()
+	var keys := route_keys(a, b)
+	for i in keys.size():
+		if i > 0:
+			out.append_array(_link_mids(keys[i - 1], keys[i]))
+		out.append(map_point(keys[i]))
+	return out
+
+
+## からだの 中の 道の 点の 名前：a から b まで（a・b も ふくむ。ROUTE_LINKS を いちばん 少ない 数で たどる）。
+## a と b が 同じなら [a]。道が 無ければ 空。みちの きまり（validate_episode）と みちの ちずが 使う
+func route_keys(a: String, b: String) -> Array[String]:
+	var keys: Array[String] = []
 	if map_point(a).x < 0.0 or map_point(b).x < 0.0:
-		return out
+		return keys
 	var prev := {a: ""}
 	var queue: Array[String] = [a]
 	while not queue.is_empty() and not prev.has(b):
@@ -378,15 +488,45 @@ func route(a: String, b: String) -> PackedVector2Array:
 					prev[l[1 - k]] = cur
 					queue.append(l[1 - k])
 	if not prev.has(b):
-		return out
-	var keys: Array[String] = [b]
+		return keys
+	keys.append(b)
 	while keys[0] != a:
 		keys.push_front(prev[keys[0]])
-	for i in keys.size():
-		if i > 0:
-			out.append_array(_link_mids(keys[i - 1], keys[i]))
-		out.append(map_point(keys[i]))
-	return out
+	return keys
+
+
+## 1 話の みち 全体：入口の 点 → 場面の 場所 → … → さいごの 場所 の 点の 名前の 列と、地図の 上の 点の 列。
+## {"keys": [...], "points": PackedVector2Array, "at": {場面の 番号: points の 中の 番号}, "entry": 入口の 点の 名前}
+## 入口から つぎの 場所まで（みちの ちず）は points を at[from]〜at[to] で 切って 使う
+func trip(ep: Dictionary) -> Dictionary:
+	var way: Dictionary = ENTRANCES.get(ep.get("enter", {}).get("way", ""), {})
+	var entry: String = way.get("at", "")
+	var scenes: Array = ep.get("scenes", [])
+	var keys: Array[String] = []
+	var pts := PackedVector2Array()
+	var at := {}
+	var cur := entry if map_point(entry).x >= 0.0 else (String(scenes[0]["place"]) if not scenes.is_empty() else "")
+	if cur != "":
+		keys.append(cur)
+		pts.append(map_point(cur))
+	at[-1] = 0
+	for i in scenes.size():
+		var place: String = scenes[i].get("place", "")
+		var seg := route_keys(cur, place)
+		if seg.is_empty():
+			# 道が 無い（validate() が 止める）：まっすぐ つなぐ
+			if map_point(place).x >= 0.0:
+				keys.append(place)
+				pts.append(map_point(place))
+		else:
+			for k in range(1, seg.size()):
+				pts.append_array(_link_mids(seg[k - 1], seg[k]))
+				keys.append(seg[k])
+				pts.append(map_point(seg[k]))
+		at[i] = maxi(pts.size() - 1, 0)
+		if map_point(place).x >= 0.0:
+			cur = place
+	return {"keys": keys, "points": pts, "at": at, "entry": entry}
 
 
 ## a から b への 道の あいだの 点（書いた 向きと 逆なら 逆順）
@@ -556,14 +696,42 @@ func validate_episode(ep: Dictionary, no: int) -> Array[String]:
 		if go == 0:
 			bad.append("%s: guess に go: true の えらびが ない（行き止まりに なる）" % id)
 	var n: int = ep["scenes"].size()
-	if n < 1 or n > 3:
-		bad.append("%s: scenes は 1〜3 こ" % id)
+	var plays := 0
+	for i in n:
+		if not is_pass(ep, i):
+			plays += 1
+	if n < 1 or n > MAX_SCENES:
+		bad.append("%s: scenes は 1〜%d こ" % [id, MAX_SCENES])
+	if plays > MAX_PLAY_SCENES:
+		bad.append("%s: とおりみちで ない 場面は %d こまで（いま %d）" % [id, MAX_PLAY_SCENES, plays])
 	for i in n:
 		var sc: Dictionary = ep["scenes"][i]
 		var where := "%s scene %d" % [id, i]
 		if not StageDB.stage_ids().has(sc.get("place", "")):
 			bad.append("%s: place「%s」が StageDB に ない" % [where, sc.get("place", "")])
 			continue
+		if sc.has("pass") and not (sc["pass"] is bool):
+			bad.append("%s: pass は true か false" % where)
+		if is_pass(ep, i):
+			# とおりみち：ピコの ひとこと（say）が いる。やる こと（missions など）は 書かない。さいごの 場面には しない
+			_check_text(bad, where + " say", sc.get("say", ""), MAX["pass_say"])
+			if sc.has("to"):
+				_check_text(bad, where + " to", sc["to"], MAX["pass_to"])
+			else:
+				_check_text(bad, where + " to（つぎの 場所から 作った 文）", pass_to(ep, i), MAX["pass_to"])
+			for key in PASS_FORBIDDEN:
+				if sc.has(key):
+					bad.append("%s: とおりみち（pass）には %s を 書かない" % [where, key])
+			if i == n - 1:
+				bad.append("%s: さいごの 場面は とおりみち（pass）に しない" % where)
+			if not (sc.get("hints") is Array):
+				bad.append("%s: hints を 書く（無ければ []。場所の ヒントは 引きつがない）" % where)
+			for key in ["intro", "clear_say"]:
+				if sc.has(key):
+					_check_text(bad, where + " " + key, sc[key], MAX[key])
+			continue
+		if sc.has("say") or sc.has("to"):
+			bad.append("%s: say・to は とおりみち（\"pass\": true）の 場面だけ" % where)
 		_check_text(bad, where + " intro", sc.get("intro", ""), MAX["intro"])
 		for key in ["goal_say", "clear_say"]:
 			if sc.has(key):
@@ -611,6 +779,7 @@ func validate_episode(ep: Dictionary, no: int) -> Array[String]:
 		bad.append("%s: karte.exit は もう 使わない。出口の ひとことは \"exit\": {\"way\": …, \"say\": …} の say に 書く" % id)
 	_check_journey(bad, ep, "enter")
 	_check_journey(bad, ep, "exit")
+	_check_route(bad, ep)
 	var q: Dictionary = ep["quiz"]
 	_check_text(bad, id + " quiz.q", q["q"], MAX["quiz_q"])
 	_check_text(bad, id + " quiz.explain", q["explain"], MAX["explain"])
@@ -639,6 +808,40 @@ func _check_journey(bad: Array[String], ep: Dictionary, mode: String) -> void:
 	var j := journey(ep, mode)
 	if j["place"] != "" and StageDB.stage_ids().has(j["place"]) and j["inside"].is_empty():
 		bad.append("%s: %s「%s」と 場所「%s」の あいだの 道が ROUTE_LINKS に ない" % [id, mode, d["way"], j["place"]])
+
+
+## みちの きまり：入口の 点から さいしょの 場所へ、そこから つぎの 場所へ、と 道（ROUTE_LINKS）を たどる。
+## とちゅうの 点で 場所（StageDB に ある もの）は、かならず その じゅんばんで 場面に ある こと（とばさない）。
+## 場所で ない 点（のど・ひざ・おしり）は 地図に えがくだけ
+func _check_route(bad: Array[String], ep: Dictionary) -> void:
+	var id: String = ep["id"]
+	var way: Dictionary = ENTRANCES.get(ep.get("enter", {}).get("way", ""), {})
+	if way.is_empty():
+		return   # 入口の まちがいは _check_journey が 知らせる
+	var cur: String = way.get("at", "")
+	var missing: Array[String] = []
+	var first := true
+	for sc in ep.get("scenes", []):
+		var place: String = sc.get("place", "")
+		if not StageDB.stage_ids().has(place):
+			return   # 場所の まちがいは 場面の しらべが 知らせる
+		var seg := route_keys(cur, place)
+		if seg.is_empty():
+			bad.append("%s: 「%s」から「%s」への 道が ROUTE_LINKS に ない" % [id, cur, place])
+			return
+		# seg の さいごは この 場面の 場所。その 前の 点を 見る（はじめの 区間は 入口の 点も。あとの 区間の 先頭は 前の 場面）
+		for k in range(0 if first else 1, seg.size() - 1):
+			var key: String = seg[k]
+			if StageDB.stage_ids().has(key) and not missing.has(key):
+				missing.append(key)
+		first = false
+		cur = place
+	var here := stops(ep)
+	for key in missing:
+		if here.has(key):
+			bad.append("%s: 「%s」の じゅんばんが ちがう（scenes は みちの とおりに ならべる）" % [id, key])
+		else:
+			bad.append("%s: みちの とちゅうの「%s」が scenes に ない" % [id, key])
 
 
 ## 入口・出口の 一覧の 文と 点（validate() が 1 回 見る）

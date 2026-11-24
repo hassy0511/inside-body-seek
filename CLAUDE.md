@@ -2,13 +2,14 @@
 
 子ども向け（6〜10 歳）の体のしくみを学ぶ 3D ゲーム。Godot 4.7（GDScript）＋ Blender（bpy スクリプトで GLB 生成）。
 企画は `docs/design.md`、物語は `docs/story.md`、カルテ（1 話）形式の つくりは `docs/episodes.md`、使い方・構成は `README.md`。
-遊びは「カルテ」1 本ずつ：そうだん → よそう → 体に 入る → 場面（いまの ステージ ＝「場所」を 使う）→ 体から 出る → カルテ（3 行・クイズ・ほし）。入口と 出口は 話ごとの データ（`enter`／`exit`。画面は `src/ui/journey.gd`）。
+遊びは「カルテ」1 本ずつ：そうだん → よそう → 体に 入る → 場面（いまの ステージ ＝「場所」を 使う。入口から じゅんばんに、あいだに みちの ちず `src/ui/hop.gd`）→ 体から 出る → カルテ（3 行・クイズ・ほし）。入口と 出口は 話ごとの データ（`enter`／`exit`。画面は `src/ui/journey.gd`）。
 
 ## 変更するときの約束
 
 - 文章は ひらがな・カタカナ中心。一文字の臓器名は「い（胃）」「は（歯）」「ち（血）」のように漢字を添える。分かち書き（単語の間にスペース）。この きまりは `EpisodeDB.text_problems()` が 調べ、テストが データと 画面に 出た 文の 両方に かける（くわしくは `docs/episodes.md` 2.2）。
 - 体の事実は子ども向けに丸めてよいが、間違いは入れない（数値は `docs/design.md` の表に合わせる）。
 - **カルテ**（そうだん・よそう・場面ごとの 上書き・あとの はなし・カルテの 3 行・クイズ）は `godot/src/autoload/episode_db.gd`。**場所**（既定の ミッション・ものしりカード・まとめ）は `godot/src/autoload/stage_db.gd`。場所の 形と スポーン位置は `blender/stages.py`（Empty の名前 `MK_...` がスポーン）。作りなおした 場所は 1 つ 1 ファイル（`blender/stage_mouth.py`。部品は `blender/stage_kit.py`）。絵から 作りなおした キャラクターも 1 体 1 ファイル（`blender/pod.py`、`blender/mushiba.py`。手本は pod。絵との 見くらべは `tools/pod_views.sh <出力> <id>` と `tools/pod_compare.py`）で、`characters.py` の `BUILDERS` から 呼ぶ。
+- 場面は 体の 入口から じゅんばんに 並べ、とちゅうの 場所を とばさない（`validate()` の みちの きまり）。とおるだけの 場所は `"pass": true` と `say` の「とおりみち」（てき・ミッションなし。ハートの ほしに 数えない）。くわしくは `docs/episodes.md` 10 章。
 - カルテを 足すのは データだけ（`EPISODES` に 1 件。`docs/episodes.md` 8 章）。`episode_db.gd` の 先頭の「書きかたの きまり」は ダッシュボードが 読むので 守る。場面は `hints` と、さいごの 場面の `after` を かならず 書く。
 - 原因の 種あかしや 学びは、ボタンで 進む 画面（`after`・カルテ）に 書く。HUD の 文（`intro`・`goal_say` など）は 時間で 消えるので「いま 何を するか」だけ。
 - モデルを変えたら GLB を作り直す：`<venv>/bin/python -m blender.characters <name>` / `-m blender.stages <stage_env>`（`blender -b -P blender/stages.py -- stage_mouth` でも可）。
@@ -46,6 +47,7 @@ tools/export_web.sh /tmp/web       # ブラウザ版を 書き出す（「WEB EX
 tools/screenshot.sh mouth /tmp/a.png --play=3   # Xvfb + Mesa でスクリーンショット（見た目の確認）
 tools/screenshot.sh model:pod /tmp/b.png        # キャラクター 1 体だけ
 tools/screenshot.sh guess:ep03 /tmp/c.png       # カルテの 画面（select／consult:ep03／guess_go:ep01／after:ep03:0／karte:ep03:1／ep03:1 …）
+tools/screenshot.sh hop:ep02:0 /tmp/d.png       # みちの ちず（hop:ep02:-1 は とおりみちを とばす とき。enter:ep02+cleared で とばす ボタン。guide:mouth は そうじゅうの てびき）
 tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # 「,」で 何枚も。しるし（+p1 +hit +wrong +hurt +touch）は godot/tests/shot.gd の 先頭
 ```
 

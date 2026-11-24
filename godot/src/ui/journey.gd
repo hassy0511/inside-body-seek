@@ -5,8 +5,12 @@ extends "res://src/ui/flow_screen.gd"
 ## - exit ：さいごの 場所から 道を もどる → 出口（EXITS）から 外へ → もとの 大きさに もどる → 患者が げんきな 顔に
 ## - 動きは 見せるだけ。ボタンは はじめから あり（フォーカスも ある）、動きの とちゅうで 押して よい。時間で 勝手に 進まない
 ## - データは EpisodeDB.journey(ep, mode)（入口・出口は 話の "enter"／"exit"、道は ROUTE_LINKS）
+## - enter の 行き先は さいしょの 場面の 場所（いまは 入口の 場所。とおりみちも 遊ぶので、ここで 先へ とばない）
+## - enter：クリアずみで とおりみちが ある 話は「とおりみちを とばす」も 出す（フォーカスは ふつうの ボタンの まま。skipped）
+## - exit：右に「とおった みち」（とおった 場所の ならび。route_line.gd）。その ぶん 患者の ふだを ひくく する
 
 signal finished
+signal skipped
 
 ## ピコの ふきだしの 文：28 px、幅 430、5 行まで（テストが 本物の フォントで はかる）
 const SAY_SIZE := 28
@@ -18,6 +22,12 @@ const MAP_SIZE := Vector2(560, 560)
 const PANEL_X := 600.0
 const CARD_SIZE := Vector2(580, 210)
 const BUBBLE_POS := Vector2(600, 262)
+const EXIT_CARD_H := 130.0                 # exit の ときの 患者の ふだの 高さ（下に とおった みちを 入れる）
+const EXIT_FACE := 100.0
+const EXIT_NAME := 34                      # exit の ときの 患者の 名前の 大きさ
+const ROUTE_Y := 170.0                     # exit の「とおった みち」の 上
+const EXIT_BUBBLE_Y := 306.0
+const RouteLine := preload("res://src/ui/route_line.gd")
 const BUBBLE_SIZE := Vector2(580, 270)
 const BIG := 1.8         # 外での ミクロごうの 大きさ（かけ算）
 const SMALL := 0.5       # からだの 中での 大きさ
@@ -28,6 +38,8 @@ var ep: Dictionary
 var mode := "enter"
 var j: Dictionary = {}
 var button: Button
+var skip_button: Button = null   # 「とおりみちを とばす」（出す ときだけ）
+var route: Control = null        # exit の「とおった みち」
 var caption: Label
 var _map: BodyMap
 var _fx: Control
@@ -81,14 +93,14 @@ func _ready() -> void:
 	# 右上：だれの からだか（顔・名前・入口／出口）
 	_card = PanelContainer.new()
 	_card.position = Vector2(PANEL_X, 34)
-	_card.size = CARD_SIZE
+	_card.size = card_size()
 	_card.add_theme_stylebox_override("panel", T.rounded(Color.WHITE, 30, 6, who["color"]))
 	box.add_child(_card)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 20)
 	_card.add_child(hb)
 	_face_box = Control.new()
-	_face_box.custom_minimum_size = Vector2(170, 170)
+	_face_box.custom_minimum_size = Vector2(face_size(), face_size())
 	_face_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hb.add_child(_face_box)
 	_set_face("sick", false)
@@ -96,14 +108,32 @@ func _ready() -> void:
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_theme_constant_override("separation", 8)
 	hb.add_child(vb)
-	vb.add_child(T.label("かんじゃさん", 20, (who["color"] as Color).darkened(0.5)))
-	vb.add_child(T.label(who["name"], 40, T.INK))
+	if mode == "enter":
+		vb.add_child(T.label("かんじゃさん", 20, (who["color"] as Color).darkened(0.5)))
+	vb.add_child(T.label(who["name"], 40 if mode == "enter" else EXIT_NAME, T.INK))
 	var way_chip := _chip(("いりぐち： %s" if mode == "enter" else "でぐち： %s") % j["way"].get("name", ""), 24, (who["color"] as Color).lerp(Color.WHITE, 0.6), (who["color"] as Color).darkened(0.2))
 	way_chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	vb.add_child(way_chip)
 	# 右なか：ピコの ひとこと（話の enter.say／exit.say）
+	if mode == "exit":
+		# とおった みち：入口から さいごの 場所まで とおった 場所の ならび（出口の 前に もういちど 見る）
+		var rp := PanelContainer.new()
+		rp.position = Vector2(PANEL_X, ROUTE_Y)
+		rp.size = Vector2(CARD_SIZE.x, 0)
+		var rsb := T.rounded(Color.WHITE, 22, 4, YELLOW.darkened(0.2))
+		rsb.content_margin_top = 4
+		rsb.content_margin_bottom = 4
+		rp.add_theme_stylebox_override("panel", rsb)
+		box.add_child(rp)
+		var rv := VBoxContainer.new()
+		rv.add_theme_constant_override("separation", 0)
+		rp.add_child(rv)
+		rv.add_child(T.label("とおった みち", 18, YELLOW.darkened(0.5)))
+		route = RouteLine.new()
+		route.setup(EpisodeDB.stops(ep), -1, -1, CARD_SIZE.x - 44.0, true, false)
+		rv.add_child(route)
 	_bubble = PanelContainer.new()
-	_bubble.position = BUBBLE_POS
+	_bubble.position = bubble_pos()
 	_bubble.size = Vector2(BUBBLE_SIZE.x, 0)
 	_bubble.add_theme_stylebox_override("panel", T.rounded(Color.WHITE, 30, 6, EpisodeDB.PICO["color"]))
 	box.add_child(_bubble)
@@ -122,7 +152,9 @@ func _ready() -> void:
 	say.custom_minimum_size = Vector2(SAY_WIDTH, 0)
 	tv.add_child(say)
 	# 右下：ボタン（はじめから 押せる。動きの とちゅうでも よい）
-	button = T.button("しらべに いこう！ ▶" if mode == "enter" else "つぎへ ▶", 32)
+	# はじめの 場面が とおりみちなら、まだ しらべない（とおって いく だけ）
+	var go_text := ("しゅっぱつ！ ▶" if EpisodeDB.is_pass(ep, 0) else "しらべに いこう！ ▶") if mode == "enter" else "つぎへ ▶"
+	button = T.button(go_text, 32)
 	button.position = Vector2(810, 548)
 	button.size = Vector2(370, 82)
 	T.colored_button(button, T.YELLOW, T.YELLOW_DARK)
@@ -130,14 +162,47 @@ func _ready() -> void:
 	button.focus_neighbor_right = NodePath(".")
 	button.focus_neighbor_top = NodePath(".")
 	button.focus_neighbor_bottom = NodePath(".")
+	# 2 つの ボタンの どちらか 1 回だけ（同じ フレームで 両方 押されても あとの ほうは 何も しない）
 	button.pressed.connect(func():
 		if not locked():
+			lock(99.0)
 			Sfx.play("click")
 			finished.emit())
 	box.add_child(button)
+	if offers_skip(ep, mode):
+		skip_button = T.button("とおりみちを\nとばす", 24)
+		skip_button.position = Vector2(PANEL_X, 548)
+		skip_button.size = Vector2(195, 82)
+		for side in ["left", "top", "bottom"]:
+			skip_button.set("focus_neighbor_" + side, NodePath("."))
+		skip_button.pressed.connect(func():
+			if not locked():
+				lock(99.0)
+				Sfx.play("click")
+				skipped.emit())
+		box.add_child(skip_button)
+		skip_button.focus_neighbor_right = skip_button.get_path_to(button)
+		button.focus_neighbor_left = button.get_path_to(skip_button)
 	set_focus(button)
 	lock()
 	_update(0.0)
+
+
+## 「とおりみちを とばす」を 出すか：入口の 画面で、クリアずみ（遊びなおし）で、とおりみちが ある 話だけ
+static func offers_skip(e: Dictionary, m: String) -> bool:
+	return m == "enter" and SaveData.is_cleared(e.get("id", "")) and EpisodeDB.has_pass(e)
+
+
+func card_size() -> Vector2:
+	return CARD_SIZE if mode == "enter" else Vector2(CARD_SIZE.x, EXIT_CARD_H)
+
+
+func face_size() -> float:
+	return 170.0 if mode == "enter" else EXIT_FACE
+
+
+func bubble_pos() -> Vector2:
+	return BUBBLE_POS if mode == "enter" else Vector2(BUBBLE_POS.x, EXIT_BUBBLE_Y)
 
 
 ## 地図の 上の 道（入れ物の 中の 座標）と、区切りの 時刻
@@ -264,15 +329,16 @@ func _set_face(mood: String, bounce: bool) -> void:
 	for c in _face_box.get_children():
 		c.queue_free()
 	var col: Color = EpisodeDB.speaker(ep["patient"])["color"]
+	var fs := face_size()
 	var back := Panel.new()
-	back.size = Vector2(170, 170)
+	back.size = Vector2(fs, fs)
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	back.add_theme_stylebox_override("panel", T.rounded(col.lerp(Color.WHITE, 0.55), 85, 4, Color.WHITE))
+	back.add_theme_stylebox_override("panel", T.rounded(col.lerp(Color.WHITE, 0.55), int(fs * 0.5), 4, Color.WHITE))
 	_face_box.add_child(back)
-	var f := T.portrait(ep["patient"], mood, Vector2(170, 170), col)
+	var f := T.portrait(ep["patient"], mood, Vector2(fs, fs), col)
 	_face_box.add_child(f)
 	if bounce:
-		_face_box.pivot_offset = Vector2(85, 85)
+		_face_box.pivot_offset = Vector2(fs, fs) * 0.5
 		_face_box.scale = Vector2(0.75, 0.75)
 		create_tween().tween_property(_face_box, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -551,11 +617,17 @@ static func _oval(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: Color, 
 ## はみ出しの 説明（無ければ ""）：ふきだし・名前の ふだが 箱に 入り、ボタンと 重ならないか、道が 地図の 中か
 func overflow() -> String:
 	var bh := _bubble.get_combined_minimum_size().y
-	if BUBBLE_POS.y + bh > button.position.y - 8.0:
+	if bubble_pos().y + bh > button.position.y - 8.0:
 		return "ふきだしが 高い（%.0f px）" % bh
 	var ch := _card.get_combined_minimum_size()
-	if ch.y > CARD_SIZE.y or ch.x > CARD_SIZE.x:
+	if ch.y > card_size().y or ch.x > card_size().x:
 		return "患者の ふだが 大きい（%s）" % ch
+	if route != null:
+		var rp: Control = route.get_parent().get_parent()
+		if ROUTE_Y + rp.get_combined_minimum_size().y > bubble_pos().y - 6.0 or 34.0 + card_size().y > ROUTE_Y - 4.0:
+			return "とおった みちが ふだか ふきだしに かかる（%.0f px）" % rp.get_combined_minimum_size().y
+		if not route.fits():
+			return "とおった みちの 名前が 入らない"
 	var area := Rect2(Vector2.ZERO, MAP_SIZE).grow(-10.0)
 	for p in path_points():
 		if not area.has_point(p):

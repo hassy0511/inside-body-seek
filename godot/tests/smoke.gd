@@ -4,16 +4,24 @@ extends Node
 ## 1. src/ の 全スクリプトを 読みこむ
 ## 2. データを 調べる（EpisodeDB.validate ＋ 文が 箱に 入るか ＋ spawn の ルール）
 ## 3. セーブを 調べる（v1 からの 移行・こわれた ファイル・ほし・つづき）
-## 4. 全カルテを カルテえらび → そうだん → よそう → からだに はいる → 場面 → からだから でる → カルテ まで 通す
-##    （画面は フォーカス中の ボタンを 押す ＝「いつも フォーカスが ある」ことも 見る。場面は 自動操縦）
+## 4. 全カルテを カルテえらび → そうだん → よそう → からだに はいる → 場面（とおりみちも）→ みちの ちず → … → からだから でる → カルテ まで 通す
+##    （画面は フォーカス中の ボタンを 押す ＝「いつも フォーカスが ある」ことも 見る。場面は 自動操縦）。
+##    とおりみちは てき・あぶない もの なし、ゴールは はじめから 開く、かかった 時間（シミュレーションの 秒）を ログに 書く
 ## 5. タイトル、よそうの「もどる」、あたりの よそう、つづきから（場面の やりなおし・ポーズから やめる）、クイズの やりなおし、ずかん、
 ##    本物の 入力（矢印・決定・もどる の アクション）で 4 つの 画面を 動かす
 ## 6. 全部の 場所を 既定の ミッションで 自動操縦（カルテで まだ 使わない 場所も ここで 守る）
-## 7. そうじゅう：ひろい 場所（口・心ぞう）で ← を 1 びょう 押すと 船と カメラが まわる・↑ で まえへ・↓ で うしろへ
+## 7. そうじゅう：ひろい 場所（口・心ぞう）で ← を 1 びょう 押すと 船と カメラが まわる・↑ で まえへ・↓ で うしろへ。
+##    はじめての そうじゅうの てびきが 出て、まわる・すすむ を やると 消える（キーボード・タッチ）
+## ほかに：みちの きまり（とちゅうの 場所を とばした 話は validate で 止まる）、遊びなおしの「とおりみちを とばす」、
+##   v2 の セーブ（とおりみちを 入れる 前）の 読みかえ
 ## --episode= は 4 を その 話だけ、--stage= は 6 を その 場所だけ 回す（5 は 全部 回す ときだけ）。
 ## セーブは user://save_test.json を 使う（本物の セーブを さわらない）。
 
 const MAX_SCENE_SECONDS := 420.0
+## とおりみち（とおるだけの 場面）の 長さ（自動操縦の シミュレーションの 秒）。上限は 子どもが 40 秒で ぬける ように。
+## 下限は「何も 見ずに おわる」ほど みじかく しない ため（くちは まっすぐ 走って 6.3 秒。子どもの 時間は まだ はかって いない）
+const MAX_PASS_SECONDS := 40.0
+const MIN_PASS_SECONDS := 5.0
 ## 7. の そうじゅうを 見る 場所（arena と rooms から 1 つずつ）
 const STEER_PLACES := ["mouth", "heart"]
 const MAX_UI_SECONDS := 30.0
@@ -25,6 +33,8 @@ const TalkScreen := preload("res://src/ui/talk.gd")
 const GuessScreen := preload("res://src/ui/guess.gd")
 const KarteScreen := preload("res://src/ui/karte.gd")
 const JourneyScreen := preload("res://src/ui/journey.gd")
+const HopScreen := preload("res://src/ui/hop.gd")
+const SteerGuide := preload("res://src/ui/steer_guide.gd")
 const HudScreen := preload("res://src/ui/hud.gd")
 const TitleScreen := preload("res://src/ui/title.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
@@ -43,6 +53,7 @@ var _phases_at_end: Array[String] = []
 var _scene_clears := 0
 var _said: Array = []          # いまの 場面で HUD に 出た 文：[物理フレーム, 文]
 var _text_seen: Dictionary = {}
+var _pass_times: Dictionary = {}   # "ep02 scene 0 (mouth)" -> 秒
 
 
 func _ready() -> void:
@@ -74,12 +85,13 @@ func _ready() -> void:
 	_check_data()
 	_check_spawn_rules()
 	_check_journey_rules()
+	_check_route_rules()
 	await _check_sheets()
 	_check_portraits()
 	_check_save()
 	SaveData.reset()
 	SaveData.set_setting("volume", 0.0)
-	Game.phase_changed.connect(func(p: String, i: int): _phases.append("%s%s" % [p, str(i) if p in ["scene", "after"] else ""]))
+	Game.phase_changed.connect(func(p: String, i: int): _phases.append("%s%s" % [p, str(i) if p in ["scene", "after"] else (str(Game.hop_from) if p == "hop" else "")]))
 	# episode_finished の しゅんかんの フェーズ列を 写す（「つぎの カルテへ」は すぐ 次の 話の consult を 出すので）
 	Game.episode_finished.connect(func(_id, _stars):
 		_ep_done = true
@@ -99,6 +111,7 @@ func _ready() -> void:
 				if _only_ep == "" or id == _only_ep:
 					await _run_episode(id)
 		if _only_place == "" and _only_ep == "":
+			await _check_skip()
 			await _check_title()
 			await _check_back()
 			await _check_hit()
@@ -113,6 +126,8 @@ func _ready() -> void:
 				if _only_place == "" or id == _only_place:
 					await _check_steering(id)
 	_remove_test_saves()
+	for k in _pass_times.keys():
+		_info("pass scene %s: %.1fs (sim)" % [k, _pass_times[k]])
 	print("")
 	print("==================== SMOKE SUMMARY ====================")
 	for l in _log:
@@ -215,6 +230,25 @@ func _check_data() -> void:
 				for p in EpisodeDB.text_problems(c):
 					_fail("%s: たびの 画面の ひとこと「%s」: %s" % [id, c, p])
 			js.free()
+		# みちの ちず：どの 場面の あいだでも、4 人 どの 患者の 地図でも 入る（はみ出し・ピコの ひとこと・文の きまり）
+		for i in range(-1, ep["scenes"].size()):
+			var to := EpisodeDB.next_scene(ep, i, i < 0)
+			if to < 0 or (i < 0 and not EpisodeDB.has_pass(ep)):
+				continue
+			for who in EpisodeDB.PATIENTS.keys():
+				var e: Dictionary = ep.duplicate(true)
+				e["patient"] = who
+				var hs := HopScreen.new()
+				hs.setup(e, i, to)
+				hs.theme = Game.theme
+				add_child(hs)
+				if not hs.fits():
+					_fail("%s hop%d（%s の 地図）: %s" % [id, i, who, hs.overflow()])
+				for p in EpisodeDB.text_problems(hs.say_text):
+					_fail("%s hop%d: ピコの ひとこと「%s」: %s" % [id, i, hs.say_text, p])
+				if not HopScreen.say_fits(hs.say_text):
+					_fail("%s hop%d: ピコの ひとことが ふきだしに 入らない：%s" % [id, i, hs.say_text])
+				hs.free()
 		# HUD の 題：だれの からだか（患者の 名前 ＋ 場所）。1 行で 入る
 		for i in ep["scenes"].size():
 			var title := HudScreen.title_text(EpisodeDB.scene_stage(ep, i))
@@ -275,6 +309,66 @@ func _check_journey_rules() -> void:
 		_fail("journey rules: guess.depart／karte.exit を 止めない：%s" % [msgs])
 	if not EpisodeDB.validate_episode(ep, 1).is_empty():
 		_fail("journey rules: 本物の ep01 で まちがいが 出る")
+
+
+## みちの きまり と とおりみちの 書きかた（こわした 写しで 見る）
+func _check_route_rules() -> void:
+	var ep2: Dictionary = EpisodeDB.get_episode("ep02")
+	var ep3: Dictionary = EpisodeDB.get_episode("ep03")
+	# 入口から しょくどうへ とぶ（くちを とばす）
+	var no_mouth: Dictionary = ep2.duplicate(true)
+	no_mouth["scenes"].remove_at(0)
+	var msgs := EpisodeDB.validate_episode(no_mouth, 2)
+	if not msgs.has("ep02: みちの とちゅうの「mouth」が scenes に ない"):
+		_fail("route rules: ep02 から くちを ぬいても「mouth」と 言わない：%s" % [msgs])
+	# くちから い（胃）へ とぶ（しょくどうを とばす）
+	var no_eso: Dictionary = ep3.duplicate(true)
+	no_eso["scenes"].remove_at(1)
+	msgs = EpisodeDB.validate_episode(no_eso, 3)
+	if not msgs.has("ep03: みちの とちゅうの「esophagus」が scenes に ない"):
+		_fail("route rules: ep03 から しょくどうを ぬいても「esophagus」と 言わない：%s" % [msgs])
+	# じゅんばんが ちがう（くち・い・しょくどう・ちょう）：「ない」では なく「じゅんばんが ちがう」
+	var swapped: Dictionary = ep3.duplicate(true)
+	var eso = swapped["scenes"][1]
+	swapped["scenes"].remove_at(1)
+	swapped["scenes"].insert(2, eso)
+	msgs = EpisodeDB.validate_episode(swapped, 3)
+	if not msgs.any(func(m: String): return m.contains("「esophagus」の じゅんばんが ちがう")) or msgs.any(func(m: String): return m.contains("scenes に ない")):
+		_fail("route rules: じゅんばんちがいを「じゅんばんが ちがう」と 言わない：%s" % [msgs])
+	# pass が bool で ない：型の エラーに ならず、きまりの 文だけ（ふつうの 場面と みなす）
+	var str_pass: Dictionary = ep2.duplicate(true)
+	str_pass["scenes"][0]["pass"] = "yes"
+	if EpisodeDB.is_pass(str_pass, 0):
+		_fail("route rules: pass が \"yes\" で とおりみちに なった")
+	msgs = EpisodeDB.validate_episode(str_pass, 2)
+	if not msgs.any(func(m: String): return m.contains("pass は true か false")):
+		_fail("route rules: pass が bool で ないのを 言わない：%s" % [msgs])
+	# とおりみちに missions／after、さいごの 場面が とおりみち、say が ない
+	var bad: Dictionary = ep2.duplicate(true)
+	bad["scenes"][0]["missions"] = [{"type": "reach", "text": "ゴールへ いこう"}]
+	bad["scenes"][0]["after"] = {"banner": "はっけん", "lines": [{"who": "pico", "text": "くちだよ。"}]}
+	bad["scenes"][0].erase("say")
+	bad["scenes"][2]["pass"] = true
+	msgs = EpisodeDB.validate_episode(bad, 2)
+	for want in ["pass）には missions を 書かない", "pass）には after を 書かない", "scene 0 say: 文が 空", "さいごの 場面は とおりみち"]:
+		if not msgs.any(func(m: String): return m.contains(want)):
+			_fail("route rules: 「%s」と 言わない：%s" % [want, msgs])
+	# 場面の 数：ぜんぶで 5 こ、とおりみちで ない 場面は 3 こまで
+	var many: Dictionary = ep3.duplicate(true)
+	many["scenes"][0].erase("pass")
+	many["scenes"][1].erase("pass")
+	msgs = EpisodeDB.validate_episode(many, 3)
+	if not msgs.any(func(m: String): return m.contains("とおりみちで ない 場面は 3 こまで")):
+		_fail("route rules: ふつうの 場面が 4 こでも 止めない：%s" % [msgs])
+	for e in [ep2, ep3]:
+		if not EpisodeDB.validate_episode(e, int(e["no"])).is_empty():
+			_fail("route rules: 本物の %s で まちがいが 出る" % e["id"])
+	# 道の 名前の 列
+	if EpisodeDB.route_keys("mouth", "stomach") != ["mouth", "throat", "esophagus", "stomach"]:
+		_fail("route rules: route_keys(mouth, stomach) が ちがう：%s" % [EpisodeDB.route_keys("mouth", "stomach")])
+	# 話の とおる 場所
+	if EpisodeDB.stops(ep2) != ["mouth", "esophagus", "stomach"] or EpisodeDB.stops(ep3) != ["mouth", "esophagus", "stomach", "intestine"] or EpisodeDB.stops(EpisodeDB.get_episode("ep01")) != ["mouth"]:
+		_fail("route rules: 1〜3 話の とおる 場所が ちがう")
 
 
 ## spawn の ルール（skip／swap）の 読みかえ。番号は のこる。かえられない マーカーは そのまま
@@ -374,7 +468,7 @@ func _check_save() -> void:
 	# v1（ステージごとの ほし）→ カードと 設定だけ 引きつぐ
 	_write('{"version":1,"stars":{"mouth":3},"cleared":["mouth"],"cards_seen":["mouth/stage","mouth/mushiba",5],"story_seen":true,"settings":{"volume":0.5,"touch":"on","unlock_all":false}}')
 	SaveData.load_data()
-	if SaveData.data["version"] != 2 or SaveData.total_stars() != 0 or SaveData.is_cleared("ep01") or not SaveData.card_seen("mouth", "stage") or SaveData.setting("volume") != 0.5 or SaveData.setting("touch") != "on" or SaveData.data["cards_seen"].size() != 2:
+	if SaveData.data["version"] != SaveData.VERSION or SaveData.total_stars() != 0 or SaveData.is_cleared("ep01") or not SaveData.card_seen("mouth", "stage") or SaveData.setting("volume") != 0.5 or SaveData.setting("touch") != "on" or SaveData.data["cards_seen"].size() != 2:
 		_fail("save: v1 migration: %s" % SaveData.data)
 	if not FileAccess.file_exists("user://save_test.v1.json"):
 		_fail("save: v1 backup not written")
@@ -401,11 +495,17 @@ func _check_save() -> void:
 	if SaveData.stars("ep01") != 3 or not SaveData.is_unlocked("ep02") or SaveData.is_unlocked("ep03"):
 		_fail("save: v2 roundtrip: %s" % SaveData.data)
 	if ep2 != "":
+		var hs := SaveData.heart_scenes(ep2)
 		SaveData.record_clear(ep2)
-		SaveData.record_scene(ep2, 1, true)
+		SaveData.record_scene(ep2, hs[hs.size() - 1], true)
 		if SaveData.star_flags(ep2) != [true, false, false]:
 			_fail("save: 場面が 1 つ まだなのに ハートの ほし")
-		SaveData.record_scene(ep2, 0, true)
+		# とおりみちは ハートの ほしに 入らない（へっても へらなくても かわらない）
+		for i in EpisodeDB.scene_count(ep2):
+			if EpisodeDB.is_pass(EpisodeDB.get_episode(ep2), i):
+				SaveData.record_scene(ep2, i, false)
+		for i in hs:
+			SaveData.record_scene(ep2, i, true)
 		SaveData.set_resume(ep2, 1, "stomach")
 		SaveData.load_data()
 		if SaveData.star_flags(ep2) != [true, true, false] or SaveData.resume().get("ep", "") != ep2 or int(SaveData.resume().get("cleared", 0)) != 1:
@@ -416,7 +516,82 @@ func _check_save() -> void:
 		SaveData.clear_resume(ep2)
 		if not SaveData.resume().is_empty():
 			_fail("save: clear_resume が きかない")
+	_check_save_v2()
 	_info("save checks done")
+
+
+## v2 の セーブ（とおりみちを 入れる 前：ep02 は しょくどう・い、ep03 は い・ちょう）を 読む。
+## ハートの 印は 場所に 読みかえ（とって いない ほしは つかない）、つづきは いまの 場面の 番号に（ある 場面に 入る）
+func _check_save_v2() -> void:
+	SaveData.reset()
+	var old := {"version": 2, "opening_seen": true, "cards_seen": ["mouth/stage"],
+		"episodes": {
+			"ep01": {"clear": true, "quiz": true, "nd": [true]},
+			"ep02": {"clear": true, "quiz": false, "nd": [true, true]},
+			"ep03": {"clear": true, "quiz": true, "nd": [false, true, true, true]},
+		},
+		"resume": {"ep": "ep03", "cleared": 1, "guess": "intestine"}}
+	_write(JSON.stringify(old))
+	SaveData.load_data()
+	var where := "save v2"
+	if SaveData.data["version"] != SaveData.VERSION or not FileAccess.file_exists("user://save_test.v2.json"):
+		_fail("%s: 版が %s のまま、または 元の ファイルが のこって いない" % [where, SaveData.data["version"]])
+	if SaveData.star_flags("ep01") != [true, true, true]:
+		_fail("%s: ep01 の ほしが ちがう：%s" % [where, SaveData.star_flags("ep01")])
+	if SaveData.star_flags("ep02") != [true, true, false]:
+		_fail("%s: ep02（しょくどう・い とも ハート そのまま）の ほしが ちがう：%s" % [where, SaveData.star_flags("ep02")])
+	# ep03 の v2 は 場面 2 つ（い・ちょう）。い（胃）で ハートが へった → ほしは つかない（よぶんな 印は すてる）
+	if SaveData.star_flags("ep03") != [true, false, true]:
+		_fail("%s: ep03 に とって いない ハートの ほしが ついた：%s" % [where, SaveData.star_flags("ep03")])
+	var r := SaveData.resume()
+	var ep3 := EpisodeDB.get_episode("ep03")
+	if r.get("ep", "") != "ep03" or int(r.get("cleared", 0)) < 1 or int(r["cleared"]) > ep3["scenes"].size() or ep3["scenes"][int(r["cleared"]) - 1]["place"] != "stomach":
+		_fail("%s: ep03 の つづき（い（胃）まで おえた）が いまの 場面に ならない：%s" % [where, r])
+	# 読みなおしても 同じ（v3 で 書きなおされて いる）
+	SaveData.load_data()
+	if SaveData.star_flags("ep02") != [true, true, false] or SaveData.star_flags("ep03") != [true, false, true] or SaveData.resume().get("cleared", 0) != r.get("cleared", -1):
+		_fail("%s: 書きなおした あとで かわった：%s" % [where, SaveData.data])
+	# つづき：ep02 の 場面 2（い）まで → いまの さいごの 場面。数が 合わない つづきは すてる
+	for c in [[{"ep": "ep02", "cleared": 2}, "stomach"], [{"ep": "ep02", "cleared": 3}, ""], [{"ep": "ep03", "cleared": 0}, ""], [{"ep": "ep09", "cleared": 1}, ""]]:
+		_write(JSON.stringify({"version": 2, "resume": c[0]}))
+		SaveData.load_data()
+		var rr := SaveData.resume()
+		if c[1] == "" and not rr.is_empty():
+			_fail("%s: 合わない つづきが のこった：%s → %s" % [where, c[0], rr])
+		if c[1] != "":
+			var e := EpisodeDB.get_episode(c[0]["ep"])
+			if rr.is_empty() or e["scenes"][int(rr["cleared"]) - 1]["place"] != c[1]:
+				_fail("%s: つづき %s が %s に ならない：%s" % [where, c[0], c[1], rr])
+	# v2 の nd が こわれて いても ほしは つかない
+	_write('{"version":2,"episodes":{"ep02":{"clear":true,"nd":{"a":1}},"ep03":{"clear":true,"nd":"x"}}}')
+	SaveData.load_data()
+	if SaveData.star_flags("ep02")[1] or SaveData.star_flags("ep03")[1]:
+		_fail("%s: こわれた nd で ハートの ほしが ついた" % where)
+	# つづきから：v2 の つづき（ep02 の しょくどうまで）で、つづきから が ある 場面に 入る
+	SaveData.reset()
+	_write(JSON.stringify({"version": 2, "episodes": {"ep01": {"clear": true}}, "resume": {"ep": "ep02", "cleared": 1, "guess": "stomach"}}))
+	SaveData.load_data()
+	r = SaveData.resume()
+	var ep2 := EpisodeDB.get_episode("ep02")
+	if r.is_empty() or ep2["scenes"][int(r["cleared"]) - 1]["place"] != "esophagus":
+		_fail("%s: ep02 の つづきが しょくどうの あとに ならない：%s" % [where, r])
+	# 同じ 場所を 2 回 使う 話（5 話の はな → はい → はな）：場面の キーが 分かれ、つづきも ハートの 印も まざらない
+	var dup := {"id": "ep05", "scenes": [{"place": "nose"}, {"place": "lungs"}, {"place": "nose"}]}
+	var keys := []
+	for i in 3:
+		keys.append(SaveData.scene_key(dup, i))
+	if keys != ["nose", "lungs", "nose#1"]:
+		_fail("%s: 同じ 場所の 場面の キーが 分かれない：%s" % [where, keys])
+	for c in [["nose", 1], ["lungs", 2], ["nose#1", 3]]:
+		if SaveData._resume_index(dup, 1, c[0], SaveData.VERSION) != c[1]:
+			_fail("%s: 同じ 場所が 2 回 ある 話の つづき「%s」が 場面 %d の あとに ならない（%d）" % [where, c[0], c[1], SaveData._resume_index(dup, 1, c[0], SaveData.VERSION)])
+	# v3 の つづきは キーで 読みなおせる
+	SaveData.reset()
+	SaveData.set_resume("ep03", 2, "stomach")
+	SaveData.load_data()
+	if SaveData.resume().get("cleared", 0) != 2 or SaveData.resume().get("key", "") != "esophagus":
+		_fail("%s: v3 の つづきが 読みなおせない：%s" % [where, SaveData.resume()])
+	SaveData.reset()
 
 
 # ---------------------------------------------------------------- 4. カルテ
@@ -429,6 +604,8 @@ func _expected_phases(ep: Dictionary) -> Array[String]:
 		out.append("scene%d" % i)
 		if ep["scenes"][i].has("after"):
 			out.append("after%d" % i)
+		if i + 1 < ep["scenes"].size():
+			out.append("hop%d" % i)    # みちの ちず（場面と 場面の あいだ）
 	out.append("exit")
 	out.append("karte")
 	return out
@@ -498,7 +675,7 @@ func _on_said(t: String) -> void:
 ## 場面が おわった とき：intro・each_say・goal_say・clear_say が HUD に 出たか。
 ## goal_say が 出てから 2 秒の うちに、ほかの 文（えいようを とどけた！・チェックポイント！）に 上書きされて いないか
 func _check_says() -> void:
-	var sc: Dictionary = Game.episode["scenes"][Game.scene_index]
+	var sc: Dictionary = EpisodeDB.scene_stage(Game.episode, Game.scene_index)   # とおりみちの 文は ここで 作られる
 	var where := "%s scene %d" % [Game.episode["id"], Game.scene_index]
 	var texts: Array = _said.map(func(e): return e[1])
 	var want: Array = [sc["intro"]]
@@ -552,6 +729,8 @@ func _run_episode(id: String) -> void:
 	var wrong_done := false
 	var checked_level = null
 	var journeys_seen := {}
+	var hops_seen: Array[String] = []
+	var pass_t := 0.0          # いまの とおりみちの 場面の 時間
 	# クイズは 話ごとに 正解・はずれを かわるがわる えらぶ（「せいかい！」も「おしい！」も 毎回 通る。ほしの 数も 毎回 同じ）
 	var quiz_right: bool = EpisodeDB.ids().find(id) % 2 == 0
 	var quiz_before: bool = SaveData.star_flags(id)[2]
@@ -577,8 +756,23 @@ func _run_episode(id: String) -> void:
 					for m in lvl.markers:
 						if m["node"] != null and Level.spawn_rule_matches(String(m["node"].name).substr(3), p):
 							_fail("%s: skip が きいていない: %s" % [id, m["node"].name])
+				pass_t = 0.0
+				if lvl.is_pass():
+					_check_pass_level(lvl, "%s scene %d" % [id, Game.scene_index])
 			if lvl.started and not lvl.finished:
 				Autopilot.drive(lvl, get_tree())
+				if lvl.is_pass():
+					pass_t += dt
+					if lvl.damage_taken:
+						_fail("%s scene %d: とおりみちで ハートが へった" % [id, Game.scene_index])
+			elif lvl.finished and lvl.is_pass():
+				var key := "%s scene %d (%s)" % [id, Game.scene_index, lvl.stage_id]
+				if not _pass_times.has(key):
+					_pass_times[key] = pass_t
+					if pass_t > MAX_PASS_SECONDS:
+						_fail("%s: とおりみちが 長い（%.1f 秒。%.0f 秒まで）" % [key, pass_t, MAX_PASS_SECONDS])
+					elif pass_t < MIN_PASS_SECONDS:
+						_fail("%s: とおりみちが みじかすぎる（%.1f 秒。%.0f 秒 いじょう）" % [key, pass_t, MIN_PASS_SECONDS])
 			if idle > MAX_SCENE_SECONDS:
 				_fail("%s: scene %d (%s) did not finish in %.0fs; missions: %s" % [id, Game.scene_index, lvl.stage_id, MAX_SCENE_SECONDS, _mission_state(lvl)])
 				break
@@ -602,6 +796,9 @@ func _run_episode(id: String) -> void:
 		if scr is JourneyScreen and not journeys_seen.has(scr.mode):
 			journeys_seen[scr.mode] = true
 			_check_journey_screen(scr, ep)
+		if scr is HopScreen and not hops_seen.has("%d" % scr.from):
+			hops_seen.append("%d" % scr.from)
+			_check_hop_screen(scr, ep, false)
 		if scr is SelectScreen and not select_done:
 			# カルテえらび：最初から この 話が えらばれ、スタートの ボタンに フォーカスが ある こと
 			select_done = true
@@ -627,6 +824,8 @@ func _run_episode(id: String) -> void:
 	for m in ["enter", "exit"]:
 		if not journeys_seen.has(m):
 			_fail("%s: たびの 画面（%s）が 出なかった" % [id, m])
+	if hops_seen.size() != ep["scenes"].size() - 1:
+		_fail("%s: みちの ちずが 場面の あいだ ごとに 出ない（%s）" % [id, hops_seen])
 	if _ep_done:
 		_info("cleared %s in %.1fs (sim) / %.1fs (real); scenes=%d stars=%d" % [id, total, (Time.get_ticks_msec() - t0) / 1000.0, _scene_clears, SaveData.stars(id)])
 		if _phases_at_end != expect:
@@ -684,6 +883,130 @@ func _check_journey_screen(scr, ep: Dictionary) -> void:
 		_fail("%s: ボタンに フォーカスが ない" % where)
 	if Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible:
 		_fail("%s: タッチの ボタンが 画面の 上に のこって いる" % where)
+	# exit：とおった みち（入口から さいごの 場所まで の 場所の ならび）
+	if mode == "exit" and (scr.route == null or scr.route.places != EpisodeDB.stops(ep) or not scr.route.done or not texts.has("とおった みち")):
+		_fail("%s: 出口の 画面に とおった みちが ない" % where)
+	# enter：とおりみちを とばす は クリアずみで とおりみちが ある 話だけ（はじめて 遊ぶ ときは 出ない）
+	if mode == "enter" and (scr.skip_button != null) != (SaveData.is_cleared(id) and EpisodeDB.has_pass(ep)):
+		_fail("%s: 「とおりみちを とばす」の 出かたが ちがう" % where)
+
+
+## とおりみちの Level：てき・ボス・いけ・ドア・しんけい・なかま・ミッションの ひろいものが 出ない。ミッションは ゴールだけ、ゴールは はじめから 開く
+func _check_pass_level(lvl, where: String) -> void:
+	for m in lvl.markers:
+		var kind: String = m["kind"]
+		if not Level.PASS_KEEP.has(kind) and not (kind == "pickup" and Level._kind_and_index(m["rest"], "")["kind"] == "heart_item"):
+			_fail("%s: とおりみちに %s が 出る" % [where, m["name"]])
+	for c in lvl.get_children():
+		if c is Enemy or c is Boss or c is HazardPool or c is ValveGate or c is Neuron or c is Friend or c is DeliverZone or (c is Pickup and c.get("kind") != "heart_item"):
+			_fail("%s: とおりみちに %s が いる" % [where, c.name])
+	if lvl.missions.size() != 1 or not lvl.missions[0].is_reach():
+		_fail("%s: とおりみちの ミッションが ゴールだけで ない（%s）" % [where, _mission_state(lvl)])
+	if lvl.goal == null or lvl.goal.locked:
+		_fail("%s: とおりみちの ゴールが はじめから 開いて いない" % where)
+	if not lvl.data_warnings.is_empty():
+		_fail("%s: %s" % [where, lvl.data_warnings])
+
+
+## みちの ちず：from（おえた 場面）から to（つぎの 場面）へ。いま ここ／つぎは ここ・とおる 場所の ならび・ピコの ひとこと
+func _check_hop_screen(scr, ep: Dictionary, skipping: bool) -> void:
+	var id: String = ep["id"]
+	var where := "%s hop%d" % [id, scr.from]
+	var want_to := EpisodeDB.next_scene(ep, scr.from, skipping)
+	if scr.to != want_to or Game.phase != "hop" or scr.ep["id"] != id:
+		_fail("%s: みちの ちずの つぎの 場面が ちがう（%d。%d の はず）" % [where, scr.to, want_to])
+		return
+	if get_viewport().gui_get_focus_owner() != scr.button:
+		_fail("%s: ボタンに フォーカスが ない" % where)
+	var texts: Array = scr.find_children("*", "Label", true, false).filter(func(l): return l.is_visible_in_tree()).map(func(l): return String(l.text).replace(T.WJ, ""))
+	var want_say: String = ep["scenes"][scr.from]["say"] if EpisodeDB.is_pass(ep, scr.from) else EpisodeDB.hop_say(ep, scr.from, scr.to)
+	for want in [want_say, "いま ここ", "つぎは ここ"]:
+		if not texts.has(want):
+			_fail("%s: 画面に「%s」が ない" % [where, want])
+	if not HopScreen.say_fits(want_say):
+		_fail("%s: ピコの ひとことが ふきだしに 入らない：%s" % [where, want_say])
+	# とおる 場所の ならび：場面の 順。いまの 場所と つぎの 場所
+	# とばした ときは 入口（さいしょの 場所）が いま ここ（地図の「いま ここ」と そろう）
+	var line = scr.line
+	var want_cur: int = scr.from
+	if scr.from < 0 and EpisodeDB.stops(ep)[0] == EpisodeDB.trip(ep)["entry"]:
+		want_cur = 0
+	if line.places != EpisodeDB.stops(ep) or line.current != want_cur or line.next != scr.to:
+		_fail("%s: とおる 場所の ならびが ちがう（%s %d→%d）" % [where, line.places, line.current, line.next])
+	for i in line.names.size():
+		var st := StageDB.get_stage(line.places[i])
+		if line.names[i].text != st["name"]:
+			_fail("%s: ならびの %d ばんめが「%s」" % [where, i, line.names[i].text])
+	# ミクロごうは いまの 点から つぎの 場所へ（地図の 上）
+	var pts: PackedVector2Array = scr.hop_points()
+	var to_pt: Vector2 = scr._map.point(ep["scenes"][scr.to]["place"])
+	if pts[pts.size() - 1].distance_to(to_pt) > 1.0:
+		_fail("%s: ミクロごうが つぎの 場所へ 行かない" % where)
+	if scr.from >= 0 and pts[0].distance_to(scr._map.point(ep["scenes"][scr.from]["place"])) > 1.0:
+		_fail("%s: ミクロごうが いまの 場所から 出ない" % where)
+	if Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible:
+		_fail("%s: タッチの ボタンが 画面の 上に のこって いる" % where)
+
+
+## 遊びなおしの「とおりみちを とばす」：はじめての 話には 出ない。クリアずみで とおりみちが ある 話だけ。
+## フォーカスは ふつうの ボタン。押すと みちの ちず（入口 → さいしょの ふつうの 場面）が 1 回 出て、その 場面へ
+func _check_skip() -> void:
+	_info("=== skip ===")
+	var ep := EpisodeDB.get_episode("ep02")
+	var id: String = ep["id"]
+	var was_cleared := SaveData.is_cleared(id)
+	SaveData.data["episodes"].erase(id)
+	Game.start_episode(id, "enter")
+	await _wait_focus()
+	var jr := Game.screen()
+	if not (jr is JourneyScreen) or jr.skip_button != null:
+		_fail("skip: はじめての 話に「とおりみちを とばす」が 出る")
+	# とおりみちが ない 話（ep01）は クリアずみでも 出ない
+	SaveData.record_clear("ep01")
+	Game.start_episode("ep01", "enter")
+	await _wait_focus()
+	if Game.screen().skip_button != null:
+		_fail("skip: とおりみちの ない ep01 に「とおりみちを とばす」が 出る")
+	SaveData.record_clear(id)
+	_phases.clear()
+	Game.start_episode(id, "enter")
+	await _wait_focus()
+	jr = Game.screen()
+	if not (jr is JourneyScreen) or jr.skip_button == null:
+		_fail("skip: クリアずみの %s に「とおりみちを とばす」が ない" % id)
+		return
+	if get_viewport().gui_get_focus_owner() != jr.button:
+		_fail("skip: フォーカスが ふつうの ボタンに ない")
+	_check_screen(jr, "skip enter")
+	jr.skip_button.pressed.emit()
+	await _wait_focus()
+	var h := Game.screen()
+	var first := EpisodeDB.next_scene(ep, -1, true)
+	if not (h is HopScreen) or h.from != -1 or h.to != first:
+		_fail("skip: とばしても みちの ちず（入口 → 場面 %d）が 出ない" % first)
+		return
+	_check_screen(h, "skip hop")
+	_check_hop_screen(h, ep, true)
+	# みちは 入口から：とばした 場所も ならびに ある
+	if h.hop_points()[0].distance_to(h._map.point(EpisodeDB.ENTRANCES[ep["enter"]["way"]]["at"])) > 1.0:
+		_fail("skip: みちの ちずが 入口から 始まらない")
+	h.button.pressed.emit()
+	await get_tree().process_frame
+	if Game.phase != "scene" or Game.scene_index != first or Game.level == null:
+		_fail("skip: みちの ちずの あと 場面 %d に 入らない（%s %d）" % [first, Game.phase, Game.scene_index])
+	if _phases != ["enter", "hop-1", "scene%d" % first]:
+		_fail("skip: 流れが ちがう（%s）" % [_phases])
+	# この あとも とおりみちは とばす（ep03：い（胃）→ ちょう は そのまま。ep02 は い（胃）が さいご）
+	if not await _play_until(func(): return Game.phase != "scene", MAX_SCENE_SECONDS):
+		_fail("skip: 場面 %d が おわらない" % first)
+	if not await _play_until(func(): return Game.phase == "scene" and Game.scene_index > first, MAX_UI_SECONDS):
+		_fail("skip: つぎの 場面に 進まない（%s）" % Game.phase)
+	elif EpisodeDB.is_pass(ep, Game.scene_index):
+		_fail("skip: とばす はずの とおりみちに 入った")
+	Game.show_episode_select()
+	if not was_cleared:
+		SaveData.data["episodes"].erase(id)
+	await get_tree().process_frame
 
 
 ## 入口・出口の ひとことは たびの 画面だけに 出る（よそう・カルテには 出さない ＝ 2 回 読ませない）
@@ -829,9 +1152,10 @@ func _check_resume() -> void:
 	if not await _play_until(func(): return Game.phase == "scene" and Game.level != null and Game.level.started, MAX_UI_SECONDS, "resume"):
 		_fail("resume: つづきから 場面に 入れない（%s）" % Game.phase)
 		return
-	# つづきからは からだの 中に もどる（入口の たびの 画面を もう一度 通らない）
-	if _phases.has("enter") or _phases != ["after0", "scene1"]:
-		_fail("resume: つづきからの 流れが ちがう（%s。after0 → scene1 の はず。enter は 通らない）" % [_phases])
+		# つづきからは からだの 中に もどる（入口の たびの 画面を もう一度 通らない）。おえた 場面の あとの はなし（あれば）→ みちの ちず → 場面 2
+	var want_ph: Array = (["after0"] if not EpisodeDB.after_lines(ep, 0, "").is_empty() else []) + ["hop0", "scene1"]
+	if _phases.has("enter") or _phases != want_ph:
+		_fail("resume: つづきからの 流れが ちがう（%s。%s の はず。enter は 通らない）" % [_phases, want_ph])
 	if Game.scene_index != 1 or Game.level.stage_id != ep["scenes"][1]["place"]:
 		_fail("resume: 場面 2 では ない（scene %d %s）" % [Game.scene_index, Game.level.stage_id])
 	else:
@@ -1111,8 +1435,16 @@ func _check_keys() -> void:
 		if not (jr is JourneyScreen) or get_viewport().gui_get_focus_owner() != jr.button:
 			_fail("keys: たびの 画面（%s）の ボタンに フォーカスが ない" % m)
 			continue
-		for a in ["ui_up", "ui_down", "ui_left", "ui_right", "ui_cancel"]:
+		for a in ["ui_up", "ui_down", "ui_right", "ui_cancel"]:
 			await _tap_expect(a, jr.button, "たびの 画面 %s" % m)
+		if jr.skip_button != null:
+			# 遊びなおし：ひだりに「とおりみちを とばす」。そこからは みぎで もどる だけ
+			await _tap_expect("ui_left", jr.skip_button, "たびの 画面 %s" % m)
+			for a in ["ui_up", "ui_down", "ui_left"]:
+				await _tap_expect(a, jr.skip_button, "たびの 画面 %s とばす" % m)
+			await _tap_expect("ui_right", jr.button, "たびの 画面 %s とばす" % m)
+		else:
+			await _tap_expect("ui_left", jr.button, "たびの 画面 %s" % m)
 		if Game.screen() != jr or Game.phase != m:
 			_fail("keys: たびの 画面（%s）：もどるで 画面が 変わった" % m)
 			continue
@@ -1122,6 +1454,21 @@ func _check_keys() -> void:
 		var want := "scene" if m == "enter" else "karte"
 		if Game.phase != want:
 			_fail("keys: たびの 画面（%s）：決定で %s に 進まない（%s）" % [m, want, Game.phase])
+	# ---- みちの ちず：ボタン 1 つ。矢印でも もどるでも ボタンの まま、決定で つぎの 場面へ
+	Game.start_episode(id, "hop", 0)
+	await _wait_focus()
+	var hp := Game.screen()
+	if not (hp is HopScreen) or get_viewport().gui_get_focus_owner() != hp.button:
+		_fail("keys: みちの ちずの ボタンに フォーカスが ない")
+	else:
+		for a in ["ui_up", "ui_down", "ui_left", "ui_right", "ui_cancel"]:
+			await _tap_expect(a, hp.button, "みちの ちず")
+		var hop_to: int = hp.to
+		await _wait_focus()
+		await _tap("ui_accept")
+		await get_tree().process_frame
+		if Game.phase != "scene" or Game.scene_index != hop_to:
+			_fail("keys: みちの ちず：決定で 場面 %d に 進まない（%s %d）" % [hop_to, Game.phase, Game.scene_index])
 	Game.show_episode_select()
 	await get_tree().process_frame
 	# ---- カルテ：もどるは 何も しない。決定で 段を 進む。クイズは 上下、ほしの 段は 左右
@@ -1241,6 +1588,13 @@ func _check_steering(id: String) -> void:
 	var where := "steer %s" % id
 	if not p.is_steering():
 		_fail("%s: のりものの 操作に なって いない" % where)
+	# はじめての そうじゅうの てびき：まだ 見て いなければ 出る（キーボードの 絵）
+	var guide = Game.hud.get_node_or_null("SteerGuide")
+	var guide_first := not SaveData.steer_guide_seen()
+	if guide_first:
+		_check_guide(guide, false, where)
+	elif guide != null:
+		_fail("%s: 見おわった てびきが また 出た" % where)
 	var flow := Vector3.ZERO
 	if lvl.flow_speed > 0.0 and lvl.path.is_valid():
 		flow = lvl.path.direction_at(p.global_position) * lvl.flow_speed   # ながれの ぶんは さしひく
@@ -1279,7 +1633,60 @@ func _check_steering(id: String) -> void:
 	if flip > 2.0 or cam_flip > 3.0:
 		_fail("%s: ↓ で 船（%.1f ど）か カメラ（%.1f ど）が まわった" % [where, flip, cam_flip])
 	await _hold([], 0.2)
+	if guide_first and (not SaveData.steer_guide_seen() or (is_instance_valid(guide) and not guide.is_closing())):
+		_fail("%s: まわって すすんでも てびきが 消えない" % where)
 	Game.unload_level()
+	await get_tree().process_frame
+	if guide_first:
+		await _check_guide_touch()
+
+
+## そうじゅうの てびき：出て いる・文の きまり・ピコの ふきだしにも ミクロごうにも かからない
+func _check_guide(guide, touch: bool, where: String) -> void:
+	if guide == null or not guide.is_visible_in_tree():
+		_fail("%s: はじめての ひろい 場所で そうじゅうの てびきが 出ない" % where)
+		return
+	if guide.touch != touch:
+		_fail("%s: てびきの 絵が %s で ない" % [where, "タッチ" if touch else "キーボード"])
+	for t in guide.texts():
+		for pr in EpisodeDB.text_problems(t):
+			_fail("%s: てびきの 文「%s」: %s" % [where, t, pr])
+	_check_texts(guide, where + " てびき")
+	_check_layout(guide, where + " てびき")
+	var r: Rect2 = guide.get_global_rect()
+	var view := get_viewport().get_visible_rect().size
+	var msg := Rect2(view.x * 0.5 - 430.0, view.y - 200.0, 860.0, 174.0)   # ピコの ふきだし（いちばん ひろい とき。hud.gd）
+	if r.intersects(msg):
+		_fail("%s: てびきが ピコの ふきだしに かかる（%s）" % [where, r])
+	var lvl = Game.level
+	var ship: Vector2 = get_viewport().get_camera_3d().unproject_position(lvl.player.global_position)
+	if r.grow(40.0).has_point(ship):
+		_fail("%s: てびきが ミクロごうに かかる" % where)
+	if Game.touch_controls != null and Game.touch_controls.visible and r.intersects(Rect2(Vector2(150, view.y - 150) - Vector2(100, 100), Vector2(200, 200))):
+		_fail("%s: てびきが タッチの スティックに かかる" % where)
+
+
+## タッチの とき：てびきは タッチの 絵。スティックで まわる・すすむ（タッチそうさも 同じ アクション）で 消える
+func _check_guide_touch() -> void:
+	var before = SaveData.setting("touch", "auto")
+	SaveData.data["steer_guide_seen"] = false
+	SaveData.set_setting("touch", "on")
+	Game.start_stage("mouth")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	for i in 10:
+		await get_tree().physics_frame
+	var guide = Game.hud.get_node_or_null("SteerGuide")
+	_check_guide(guide, true, "steer guide touch")
+	await _hold(["move_right"], 0.3)
+	if SaveData.steer_guide_seen():
+		_fail("steer guide touch: まわった だけで 消えた（すすむ も やる まで のこす）")
+	await _hold(["move_up"], 0.3)
+	if not SaveData.steer_guide_seen() or (is_instance_valid(guide) and not guide.is_closing()):
+		_fail("steer guide touch: まわって すすんでも 消えない")
+	Game.unload_level()
+	SaveData.set_setting("touch", before)
 	await get_tree().process_frame
 
 

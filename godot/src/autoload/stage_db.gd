@@ -29,6 +29,10 @@ const STAGES: Array[Dictionary] = [
 			"sway": {"NC_Uvula": [4.0, 3.4]},
 			"bubbles": {"count": 12, "center": Vector3(0, 3, -2), "extents": Vector3(15, 4, 20), "size": [0.2, 0.5], "color": Color(1.0, 0.96, 0.96, 0.5)},
 		},
+		# とおりみち（"pass"）の ときは むしばの あなを ぬりつぶす（ほかの 人の くちに むしばが あるように 見せない）。
+		# {メッシュ名: [[中心（GLB の 中の 位置）, 半径 m], …]}。まるの 中の 頂点の 色を まわりの はの 色に する（Level._clean_spots）。
+		# GLB を 作りなおす ときは あなを べつの 部品（Cavity_*）に して、これは 消す
+		"pass_clean": {"Teeth": [[Vector3(-8.38, 0.39, 4.74), 1.5], [Vector3(8.32, 0.26, 4.58), 1.5]]},
 		"missions": [
 			{"type": "defeat", "target": "mushiba", "count": 4, "text": "むしばきんを やっつけよう"},
 			{"type": "reach", "text": "のどの おくの ゴールへ いこう"},
