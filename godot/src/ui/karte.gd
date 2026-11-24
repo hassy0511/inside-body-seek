@@ -138,7 +138,7 @@ func _main_button(text: String, cb: Callable, parent: Control = null) -> void:
 
 # ---------------------------------------------------------------- 段 0：かいけつ
 func _show_solved() -> void:
-	Sfx.play("clear")
+	Sfx.play("jingle_karte")   # カルテ かんせいの 短い 曲（音楽の 上に）
 	var head := T.label("かいけつ！", 48, Color(0.9, 0.35, 0.5), HORIZONTAL_ALIGNMENT_CENTER)
 	_vb.add_child(head)
 	_vb.add_child(T.label(_title(), 26, T.INK, HORIZONTAL_ALIGNMENT_CENTER))

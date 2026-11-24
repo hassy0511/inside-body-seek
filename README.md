@@ -55,11 +55,13 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 | `godot/assets/models/characters/*.glb` | キャラクターの 3D モデル（Blender スクリプトの出力） |
 | `godot/assets/models/stages/*.glb` | 場所の地形＋スポーン位置（Blender スクリプトの出力） |
 | `godot/assets/ui/*.png` | 納品された絵（顔・全身など）。同じ名前で置くと自動で使われる |
-| `godot/assets/audio/*.wav` | 効果音と BGM（`tools/gen_audio.py` の出力） |
+| `godot/assets/audio/*.wav` | 効果音（`tools/gen_audio.py` の出力） |
+| `godot/assets/audio/bgm_*.ogg`・`jingle_*.ogg`・`clear.wav` | 音楽（`tools/music/` で楽譜から作る。`docs/audio.md`） |
 | `blender/characters.py` | キャラクターを作る bpy スクリプト |
 | `blender/stages.py` | ステージの地形とマーカーを作る bpy スクリプト |
 | `blender/common.py` | 共通ヘルパー（マテリアル・形・書き出し） |
-| `tools/gen_audio.py` | 効果音・BGM を合成 |
+| `tools/gen_audio.py` | 効果音を合成 |
+| `tools/music/` | 音楽を楽譜から作る（`python -m tools.music build`。`docs/audio.md`） |
 | `tools/run_tests.sh` | Godot ヘッドレスのテスト（全カルテ ＋ 全部の場所 ＋ ダッシュボードの試し作り） |
 | `tools/export_web.sh` | ブラウザで遊べる版（Web）の書き出し。CI が GitHub Pages の `play/` に出す |
 | `tools/compare/` | 同じ指示文で別々に作られた 2 つの実装（A・B）を遊べる形にする、一時的なくらべもの |
@@ -157,18 +159,23 @@ Godot をヘッドレスで起動し、①インポート ②床プローブ（�
 既定のミッションで ⑦ダッシュボードの試し作り、の順に動かします。`PROBE RESULT: OK`・`RESULT: OK`・`DASHBOARD: OK` が出て、
 `SCRIPT ERROR` が 1 つも無ければ合格です。テストは別のセーブファイルを使うので、手元のセーブは変わりません。
 
-## 効果音・BGM
+## 効果音と音楽
+
+効果音は numpy で合成しています（外部の音素材なし）。差し替えるときは同じ名前の WAV を `godot/assets/audio/` に置くだけです。
 
 ```bash
 python3 tools/gen_audio.py
 ```
 
-外部の音素材は使わず、numpy で合成しています。差し替えるときは同じ名前の WAV を `godot/assets/audio/` に置くだけです。
+音楽（場所・画面ごとの ループ 10 曲と 短い 曲 4 つ）は `tools/music/` の 楽譜から FluidSynth と MuseScore General の 音色で 作ります。
+作りなおし方・確認・どこで どの 曲が 鳴るか・ブラウザ版での 鳴らし方は [`docs/audio.md`](docs/audio.md)。
+ダッシュボードの「おとを きく」で 1 曲ずつ 聞けます。
 
 ## クレジット
 
 - フォント：Rounded M+（M PLUS Rounded 1c）— SIL Open Font License 1.1（`godot/assets/fonts/LICENSE.txt`）
 - エンジン：Godot Engine（MIT）
+- 音楽の 音色：MuseScore General（MIT。一部 パブリックドメイン・CC0）。曲は このリポジトリで 作った もの（音色の ファイルは コミットしない）。
 - それ以外のコード・モデル・音・文章はこのリポジトリで作ったものです。
 
 体のしくみの説明は子ども向けに簡単にしてあります。数字（食道の長さ・肺胞の数など）はおおよその値です。

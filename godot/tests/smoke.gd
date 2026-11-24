@@ -13,7 +13,7 @@ extends Node
 ## 7. そうじゅう：ひろい 場所（口・心ぞう）で ← を 1 びょう 押すと 船と カメラが まわる・↑ で まえへ・↓ で うしろへ。
 ##    はじめての そうじゅうの てびきが 出て、まわる・すすむ を やると 消える（キーボード・タッチ）
 ## ほかに：みちの きまり（とちゅうの 場所を とばした 話は validate で 止まる）、遊びなおしの「とおりみちを とばす」、
-##   v2 の セーブ（とおりみちを 入れる 前）の 読みかえ
+##   v2 の セーブ（とおりみちを 入れる 前）の 読みかえ、音楽（ゲームが 呼ぶ 曲の ファイルが ある・ループの 設定・フェーズと 場所の 曲）
 ## --episode= は 4 を その 話だけ、--stage= は 6 を その 場所だけ 回す（5 は 全部 回す ときだけ）。
 ## セーブは user://save_test.json を 使う（本物の セーブを さわらない）。
 
@@ -88,6 +88,7 @@ func _ready() -> void:
 	_check_route_rules()
 	await _check_sheets()
 	_check_portraits()
+	_check_music()
 	_check_save()
 	SaveData.reset()
 	SaveData.set_setting("volume", 0.0)
@@ -97,6 +98,7 @@ func _ready() -> void:
 		_ep_done = true
 		_phases_at_end = _phases.duplicate())
 	Game.stage_started.connect(func(_sid): _said.clear())
+	Game.phase_changed.connect(_check_phase_music)
 	Game.said.connect(_on_said)
 	Game.stage_finished.connect(func(sid: String, _stars):
 		_scene_clears += 1
@@ -188,6 +190,69 @@ func _list_scripts(dir: String) -> Array[String]:
 			out.append(p)
 		f = d.get_next()
 	return out
+
+
+# ---------------------------------------------------------------- 音楽
+## ゲームが 呼ぶ 曲の 名前を 全部 あつめて、ファイルが ある・ループの 設定が 合う ことを 見る
+## （場所の "bgm"・ボス・フェーズの 曲と ジングル・src の 中に 文字で 書いた play_bgm("…")／Sfx.play("jingle_…")）
+func _check_music() -> void:
+	var loops := {"bgm_boss": "boss", "bgm_title": "title"}
+	var shorts := {"clear": "scene clear"}
+	for st in StageDB.STAGES:
+		if String(st.get("bgm", "")) == "":
+			_fail("music: 場所 %s に \"bgm\" が ない" % st["id"])
+		loops[Sfx.stage_music(st)] = "stage " + st["id"]
+	for ep_id in EpisodeDB.ids():
+		var ep := EpisodeDB.get_episode(ep_id)
+		for i in ep["scenes"].size():
+			loops[Sfx.stage_music(EpisodeDB.scene_stage(ep, i))] = "%s scene %d" % [ep_id, i]
+	for ph in Sfx.PHASE_MUSIC:
+		loops[Sfx.PHASE_MUSIC[ph]] = "phase " + ph
+	for ph in Sfx.PHASE_JINGLE:
+		shorts[Sfx.PHASE_JINGLE[ph]] = "phase " + ph
+	var re := RegEx.create_from_string("(?:play_bgm|Sfx\\.play|play_short)\\(\"((?:bgm_|jingle_)\\w+|clear)\"")
+	for path in _list_scripts("res://src"):
+		for m in re.search_all(FileAccess.get_file_as_string(path)):
+			var n := m.get_string(1)
+			if n.begins_with("bgm_"):
+				loops[n] = path.get_file()
+			else:
+				shorts[n] = path.get_file()
+	for n in loops:
+		var path := Sfx.path_of(n)
+		if not path.ends_with(".ogg"):
+			_fail("music: %s（%s）の ファイル %s%s.ogg が ない" % [n, loops[n], Sfx.DIR, n])
+			continue
+		var s = load(path)
+		if not (s is AudioStreamOggVorbis) or not s.loop:
+			_fail("music: %s が ループに なって いない（.import の loop=true）" % path)
+	for n in shorts:
+		var path := Sfx.path_of(n)
+		if path == "":
+			_fail("music: 短い 曲 %s（%s）の ファイルが ない" % [n, shorts[n]])
+			continue
+		var s = load(path)
+		if (s is AudioStreamOggVorbis and s.loop) or (s is AudioStreamWAV and s.loop_mode != AudioStreamWAV.LOOP_DISABLED):
+			_fail("music: 短い 曲 %s が ループする" % path)
+	# 古い BGM（.wav）は もう 使わない
+	for f in DirAccess.get_files_at(Sfx.DIR):
+		if f.begins_with("bgm_") and f.ends_with(".wav"):
+			_fail("music: 古い %s が のこって いる" % f)
+	# しらない フェーズは 曲を 変えない（エラーも 出さない）
+	Sfx.play_bgm("bgm_title")
+	Sfx.on_phase("no_such_phase", 0)
+	if Sfx.bgm_name() != "bgm_title":
+		_fail("music: しらない フェーズで 曲が 変わった（%s）" % Sfx.bgm_name())
+	_info("music: loops %d, short pieces %d" % [loops.size(), shorts.size()])
+
+
+## フェーズに 入った ときの 曲（Sfx.on_phase の あと。場面は 場所の 曲、ボスの いる 場面は bgm_boss）
+func _check_phase_music(p: String, i: int) -> void:
+	var want := Sfx.phase_music(p)
+	if p == "scene" and not Game.episode.is_empty():
+		want = Sfx.stage_music(EpisodeDB.scene_stage(Game.episode, i))
+	if want != "" and Sfx.bgm_name() != want:
+		_fail("music: %s %s で 曲が %s（%s の はず）" % [Game.episode.get("id", "?"), p, Sfx.bgm_name(), want])
 
 
 # ---------------------------------------------------------------- 2. データ
@@ -1548,6 +1613,8 @@ func _run_place(id: String) -> void:
 	for w in lvl.data_warnings:
 		_fail("place %s: %s" % [id, w])
 	var st := StageDB.get_stage(id)
+	if Sfx.bgm_name() != Sfx.stage_music(st) or (id == "lungs" and Sfx.bgm_name() != "bgm_boss"):
+		_fail("place %s: 曲が %s（%s の はず）" % [id, Sfx.bgm_name(), Sfx.stage_music(st)])
 	if Game.hud == null or Game.hud.title_label().text != "%s（%s）" % [st["name"], st["kanji"]]:
 		_fail("place %s: 場所だけの ときの HUD の 題が ちがう" % id)
 	_finished = false

@@ -14,6 +14,8 @@
 - 原因の 種あかしや 学びは、ボタンで 進む 画面（`after`・カルテ）に 書く。HUD の 文（`intro`・`goal_say` など）は 時間で 消えるので「いま 何を するか」だけ。
 - モデルを変えたら GLB を作り直す：`<venv>/bin/python -m blender.characters <name>` / `-m blender.stages <stage_env>`（`blender -b -P blender/stages.py -- stage_mouth` でも可）。
 - 生成した GLB・WAV はコミットする。`godot/.godot/` と `blender/out/` はコミットしない。
+- 音楽は `tools/music/`（1 曲 1 ファイル `tracks/<名前>.py`、共通の モチーフ `motif.py`）。`<music-venv>/bin/python -m tools.music build <名前>` で `godot/assets/audio/<名前>.ogg`（と `.import`）を 作り、`check` が `MUSIC: OK` を 出す こと。OGG と `clear.wav` は コミットし、作業用の `tools/music/out/` と 音色（86 MB の sf3）は コミットしない。手順は `docs/audio.md`。
+- どこで どの 曲かは 場所の `"bgm"`（`stage_db.gd`）と `sfx.gd` の `PHASE_MUSIC`（フェーズ）。ボスの いる 場面は `bgm_boss`。ブラウザ版では 音楽を Stream 再生に している（Sample 再生は OGG を 丸ごと ほどいて 手ばなさない。`docs/audio.md`）。
 - 操作：ひろい 場所（ひろば・へや）は 乗りものの ように 動かす（ひだり・みぎで 向きを 変え、カメラは いつも 後ろ。うえで 進み、したで 下がる）。くだの 場所は 道に そって 進み、ひだり・みぎで 横に 動く。数値は `player.gd`・`follow_camera.gd` の 先頭。入力を 決めて 動きを 記録する 道具は `godot/tests/steer_trace.tscn`。
 - Godot 側のコードは「子どもが詰まらない」を最優先：ゲームオーバーなし、はさまったら戻す、ヒントは上書きしない（`Game.hud_busy()`）。よそうの はずれは しからない（ほしにも 入れない）。データが まちがって いても ゴールは 開く（`Level._fit_missions()`。テストは 失敗に なる）。
 - カルテの 流れの 画面（`src/ui/flow_screen.gd` を 継ぐ 4 つ）は、いつも 押せる ボタンに フォーカスが ある こと・時間で 勝手に 進まない こと・1280×720 に 入る こと。

@@ -3,12 +3,13 @@ extends Node
 ## カルテ（1 話）の 文と、場面ごとの 上書きは EpisodeDB（episode_db.gd）。設計は docs/episodes.md。
 ## 文章は ひらがな・カタカナ中心。臓器名は「い（胃）」のように ひらがな＋漢字。
 ## レベルの形（ゆか・かべ・スポーン位置）は blender/ で生成した GLB 側にある。
+## "bgm" は 場所の 曲（godot/assets/audio/<名前>.ogg。ボスの いる 場面は Sfx.stage_music() が bgm_boss に する）。
 ## tools/build_dashboard.py が この ファイルを 正規表現で 読む（STAGES の キーと 書きかたを 変えない）。
 
 const STAGES: Array[Dictionary] = [
 	{
 		"id": "mouth", "order": 1, "name": "くち", "kanji": "口", "title": "はじまりは おくちから",
-		"difficulty": 1, "env": "stage_mouth", "kind": "arena",
+		"difficulty": 1, "env": "stage_mouth", "kind": "arena", "bgm": "bgm_mouth",
 		"fog": Color(0.97, 0.75, 0.79), "ambient": Color("#FFE7DC"), "fog_density": 0.009,
 		"flow_speed": 0.0,
 		# 見た目（納品の 雰囲気画 mood_mouth.png と spec の 色見本。art/concepts/W3_stages/spec.md）。キーの 説明は src/level/stage_look.gd の 先頭
@@ -52,7 +53,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "esophagus", "order": 2, "name": "しょくどう", "kanji": "食道", "title": "つるつる すべりだい",
-		"difficulty": 1, "env": "stage_esophagus", "kind": "tube",
+		"difficulty": 1, "env": "stage_esophagus", "kind": "tube", "bgm": "bgm_tube",
 		"fog": Color(0.95, 0.6, 0.6), "ambient": Color(1.0, 0.85, 0.85), "fog_density": 0.016,
 		"flow_speed": 2.0,
 		"missions": [
@@ -74,7 +75,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "stomach", "order": 3, "name": "い", "kanji": "胃", "title": "ぐるぐる いのなか",
-		"difficulty": 1, "env": "stage_stomach", "kind": "arena",
+		"difficulty": 1, "env": "stage_stomach", "kind": "arena", "bgm": "bgm_tummy",
 		"fog": Color(0.98, 0.8, 0.5), "ambient": Color(1.0, 0.9, 0.7), "fog_density": 0.012,
 		"flow_speed": 0.0,
 		"missions": [
@@ -98,7 +99,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "intestine", "order": 4, "name": "しょうちょう", "kanji": "小腸", "title": "じゅうもうの もり",
-		"difficulty": 2, "env": "stage_intestine", "kind": "tube",
+		"difficulty": 2, "env": "stage_intestine", "kind": "tube", "bgm": "bgm_tummy",
 		"fog": Color(0.98, 0.75, 0.7), "ambient": Color(1.0, 0.9, 0.85), "fog_density": 0.018,
 		"flow_speed": 0.8,
 		"missions": [
@@ -123,7 +124,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "vessel", "order": 5, "name": "けっかん", "kanji": "血管", "title": "どきどき ハイウェイ",
-		"difficulty": 2, "env": "stage_vessel", "kind": "tube",
+		"difficulty": 2, "env": "stage_vessel", "kind": "tube", "bgm": "bgm_tube",
 		"fog": Color(0.75, 0.15, 0.2), "ambient": Color(1.0, 0.6, 0.6), "fog_density": 0.02,
 		"flow_speed": 4.0,
 		"missions": [
@@ -145,7 +146,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "heart", "order": 6, "name": "しんぞう みぎ", "kanji": "右の心臓", "title": "はいへ おくる ポンプ",
-		"difficulty": 2, "env": "stage_heart", "kind": "rooms",
+		"difficulty": 2, "env": "stage_heart", "kind": "rooms", "bgm": "bgm_pump",
 		"fog": Color(0.85, 0.25, 0.3), "ambient": Color(1.0, 0.7, 0.7), "fog_density": 0.015,
 		"flow_speed": 1.5,
 		"missions": [
@@ -165,7 +166,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "lungs", "order": 7, "name": "はい", "kanji": "肺", "title": "ふわふわ はいほうと ウイルスだいおう",
-		"difficulty": 3, "env": "stage_lungs", "kind": "arena",
+		"difficulty": 3, "env": "stage_lungs", "kind": "arena", "bgm": "bgm_air",
 		"fog": Color(0.85, 0.75, 0.9), "ambient": Color(0.95, 0.9, 1.0), "fog_density": 0.01,
 		"flow_speed": 0.0,
 		"missions": [
@@ -189,7 +190,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "heart2", "order": 8, "name": "しんぞう ひだり", "kanji": "左の心臓", "title": "からだじゅうへ おくる ポンプ",
-		"difficulty": 2, "env": "stage_heart2", "kind": "rooms",
+		"difficulty": 2, "env": "stage_heart2", "kind": "rooms", "bgm": "bgm_pump",
 		"fog": Color(0.82, 0.2, 0.28), "ambient": Color(1.0, 0.68, 0.68), "fog_density": 0.015,
 		"flow_speed": 1.8,
 		"missions": [
@@ -209,7 +210,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "brain", "order": 9, "name": "のう", "kanji": "脳", "title": "ピカピカ しんけいの もり",
-		"difficulty": 3, "env": "stage_brain", "kind": "arena",
+		"difficulty": 3, "env": "stage_brain", "kind": "arena", "bgm": "bgm_spark",
 		"fog": Color(0.75, 0.7, 0.95), "ambient": Color(0.9, 0.9, 1.0), "fog_density": 0.012,
 		"flow_speed": 0.0,
 		"missions": [
@@ -229,7 +230,7 @@ const STAGES: Array[Dictionary] = [
 	},
 	{
 		"id": "nose", "order": 10, "name": "はな", "kanji": "鼻", "title": "くしゃみで だっしゅつ！",
-		"difficulty": 3, "env": "stage_nose", "kind": "tube",
+		"difficulty": 3, "env": "stage_nose", "kind": "tube", "bgm": "bgm_air",
 		"fog": Color(0.98, 0.82, 0.75), "ambient": Color(1.0, 0.95, 0.9), "fog_density": 0.02,
 		"flow_speed": 7.0,
 		"missions": [

@@ -47,6 +47,11 @@ jobs:
         if: always()
         continue-on-error: true
         run: GODOT="$PWD/Godot_v4.7-stable_linux.x86_64" tools/export_web.sh _site/play
+      # ダッシュボードの「おとを きく」：ゲームの 音楽を _site/music に 写す（ffmpeg が あれば MP3 も。無くても OGG で 聞ける）
+      - name: Copy the music for the listening page
+        if: always()
+        continue-on-error: true
+        run: tools/music_site.sh _site/music
       # 作り手の 分担を 決める ための くらべもの（A・B の 2 つを 遊べる 形に する。一時的。決まったら 消す）。
       # 失敗しても ダッシュボードは 出す（その ときは くらべる リンクが 出ない）
       - name: Build the two comparison builds A and B (temporary)
@@ -59,7 +64,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 tools/build_dashboard.py --html _site/index.html --test-log /tmp/inside-body-seek-test.log --play-dir _site/play --compare-dir _site/compare
+          python3 tools/build_dashboard.py --html _site/index.html --test-log /tmp/inside-body-seek-test.log --play-dir _site/play --compare-dir _site/compare --music-dir _site/music
           cd _site
           touch .nojekyll
           git init -q -b gh-pages

@@ -69,6 +69,7 @@ func _ready() -> void:
 	font_bold = load("res://assets/fonts/MPLUSRounded1c-Bold.ttf")
 	theme = UiThemeBuilder.build(font_bold, font_regular)
 	get_window().theme = theme
+	phase_changed.connect(Sfx.on_phase)   # 画面の 曲と 入口・出口の ジングル（どの フェーズで 何かは sfx.gd）
 
 
 # ---------------------------------------------------------------- 入力
@@ -352,7 +353,7 @@ func _start_level(stage: Dictionary) -> void:
 		var g := SteerGuide.new()
 		g.setup(touch_controls.visible)
 		hud.add_child(g)
-	Sfx.play_bgm(stage.get("bgm", "bgm_boss" if stage["difficulty"] >= 3 else "bgm_stage"))
+	Sfx.play_bgm(Sfx.stage_music(stage))   # 場所の "bgm"。ボスの いる 場面は bgm_boss
 	stage_started.emit(current_stage_id)
 	level.cleared.connect(_on_level_cleared)
 	level.begin()

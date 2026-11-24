@@ -16,3 +16,4 @@ Thumbs.db
 .claude/settings.local.json
 # CI が 作る ページ（ダッシュボードと ブラウザで 遊べる 版）
 _site/
+tools/music/out/

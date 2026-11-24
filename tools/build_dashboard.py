@@ -121,6 +121,66 @@ def episodes(ep_gd: str, gd: str, test_log: str) -> list:
     return sorted(out, key=lambda e: e["話"])
 
 
+# ---------------------------------------------------------------- 音楽（「おとを きく」）
+## 画面で 鳴る 曲（場所の 曲は stage_db.gd の "bgm" から 足す）。どこで 鳴るかは godot/src/autoload/sfx.gd と 同じ
+MUSIC_SCREENS = [
+    ("bgm_title", "タイトル・カルテえらび・ずかん・エンディング"),
+    ("bgm_clinic", "そうだん・よそう・あとの はなし・からだに はいる／でる 画面"),
+    ("bgm_karte", "カルテと クイズ"),
+]
+MUSIC_AFTER = [
+    ("bgm_boss", "ボスの いる 場面（いまは はい（肺）の ウイルスだいおう）"),
+    ("jingle_enter", "からだに はいる 画面（1 回だけ。音楽を 下げて その 上に）"),
+    ("jingle_exit", "からだから でる 画面（1 回だけ）"),
+    ("jingle_karte", "カルテ かんせい「かいけつ！」（1 回だけ）"),
+    ("clear", "場面クリア（1 回だけ）"),
+]
+
+
+def music_list(gd: str, audio_md: str) -> list:
+    """「おとを きく」の 曲の 一覧：名前・どこで・テンポ・調・秒（docs/audio.md の 表から。無ければ 空）。"""
+    places = {}
+    for m in re.finditer(r'"name": "([^"]+)", "kanji": "([^"]+)".*?"bgm": "(\w+)"', gd, re.S):
+        places.setdefault(m.group(3), []).append("%s（%s）" % (m.group(1), m.group(2)))
+    rows = list(MUSIC_SCREENS) + [(k, "・".join(v)) for k, v in places.items()] + list(MUSIC_AFTER)
+    info = {r.get("name", ""): r for r in first_table(audio_md.split("music-table:start", 1)[-1])} if "music-table:start" in audio_md else {}
+    out = []
+    for name, where in rows:
+        i = info.get(name, {})
+        out.append({"name": name, "where": where, "loop": name.startswith("bgm_"),
+                    "tempo": i.get("tempo", ""), "key": i.get("key", ""), "seconds": i.get("seconds", "")})
+    return out
+
+
+def music_section(rows: list, music_dir: pathlib.Path, rel: str) -> str:
+    """1 曲 1 つの プレーヤー。OGG と（あれば）MP3。music_dir が 無い ときは 一覧と 説明だけ。"""
+    e = html.escape
+    items = []
+    for r in rows:
+        n = r["name"]
+        ext = "wav" if n == "clear" else "ogg"
+        have = music_dir is not None and (music_dir / ("%s.%s" % (n, ext))).is_file()
+        meta = " ・ ".join(x for x in [r["key"], ("♩=%s" % r["tempo"]) if r["tempo"] else "", ("%s 秒" % r["seconds"]) if r["seconds"] else "",
+                                         "ループ" if r["loop"] else "1 回"] if x)
+        if have:
+            srcs = '<source src="%s%s.%s" type="audio/%s">' % (e(rel), e(n), ext, "ogg" if ext == "ogg" else "wav")
+            if (music_dir / (n + ".mp3")).is_file():
+                srcs += '<source src="%s%s.mp3" type="audio/mpeg">' % (e(rel), e(n))
+            player = '<audio controls preload="none"%s data-name="%s">%s</audio>' % (" loop" if r["loop"] else "", e(n), srcs)
+            if r["loop"]:
+                player += '<button type="button" class="seam" data-name="%s">つなぎ目の 前から</button>' % e(n)
+        else:
+            player = '<span class="note">ファイルは CI が 出す（ここには まだ ない）</span>'
+        items.append('<li class="track"><div><b>%s</b><span>%s</span><small>%s</small></div><div class="player">%s</div></li>'
+                     % (e(n), e(r["where"]), e(meta), player))
+    return ('<section id="music"><h2>おとを きく</h2>'
+            '<p class="note">ゲームの 音楽を 1 曲ずつ 聞けます（楽譜から 作った もの。作りかたは docs/audio.md）。'
+            'ループの 曲は くり返します。「つなぎ目の 前から」は おわりの 4 秒 前から 鳴らして、さいしょに もどる 所を 聞く ボタン'
+            '（ブラウザの くり返しは つなぎ目に わずかな すきまが 出る ことが ある。ゲームの 中では サンプル単位で つながる）。'
+            'ゲームの 中では 音楽は 効果音より 小さく（−5 dB）、曲の かわりめは 0.6 秒で 入れかわります。</p>'
+            '<div class="card"><ul class="tracks">%s</ul></div></section>' % "".join(items))
+
+
 def inline(t: str) -> str:
     t = html.escape(t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
@@ -290,7 +350,7 @@ def progress(data: dict, tested: bool) -> str:
 
 
 def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup: str, play: str = "",
-           compare: str = "", compare_page: str = "") -> str:
+           compare: str = "", compare_page: str = "", music: str = "") -> str:
     e = html.escape
     st = data["stages"]
     eps = data["episodes"]
@@ -326,7 +386,7 @@ def render(data: dict, story: str, updated: str, rev: str, tested: bool, lineup:
                         % (e(compare), e(compare), page))
     return TEMPLATE.format(
         updated=e(updated), rev=rev_html, test_line=test_line,
-        now=now_html, play=play_html + compare_html, progress=progress(data, tested),
+        now=now_html, play=play_html + compare_html, progress=progress(data, tested), music=music,
         story=md_html(story), story_state=e(story_state), story_tone="now" if "待ち" in story_state else "ok",
         todo=table(todo, ["やること", "だれ", "状態"]),
         prompts=cards,
@@ -449,6 +509,18 @@ blockquote {{ margin: 0; max-width: 48rem; }}
 blockquote.game {{ font-family: var(--round); font-weight: 500; font-size: 1.02rem; line-height: 1.9; padding: .8rem 1.1rem; background: var(--bg); border: 2px solid var(--floor); border-radius: 16px; }}
 blockquote.status {{ color: var(--muted); font-size: .85rem; }}
 footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); padding-top: 1rem; }}
+ul.tracks {{ list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; }}
+li.track {{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); gap: .3rem 1rem; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--line); }}
+li.track:last-child {{ border-bottom: 0; }}
+li.track > div:first-child {{ display: grid; gap: .05rem; min-width: 0; }}
+li.track b {{ font-family: var(--round); font-weight: 800; }}
+li.track small {{ color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; }}
+li.track .player {{ display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; min-width: 0; }}
+li.track audio {{ width: 100%; max-width: 22rem; height: 2.2rem; }}
+button.seam {{ font: inherit; font-size: .78rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; }}
+button.seam:hover {{ border-color: var(--wall); }}
+button.seam:focus-visible {{ outline: 2px solid var(--fg); outline-offset: 2px; }}
+@media (max-width: 40rem) {{ li.track {{ grid-template-columns: 1fr; }} }}
 @media (max-width: 40rem) {{ .wide {{ display: none; }} }}
 </style>
 </head>
@@ -459,7 +531,7 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
   {play}
   {now}
   <p class="meta">{test_line} ／ 更新 {updated}{rev}</p>
-  <nav><a href="#progress">進みぐあい</a><a href="#todo">いま やること</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
+  <nav><a href="#progress">進みぐあい</a><a href="#todo">いま やること</a><a href="#music">おとを きく</a><a href="#story">ストーリー案</a><a href="#prompts">依頼文</a><a href="#overview">段階と画風</a><a href="#art">絵の発注</a><a href="#episodes">カルテ</a><a href="#stages">場所</a><a href="#models">3D モデル</a></nav>
 </header>
 
 {progress}
@@ -468,6 +540,8 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
   <h2>いま やること</h2>
   <div class="card">{todo}</div>
 </section>
+
+{music}
 
 <section id="story">
   <h2>ストーリー案 <span class="chip {story_tone}">{story_state}</span></h2>
@@ -517,6 +591,20 @@ footer {{ color: var(--muted); font-size: .8rem; border-top: 1px solid var(--lin
 <footer>main に push されるたびに GitHub Actions がテストを回して、このページを作りなおします。元の文書：<a href="{repo}/blob/main/docs/dashboard.md">docs/dashboard.md</a></footer>
 </div>
 <script>
+// 「おとを きく」：1 つ 鳴らしたら ほかは 止める。「つなぎ目の 前から」は おわりの 4 秒 前から
+document.querySelectorAll("li.track audio").forEach(function (a) {{
+  a.addEventListener("play", function () {{
+    document.querySelectorAll("li.track audio").forEach(function (b) {{ if (b !== a) b.pause(); }});
+  }});
+}});
+document.querySelectorAll("button.seam").forEach(function (btn) {{
+  btn.addEventListener("click", function () {{
+    var a = btn.parentNode.querySelector("audio");
+    var go = function () {{ a.currentTime = Math.max(0, a.duration - 4); a.play(); }};
+    if (isFinite(a.duration) && a.duration > 0) go();
+    else {{ a.preload = "auto"; a.addEventListener("loadedmetadata", go, {{ once: true }}); a.load(); }}
+  }});
+}});
 document.querySelectorAll("button.copy").forEach(function (btn) {{
   btn.addEventListener("click", function () {{
     var pre = document.getElementById("p" + btn.dataset.i);
@@ -544,6 +632,7 @@ def main() -> None:
     ap.add_argument("--html", required=True, help="書き出す HTML のパス")
     ap.add_argument("--test-log", default="", help="tools/run_tests.sh の LOG（無ければ自動テストの列は —）")
     ap.add_argument("--compare-dir", default="", help="tools/compare/build.sh の 出力フォルダ（a/ と b/ が あれば「A と B を くらべる」を 出す。一時的）")
+    ap.add_argument("--music-dir", default="", help="tools/music_site.sh の 出力フォルダ（あれば「おとを きく」に プレーヤーを 出す）")
     ap.add_argument("--play-dir", default="", help="tools/export_web.sh の 出力フォルダ（index.html が あれば「あそんで たしかめる」の ボタンを 出す）")
     a = ap.parse_args()
     md = (ROOT / "docs/dashboard.md").read_text(encoding="utf-8")
@@ -581,7 +670,11 @@ def main() -> None:
         compare = os.path.relpath(cdir.resolve(), out.parent.resolve()).replace(os.sep, "/") + "/"
         url_file = ROOT / "tools/compare/page_url.txt"   # ならべて 見る ページの URL（あれば リンクを 出す）
         compare_page = url_file.read_text(encoding="utf-8").strip() if url_file.is_file() else ""
-    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup, play, compare, compare_page), encoding="utf-8")
+    mdir = pathlib.Path(a.music_dir) if a.music_dir and pathlib.Path(a.music_dir).is_dir() else None
+    mrel = (os.path.relpath(mdir.resolve(), out.parent.resolve()).replace(os.sep, "/") + "/") if mdir else ""
+    audio_md = (ROOT / "docs/audio.md").read_text(encoding="utf-8") if (ROOT / "docs/audio.md").is_file() else ""
+    music = music_section(music_list(gd, audio_md), mdir, mrel)
+    out.write_text(render(data, story, updated, git_rev(), bool(log), lineup, play, compare, compare_page, music), encoding="utf-8")
     print("wrote %s（%s）" % (out, ", ".join("%s %d" % (k, len(v)) for k, v in data.items())))
 
 
