@@ -2,7 +2,7 @@
 
 子ども向け（6〜10 歳）の体のしくみを学ぶ 3D ゲーム。Godot 4.7（GDScript）＋ Blender（bpy スクリプトで GLB 生成）。
 企画は `docs/design.md`、物語は `docs/story.md`、カルテ（1 話）形式の つくりは `docs/episodes.md`、使い方・構成は `README.md`。
-遊びは「カルテ」1 本ずつ：そうだん → よそう → 場面 1〜3 こ（いまの ステージ ＝「場所」を 使う）→ カルテ（3 行・クイズ・ほし）。
+遊びは「カルテ」1 本ずつ：そうだん → よそう → 体に 入る → 場面（いまの ステージ ＝「場所」を 使う）→ 体から 出る → カルテ（3 行・クイズ・ほし）。入口と 出口は 話ごとの データ（`enter`／`exit`。画面は `src/ui/journey.gd`）。
 
 ## 変更するときの約束
 
@@ -13,6 +13,7 @@
 - 原因の 種あかしや 学びは、ボタンで 進む 画面（`after`・カルテ）に 書く。HUD の 文（`intro`・`goal_say` など）は 時間で 消えるので「いま 何を するか」だけ。
 - モデルを変えたら GLB を作り直す：`<venv>/bin/python -m blender.characters <name>` / `-m blender.stages <stage_env>`（`blender -b -P blender/stages.py -- stage_mouth` でも可）。
 - 生成した GLB・WAV はコミットする。`godot/.godot/` と `blender/out/` はコミットしない。
+- 操作：ひろい 場所（ひろば・へや）は 乗りものの ように 動かす（ひだり・みぎで 向きを 変え、カメラは いつも 後ろ。うえで 進み、したで 下がる）。くだの 場所は 道に そって 進み、ひだり・みぎで 横に 動く。数値は `player.gd`・`follow_camera.gd` の 先頭。入力を 決めて 動きを 記録する 道具は `godot/tests/steer_trace.tscn`。
 - Godot 側のコードは「子どもが詰まらない」を最優先：ゲームオーバーなし、はさまったら戻す、ヒントは上書きしない（`Game.hud_busy()`）。よそうの はずれは しからない（ほしにも 入れない）。データが まちがって いても ゴールは 開く（`Level._fit_missions()`。テストは 失敗に なる）。
 - カルテの 流れの 画面（`src/ui/flow_screen.gd` を 継ぐ 4 つ）は、いつも 押せる ボタンに フォーカスが ある こと・時間で 勝手に 進まない こと・1280×720 に 入る こと。
 
@@ -70,6 +71,6 @@ tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # �
 - ヘッドレスの 窓は 64×64。画面の はみ出しを 見る テストは 1280×720 に 固定して から（`smoke.gd` の 先頭）。
 - セーブの JSON は 数や 文字が まざる。`== true` で くらべず 型を 見る（`SaveData._yes()`）。
 - ブラウザ版（Web）には、パソコンの フォントの 代わりが 無い。入れて ある フォントに 無い 字は 四角に 化ける。記号は 字で なく 形で 描く（一時停止ボタンは 棒 2 本）。字を 足したら ブラウザ版でも 見る。
-- 場所の 見た目は `StageDB` の `"look"`（光・きり・面の 色と 画像・あわ・ゆれ。キーの 説明は `src/level/stage_look.gd` の 先頭）。`"look"` が 無い 場所は 前の まま。面の 画像は `godot/assets/textures/stages/tex_<場所>_<floor|wall>.png` を 置くだけ（GLB は 作りなおさない。`.import` は 手で mipmaps を 入れる）。見た目を 作る ときの 撮影は `godot/tests/stage_view.tscn`（HUD なし・すきな 位置）。
+- 場所の 見た目は `StageDB` の `"look"`（光・きり・面の 色と 画像・あわ・ゆれ。キーの 説明は `src/level/stage_look.gd` の 先頭）。`"look"` が 無い 場所は 前の まま。面の 画像は `godot/assets/textures/stages/tex_<場所>_<floor|wall>.png` を 置くだけ（GLB は 作りなおさない。`.import` は 手で mipmaps を 入れる。口は Codex の 絵で、512 px で 読みこむ。`tools/gen_stage_textures.py` は ある 画像を 上書きしない）。場面の 看板は 板の 絵（`assets/ui/sign_board.png`）に 字を のせる（`level.gd` の `_sign_board()`。幅は 7 m まで）。見た目を 作る ときの 撮影は `godot/tests/stage_view.tscn`（HUD なし・すきな 位置）。
 - この 描画方式（Compatibility）は 色の 計算を 画面の 色の まま する（sRGB と リニアを 変換しない）。頂点の 色で かける 倍率は、見た 目の 色の 比で 書く。自動の LOD は 丸い 形を つぶす ことが ある（pod・stage_mouth は `.import` で 切った）。
 - 同じ サイトに 置いた Godot の ブラウザ版は、どれも 同じ 入れ物（IndexedDB の `/userfs`）に セーブを 書く。版を ならべる ときは 名前を 分ける（`tools/compare/build.sh`）。

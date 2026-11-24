@@ -12,14 +12,14 @@ var target: Node3D = null
 var level: Node = null
 var yaw := 0.0
 var pitch := -0.33
-var distance := 7.5
-var height := 1.4   # ミクロごうが 画面の まん中より 少し 下（ふきだしの 上）に 来る 高さ
+var distance := 5.2   # 絵（雰囲気画）の 近さに 寄せた。ミクロごうは 画面の 幅の 1 割ほど
+var height := 0.8   # ミクロごうが 画面の まん中より 少し 下（ふきだしの 上）に 来る 高さ
 var tube_mode := false
 ## 俯瞰モード（しんけいパズルで ぜんぶの しんけいを 見せるとき）
 var overview_center: Vector3 = Vector3.INF
-var _cur_distance := 7.5
+var _cur_distance := 5.2
 var _cur_pitch := -0.33
-var _cur_height := 1.4
+var _cur_height := 0.8
 var _arm: SpringArm3D
 var _cam: Camera3D
 var _ray: PhysicsRayQueryParameters3D

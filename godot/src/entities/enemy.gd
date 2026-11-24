@@ -6,7 +6,8 @@ extends HoverBody
 signal died(enemy: Enemy)
 
 const CONFIG := {
-	"mushiba": {"hp": 1, "speed": 3.0, "radius": 0.7, "behavior": "wander", "touch_r": 0.9},
+	# roam：うろつく 広さ（m。すみかからの きょり）。むしばきんは は（歯）の すきまから あまり はなれない
+	"mushiba": {"hp": 1, "speed": 3.0, "radius": 0.7, "behavior": "wander", "touch_r": 0.9, "roam": [0.8, 2.6]},
 	"pylori": {"hp": 1, "speed": 3.4, "radius": 0.7, "behavior": "orbit", "touch_r": 0.9},
 	"akudama": {"hp": 2, "speed": 2.8, "radius": 0.8, "behavior": "chase", "touch_r": 1.0},
 	"virus": {"hp": 1, "speed": 4.2, "radius": 0.6, "behavior": "jitter", "touch_r": 0.8},
@@ -79,7 +80,8 @@ func _ready() -> void:
 
 func _pick_wander() -> void:
 	var a := randf() * TAU
-	var r := randf_range(2.0, 6.0)
+	var roam: Array = CONFIG.get(kind, {}).get("roam", [2.0, 6.0])
+	var r := randf_range(float(roam[0]), float(roam[1]))
 	_wander_target = home + Vector3(cos(a) * r, 0, sin(a) * r)
 	_wander_t = randf_range(1.5, 3.5)
 
