@@ -106,6 +106,10 @@ func _ready() -> void:
 		if not Game.episode.is_empty():
 			_info("  scene %d (%s) done" % [Game.scene_index, sid])
 			_check_says())
+	if args_ok and _only_place == "" and _only_ep == "":
+		await _check_music_changes()
+		SaveData.reset()
+		SaveData.set_setting("volume", 0.0)
 	# データに まちがいが あっても 先へ 進む（まちがった データでも 子どもが 詰まらない ことを 見る）
 	if args_ok:
 		if _only_place == "":
@@ -246,13 +250,101 @@ func _check_music() -> void:
 	_info("music: loops %d, short pieces %d" % [loops.size(), shorts.size()])
 
 
-## フェーズに 入った ときの 曲（Sfx.on_phase の あと。場面は 場所の 曲、ボスの いる 場面は bgm_boss）
+## フェーズの 曲（sfx.gd の PHASE_MUSIC を 写さず、ここに 書く。表が まちがっても 気づく ように）
+const PHASE_WANT := {
+	"consult": "bgm_clinic", "guess": "bgm_clinic", "enter": "bgm_clinic",
+	"exit": "bgm_clinic", "after": "bgm_clinic", "karte": "bgm_karte",
+}
+
+
+## フェーズに 入った ときの 曲（Sfx.on_phase の あと）。名前だけで なく、その ファイルが 本当に 鳴って いるかも 見る。
+## 場面は 場所の 曲（ボスの いる 場面は bgm_boss）。みちの ちず（hop）は 鳴って いる 曲の まま（タイトルの 曲では ない）
 func _check_phase_music(p: String, i: int) -> void:
-	var want := Sfx.phase_music(p)
+	var where := "%s %s%d" % [Game.episode.get("id", "?"), p, i]
+	var want: String = PHASE_WANT.get(p, "")
 	if p == "scene" and not Game.episode.is_empty():
-		want = Sfx.stage_music(EpisodeDB.scene_stage(Game.episode, i))
+		var st := EpisodeDB.scene_stage(Game.episode, i)
+		want = "bgm_boss" if _has_boss(st) else String(st.get("bgm", ""))
+		if want == "":
+			_fail("music: %s の 場所 %s に \"bgm\" が ない" % [where, st.get("id", "?")])
+			return
+	if p == "hop" and Sfx.bgm_name() in ["", "bgm_title"]:
+		_fail("music: %s（みちの ちず）で 曲が「%s」" % [where, Sfx.bgm_name()])
+	if want == "" and p != "hop":
+		return
 	if want != "" and Sfx.bgm_name() != want:
-		_fail("music: %s %s で 曲が %s（%s の はず）" % [Game.episode.get("id", "?"), p, Sfx.bgm_name(), want])
+		_fail("music: %s で 曲が %s（%s の はず）" % [where, Sfx.bgm_name(), want])
+	_check_playing(want if want != "" else Sfx.bgm_name(), where)
+
+
+## いまの 音楽の プレーヤーが name の ファイルを 鳴らして いる こと
+func _check_playing(name: String, where: String) -> void:
+	var m: AudioStreamPlayer = Sfx._music[Sfx._cur]
+	var path := Sfx.path_of(name)
+	if path == "" or not m.playing or m.stream == null or m.stream.resource_path != path or Sfx._target[Sfx._cur] < 1.0:
+		_fail("music: %s で %s が 鳴って いない（%s %s）" % [where, name, m.stream.resource_path if m.stream != null else "なし", "playing" if m.playing else "stopped"])
+
+
+static func _has_boss(stage: Dictionary) -> bool:
+	for m in stage.get("missions", []):
+		if m is Dictionary and m.get("type", "") == "boss":
+			return true
+	return false
+
+
+## 曲の 切りかえ：消えて いく 曲を また 呼ぶ・カルテから つぎの カルテへ・つづきから みちの ちずへ
+func _check_music_changes() -> void:
+	var frames := func(n: int):
+		for k in n:
+			await get_tree().process_frame
+	# A → B → A（クロスフェードの とちゅう）：A は 止めて はじめから では なく、消えかけの 位置から もどる
+	Sfx.play_bgm("bgm_title")
+	await frames.call(40)
+	Sfx.play_bgm("bgm_clinic")
+	await frames.call(5)
+	var a: AudioStreamPlayer = Sfx._music[1 - Sfx._cur]
+	var ga: float = Sfx._gain[1 - Sfx._cur]
+	Sfx.play_bgm("bgm_title")
+	if Sfx._music[Sfx._cur] != a or not a.playing or Sfx._gain[Sfx._cur] != ga or ga <= 0.0:
+		_fail("music: A→B→A で 消えかけの A が はじめから に なった（gain %.2f → %.2f）" % [ga, Sfx._gain[Sfx._cur]])
+	await frames.call(40)
+	_check_playing("bgm_title", "A→B→A")
+	# 止めて すぐ 同じ 曲：消えかけの 曲が もどる
+	Sfx.stop_bgm()
+	await frames.call(5)
+	var b: AudioStreamPlayer = Sfx._music[Sfx._cur]
+	Sfx.play_bgm("bgm_title")
+	if Sfx._music[Sfx._cur] != b or Sfx._gain[Sfx._cur] <= 0.0:
+		_fail("music: stop_bgm の あと 同じ 曲で はじめから に なった")
+	await frames.call(40)
+	# カルテ →「つぎの カルテへ」：カルテの 曲は 止まらず 消えて いく（同じ フレームに 2 回 変えない）
+	var ids := EpisodeDB.ids()
+	if ids.size() >= 2:
+		Game.start_episode(ids[0], "karte")
+		await frames.call(40)
+		_check_playing("bgm_karte", "karte")
+		Game.start_episode(ids[1])
+		var out: AudioStreamPlayer = Sfx._music[1 - Sfx._cur]
+		if out.stream == null or out.stream.resource_path != Sfx.path_of("bgm_karte") or not out.playing or Sfx._gain[1 - Sfx._cur] < 0.99:
+			_fail("music: つぎの カルテへ で カルテの 曲が 止まった（%s）" % (out.stream.resource_path if out.stream != null else "なし"))
+		_check_playing("bgm_clinic", "%s consult" % ids[1])
+		await frames.call(40)
+	# つづきから：あとの はなしが 無い 場面の あとは すぐ みちの ちず。タイトルの 曲に しない
+	var n := 0
+	for ep in EpisodeDB.EPISODES:
+		for i in ep["scenes"].size() - 1:
+			if EpisodeDB.after_lines(ep, i, "").is_empty():
+				Sfx.play_bgm("bgm_title")    # タイトルや カルテえらびから 入る
+				await frames.call(40)
+				Game.start_episode(ep["id"], "after", i)
+				await frames.call(3)
+				n += 1
+				if Game.phase != "hop":
+					_fail("music: つづきから %s after%d が みちの ちずに ならない（%s）" % [ep["id"], i, Game.phase])
+				# 曲の 名前・鳴って いるかは _check_phase_music（hop）が 見る
+	_info("music: changes ok, resume to hop %d" % n)
+	Game.show_episode_select()
+	await frames.call(2)
 
 
 # ---------------------------------------------------------------- 2. データ

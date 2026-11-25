@@ -51,8 +51,9 @@ CHORDS (one bar each; two in a bar share it)
       natural); ii-V in bar 32 back to A.
 
 THE MOTIF (tools/music/motif.py; in A: A E D C# | B C# E)
-  bars 1-2    as written (ocarina, A4)          bars 3-4    a third higher (sequence)
-  bars 17-20  again in A' (ocarina, piccolo an octave above)
+  bars 1-2    as written (ocarina, A4)          bars 3-4    the tube's own answer: long
+                                                gliding notes C#5 E5 A5 | F#5 D5 B4 C#5 E5
+  bars 17-20  again in A' (ocarina, piccolo an octave above); bar 20 ends E5 G#5 into A5
   bar 14      its tail rhythm (short-short-long) in the strings, on G# F G#
   bars 25-28  augmentation (stretch 2) in the strings at A5, cello at A4
 
@@ -68,6 +69,12 @@ INSTRUMENTS (name: GM instrument, pan, role)
 """
 from tools.music import motif
 from tools.music.score import Song
+
+
+def grid_bars(kit, first: int, patterns: list):
+    """One drum pattern (a dict of lanes) per bar, from bar `first` on."""
+    for i, pat in enumerate(patterns):
+        kit.grid((first + i, first + i), pat)
 
 
 def song() -> Song:
@@ -106,7 +113,8 @@ def song() -> Song:
 
     # --- melody: A (ocarina) -------------------------------------------------------
     oca.place(1, 1, motif.notes(s, 4))                         # A4 E5 D5 C#5 | B4 C#5 E5
-    oca.place(3, 1, motif.notes(s, 4, shift=2))                # C#5 G#5 F#5 E5 | D5 E5 G#5
+    # bars 3-4: the tube's own continuation (long gliding notes), not the title's sequence
+    oca.line(3, 1, "C#5:1.5 E5:.5 A5:2 | F#5:1 D5:1 B4:.5 C#5:.5 E5:1")
     oca.line(5, 1, "A5:1 F#5:.5 A5:.5 C#6:1.5 B5:.5 | G#5:1 E5:.5 G#5:.5 A#5:1.5* G#5:.5 |"
                    " F#5:1 D5:.5 F#5:.5 E5:1.5 D5:.5 | C#5:2 r:1 E5:.5 G5:.5*")
     # --- melody: B (strings, long legato notes, higher) --------------------------------
@@ -115,11 +123,11 @@ def song() -> Song:
                      " E5:2 D5:1 r:1")
     # --- melody: A' (ocarina again, D6 at the top) -----------------------------------
     oca.place(17, 1, motif.notes(s, 4))
-    oca.place(19, 1, motif.notes(s, 4, shift=2))
+    oca.line(19, 1, "C#5:1.5 E5:.5 A5:2 | F#5:1 D5:1 B4:.5 C#5:.5 E5:.5 G#5:.5")   # G#5 leads up into A5
     oca.line(21, 1, "A5:1 F#5:.5 A5:.5 D6:1 C#6:1 | B5:1 G#5:.5 E5:.5 F#5:1 A#5:1* |"
                     " B5:1.5 F#5:.5 E5:1 D5:1 | C#5:2 B4:1 r:1")
     pic.place(17, 1, motif.notes(s, 5))
-    pic.place(19, 1, motif.notes(s, 5, shift=2))
+    pic.line(19, 1, "C#6:1.5 E6:.5 A6:2 | F#6:1 D6:1 B5:.5 C#6:.5 E6:.5 G#6:.5")
     # --- melody: C (augmented motif in the strings, then the ocarina answers) ---------
     sings.place(25, 1, motif.notes(s, 5, stretch=2))           # A5 E6 D6 C#6 | B5 C#6 E6, slow
     cello.place(25, 1, motif.notes(s, 4, stretch=2))           # the same an octave lower
@@ -175,24 +183,34 @@ def song() -> Song:
 
     # --- drums -------------------------------------------------------------------------------
     flow = {"kick": "x.....x.", "stick": "....x...", "shaker": "xoxoxoxo"}
-    kit.grid((1, 7), flow)
+    grid_bars(kit, 1, [flow, flow, flow,
+                       dict(flow, kick="x.....xx"),                        # a pickup into bar 5
+                       flow,
+                       dict(flow, stick=".....x.."),                       # the side stick slides late
+                       flow])
     kit.grid((8, 8), {"kick": "x.....x.", "stick": "....x...", "shaker": "xoxo...."})
     kit.fill(8, 3, "stick:.5- stick:.5 high_tom:.5 mid_tom:.5")
     kit.grid((9, 12), {"shaker": "o.x.o.xo"})
     kit.grid((13, 15), {"shaker": "oxoxoxox", "kick": "x.......", "stick": "....x..."})
     kit.grid((16, 16), {"shaker": "oxox....", "kick": "x......."})
-    kit.fill(16, 3, "high_tom:.5- mid_tom:.5 low_tom:.5 floor_tom:.5")
+    kit.fill(16, 3, "shaker:.5- stick:.5 low_tom:.5 floor_tom:.5")
     kit.hit(17, 1, "crash", 80)
-    kit.grid((17, 23), {"kick": "x..x..x.", "snare": "....x...", "shaker": "xoxoxoxo",
-                        "hat": "x.x.x.x."})
+    a2 = {"kick": "x..x..x.", "snare": "....x...", "shaker": "xoxoxoxo", "hat": "x.x.x.x."}
+    grid_bars(kit, 17, [a2, a2, a2,
+                        dict(a2, kick="x..x..xx"),                         # a pickup into bar 21
+                        a2,
+                        dict(a2, snare="......x."),                        # the backbeat moves to 4
+                        a2])
     kit.hit(20, 4.5, "open_hat", 58)
     kit.hit(22, 4.5, "open_hat", 58)
     kit.grid((24, 24), {"kick": "x.......", "shaker": "xoxo...."})
-    kit.fill(24, 3, "snare:.5- mid_tom:.5 low_tom:.5 floor_tom:.5")
+    kit.fill(24, 3, "stick:.5- stick:.5 low_tom:.25 low_tom:.25 floor_tom:.5")
     kit.grid((25, 28), {"shaker": "o.x.o.xo", "kick": "x......."})
     kit.grid((29, 31), {"kick": "x..x..x.", "snare": "....x...", "shaker": "xoxoxoxo",
                         "tambourine": "..x...x."})
     kit.grid((32, 32), {"kick": "x.......", "shaker": "xo......"})
-    kit.fill(32, 2, "snare:.5- snare:.5 high_tom:.5 mid_tom:.5 low_tom:.25 low_tom:.25 floor_tom:.5")
+    # the slide: shaker sixteenths pour into one floor tom on the last eighth
+    kit.fill(32, 2, "shaker:.25- shaker:.25 shaker:.25 shaker:.25 shaker:.25- shaker:.25"
+                    " shaker:.25 shaker:.25 shaker:.25 shaker:.25 floor_tom:.5>")
     kit.hit(1, 1, "crash", 72)
     return s

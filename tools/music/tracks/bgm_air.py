@@ -173,7 +173,10 @@ def song() -> Song:
     kit.grid((16, 16), {"kick": "x....."})
     kit.fill(16, 4, "snare:1- low_tom:1 floor_tom:1")
     kit.hit(17, 1, "bell_tree", 70)
-    kit.grid((17, 23), {"kick": "x..o..", "snare": "...x..", "shaker": "xoxxox"})
+    a2 = {"kick": "x..o..", "snare": "...x..", "shaker": "xoxxox"}
+    for b, pat in zip(range(17, 24), [a2, a2, a2, dict(a2, kick="x..o.o"),    # 20: pickup kick
+                                      a2, dict(a2, snare="....o."), a2]):    # 22: backbeat later, softer
+        kit.grid((b, b), pat)
     kit.grid((24, 24), {"kick": "x.....", "shaker": "xox..."})
     kit.fill(24, 4, "snare:1- snare:1 snare:1")
     kit.grid((25, 28), {"triangle": "x.....", "shaker": "...o.."})

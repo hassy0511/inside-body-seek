@@ -20,7 +20,7 @@ echo "---"
 sed -n '/SMOKE SUMMARY/,$p' "$LOG"
 # ダッシュボードを 試しに 作る（episode_db.gd / stage_db.gd の 書きかたが パーサと 合わなく なったら ここで 落ちる）
 echo "== dashboard =="
-if python3 "$ROOT/tools/build_dashboard.py" --html "$LOG.dash.html" --test-log "$LOG" >"$LOG.dash" 2>&1; then
+if python3 "$ROOT/tools/build_dashboard.py" --html "$LOG.dash.html" --test-log "$LOG" --music-dir "$ROOT/godot/assets/audio" >"$LOG.dash" 2>&1; then
   echo "DASHBOARD: OK"
 else
   echo "DASHBOARD: FAILED"; tail -5 "$LOG.dash"; code=1

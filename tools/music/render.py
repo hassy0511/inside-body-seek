@@ -490,13 +490,18 @@ def encode_ogg(wav: Path, ogg: Path, quality: float = OGG_QUALITY, tag: str = ""
     continuation; the packets that only carry those extra samples are removed
     afterwards and the stream ends at exactly the loop length (oggtrim.py).
     Returns how it was encoded ("loop+extra" or "plain")."""
-    tmp = ogg.with_name(ogg.stem + f".{tag or ogg.stem}.tmp.ogg")
+    # temporary files go to tools/music/out/<name>/tmp/ (not next to the OGG: a
+    # leftover there would be committed, counted and published); same filesystem,
+    # so the final replace() is still atomic
+    tmpd = out_dir(tag or ogg.stem) / "tmp"
+    tmpd.mkdir(exist_ok=True)
+    tmp = tmpd / f"{ogg.stem}.tmp.ogg"
     src = wav
     how = "plain"
     ext = None
     if loop:
         x, sr = sf.read(str(wav), dtype="int16", always_2d=True)
-        ext = wav.with_name(wav.stem + f".{tag or wav.stem}.ext.tmp.wav")
+        ext = tmpd / f"{wav.stem}.ext.tmp.wav"
         sf.write(str(ext), np.concatenate([x, x[:OGG_LOOP_EXTRA]]), sr, subtype="PCM_16")
         src = ext
     cmd = ["ffmpeg", "-nostdin", "-y", "-loglevel", "error", "-i", str(src),
@@ -649,7 +654,7 @@ def build(name: str, *, quiet: bool = False, keep_tmp: bool = False) -> dict:
 
     final = final_path(song)
     if song.output == "wav_mono":
-        tmpw = final.with_name(final.stem + f".{name}.tmp.wav")
+        tmpw = tmpd / f"{final.stem}.tmp.wav"
         sf.write(str(tmpw), to_int16(mastered), SR, subtype="PCM_16")
         tmpw.replace(final)
     else:

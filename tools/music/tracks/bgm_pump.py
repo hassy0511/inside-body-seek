@@ -33,7 +33,7 @@ FORM (8-bar phrases)               thin/full and what changes
                                     plays the motif BACKWARDS (it now ends on the
                                     home note: the answer to the motif's
                                     question), ostinato, kit and trumpet build to
-                                    the fill, and the horn's D4 in bar 32 steps up
+                                    the fill (a racing heartbeat on two timpani), and the horn's D4 in bar 32 steps up
                                     into the E-flat of bar 1
 
 CHORDS (one bar each; two in a bar share it)
@@ -51,8 +51,9 @@ CHORDS (one bar each; two in a bar share it)
       then V7 back to Eb.
 
 THE MOTIF (tools/music/motif.py; in Eb: Eb Bb Ab G | F G Bb)
-  bars 1-2    as written (horn, Eb4)            bars 3-4    a step higher (sequence)
-  bars 17-20  again in A' (horn)
+  bars 1-2    as written (horn, Eb4)            bars 3-4    not the motif: the horn's own
+                                                short-long "lub-DUB" answer (Fm7 | Cm7)
+  bars 17-18  again in A' (horn), 19-20 the same answer
   bars 10, 13 its tail rhythm (short-short-long) in the strings
   bars 29-30  backwards (retrograde) in the horn: Bb G F G | Ab Bb Eb
 
@@ -70,6 +71,12 @@ INSTRUMENTS (name: GM instrument, pan, role)
 """
 from tools.music import motif
 from tools.music.score import Song
+
+
+def grid_bars(kit, first: int, patterns: list):
+    """One drum pattern (a dict of lanes) per bar, from bar `first` on."""
+    for i, pat in enumerate(patterns):
+        kit.grid((first + i, first + i), pat)
 
 
 def song() -> Song:
@@ -108,7 +115,7 @@ def song() -> Song:
 
     # --- melody: A (horn) ----------------------------------------------------------
     horn.place(1, 1, motif.notes(s, 4))                        # Eb4 Bb4 Ab4 G4 | F4 G4 Bb4
-    horn.place(3, 1, motif.notes(s, 4, shift=1))               # F4 C5 Bb4 Ab4 | G4 Ab4 C5
+    horn.line(3, 1, "F4:.5 Ab4:1.5 C5:1 Ab4:1 | G4:.5 Bb4:1.5 C5:2")   # lub-DUB answer (Fm7 | Cm7)
     horn.line(5, 1, "Ab4:.5 C5:.5 Eb5:2 Bb4:.5 C5:.5 | C5:1.5 Ab4:.5 Bb4:1 D5:1 |"
                     " D5:1 Bb4:.5 G4:.5 E4:1* G4:1 | F4:2 r:2")
     # --- melody: B (strings, legato, C minor colour) ----------------------------------
@@ -118,7 +125,7 @@ def song() -> Song:
     horn.line(16, 4, "Bb3:.5 D4:.5")                            # pickup into A'
     # --- melody: A' (horn, F5 at the top) ---------------------------------------------
     horn.place(17, 1, motif.notes(s, 4))
-    horn.place(19, 1, motif.notes(s, 4, shift=1))
+    horn.line(19, 1, "F4:.5 Ab4:1.5 C5:1 Ab4:1 | G4:.5 Bb4:1.5 C5:2")
     horn.line(21, 1, "Ab4:.5 C5:.5 Eb5:1 F5:1.5 Eb5:.5 | Eb5:1 Bb4:.5 C5:.5 D5:1 Bb4:1 |"
                      " D5:1.5 C5:.5 Bb4:1 G4:1 | F4:2 D4:1 r:1")
     # --- melody: C (strings high, then the horn plays the motif backwards) -------------
@@ -182,7 +189,12 @@ def song() -> Song:
         timp.note(16, 3 + i * 0.25, "Bb2", 0.25, vel=v)
     heart((17, 24))
     heart((25, 28), beats=(1,))
-    heart((29, 32))
+    heart((29, 31))
+    heart((32, 32), beats=(1,))
+    # the last-bar fill is the heart's own: a racing heartbeat, Eb2 and Bb2 by turns, that swells
+    # from beat 3 into the crash of bar 1 (no toms; the kit only marks beat 2)
+    for i, (pt, v) in enumerate(zip(("Eb2", "Bb2") * 4, (52, 58, 64, 70, 78, 86, 94, 102))):
+        timp.note(32, 3 + i * 0.25, pt, 0.25, vel=v)              # a racing heartbeat on two drums
 
     bass.bass((1, 8), "R:.5> R:1- 5:.5 R:.5> R:1- 5:.5")
     for b in range(9, 17):
@@ -195,21 +207,30 @@ def song() -> Song:
     bass.bass((32, 32), "R:1 5:1 R:1 a:1")
 
     # --- drums -------------------------------------------------------------------------------
-    heart = {"kick": "Xo..Xo..", "hat": "o.o.o.o."}
-    kit.grid((1, 7), heart)
+    beat = {"kick": "Xo..Xo..", "hat": "o.o.o.o."}
+    grid_bars(kit, 1, [beat, beat, beat,
+                       dict(beat, snare=".......o"),                       # a pickup into bar 5
+                       beat,
+                       dict(beat, hat="o...o.o."),                         # the hat drops beat 2
+                       beat])
     kit.grid((8, 8), {"kick": "Xo..Xo..", "hat": "o.o....."})
     kit.fill(8, 4, "snare:.25- snare:.25 snare:.25 snare:.25")
     kit.grid((13, 15), {"kick": "Xo..Xo..", "ride": "x...x..."})
     kit.hit(17, 1, "crash", 86)
-    kit.grid((17, 23), {"kick": "Xo..Xo..", "snare": "..x...x.", "hat": "xoxoxoxo"})
+    a2 = {"kick": "Xo..Xo..", "snare": "..x...x.", "hat": "xoxoxoxo"}
+    grid_bars(kit, 17, [a2, a2, a2,
+                        dict(a2, snare="..x...xo"),                        # a pickup into bar 21
+                        a2,
+                        dict(a2, snare="..x....."),                        # beat 4 left to the trumpet
+                        a2])
     kit.hit(21, 1, "crash", 72)
     kit.grid((24, 24), {"kick": "Xo..Xo..", "snare": "..x.....", "hat": "xoxo...."})
-    kit.fill(24, 3, "snare:.5- snare:.5 mid_tom:.5 floor_tom:.5")
+    kit.fill(24, 3, "floor_tom:.5> floor_tom:.5- snare:.25- snare:.25 snare:.5>")   # lub-dub on the floor tom
     kit.hit(25, 1, "crash", 64)
     kit.hit(29, 1, "crash", 74)
     kit.grid((29, 31), {"kick": "Xo..Xo..", "snare": "..x...x.", "hat": "xoxoxoxo",
                         "tambourine": "..x...x."})
     kit.grid((32, 32), {"kick": "Xo......", "hat": "xo......"})
-    kit.fill(32, 2, "snare:.5- snare:.5 high_tom:.5 mid_tom:.5 low_tom:.25 low_tom:.25 floor_tom:.5")
+    kit.fill(32, 2, "snare:.5- r:.5 snare:.5-")              # then the timpani roll (above)
     kit.hit(1, 1, "crash", 74)
     return s

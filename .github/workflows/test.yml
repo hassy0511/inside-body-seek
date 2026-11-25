@@ -47,6 +47,11 @@ jobs:
         if: always()
         continue-on-error: true
         run: GODOT="$PWD/Godot_v4.7-stable_linux.x86_64" tools/export_web.sh _site/play
+      # 「おとを きく」の MP3 用（古い iPhone の Safari は OGG Vorbis を 鳴らせない）。入らなくても 先へ 進む（OGG だけに なる）
+      - name: Install ffmpeg for the listening page
+        if: always()
+        continue-on-error: true
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
       # ダッシュボードの「おとを きく」：ゲームの 音楽を _site/music に 写す（ffmpeg が あれば MP3 も。無くても OGG で 聞ける）
       - name: Copy the music for the listening page
         if: always()

@@ -17,7 +17,7 @@
 必要な もの（Ubuntu / Debian）：
 
 ```bash
-sudo apt install fluidsynth musescore-general-soundfont fluid-soundfont-gm ffmpeg
+sudo apt install fluidsynth musescore-general-soundfont ffmpeg
 python3 -m venv ~/music-venv
 ~/music-venv/bin/pip install mido numpy scipy soundfile pyloudnorm matplotlib
 ```
@@ -34,7 +34,9 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
 ```
 
 同じ 入力からは いつも 同じ 音が できる（人間らしい ゆれも 曲名と パート名から 決まる 乱数。
-`bgm_title` を 2 回 作って WAV・OGG・パートの 音が バイト単位で 同じ ことを 確かめた）。
+`bgm_title` を 2 回 作って WAV・OGG・パートの 音が バイト単位で 同じ ことを 確かめた）。ただし 道具の 版が 同じ とき：
+FluidSynth 2.3.4・ffmpeg 6.1.1（libvorbis 1.3.7）・musescore-general-soundfont 0.2.1（Ubuntu 24.04 の apt）で 確かめた。
+版が ちがうと バイトは 変わる ことが ある（確認の 数字は 大きくは 変わらない はず。はかって いない）。
 
 ### 音色（サウンドフォント）
 
@@ -47,7 +49,8 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
 
 1. `score.py` で 曲を 書く（小節・拍・和音記号・音階の 度数・パターン・アルペジオ・ドラムの 譜・
    強弱の 曲線・CC 11 の ふくらみ）。
-2. `render.py` が スウィング・ゆれ（タイミング ±数 ms、強さ ±4。ドラムは 時間を ずらさない）・
+2. `render.py` が スウィング・ゆれ（タイミング：ふつうの パートは 6 ms の ゆれ（2.5 倍で 切る）、打楽器は 2 ms
+   （1.5 倍で 切る）。バスドラムと クラッシュ（`STEADY_DRUMS`）は ずらさない。強さ ±4）・
    アーティキュレーションを 付けて MIDI に し、FluidSynth で **パートごとに** 44.1 kHz ステレオで 鳴らす
    （FluidSynth の リバーブと コーラスは 切る）。
 3. パートごとに 部屋の 響き（seed つきで 作った 小さな 部屋の インパルス応答。200 Hz 以下は 響かせない）を
@@ -56,18 +59,28 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
    曲の 頭に 重ねる。2 周 続けて 鳴らして 2 周目を 切り出すのと 同じ 中身だが、サンプル単位で ぴったり 合う。
    - 2 周目を 切り出す やりかたも 試した（`MUSIC_LOOP_METHOD=twopass`）。FluidSynth の MIDI プレーヤーは
      音の 出だしを 64 サンプルの 区切りに、ミリ秒単位の 時計で 合わせるので、2 周目が 1 周目より 最大 63 サンプル
-     ずれ、つなぎ目で 響きの 位相が 合わない。はかると「つなぎ目の 予測誤差」が 7.2（上限 3）で 失敗した。
-     重ねる やりかたでは 0.5。
+     ずれ、つなぎ目で 響きの 位相が 合わない。前の はかりかた（上限 3）で 7.2 に なって 失敗し、重ねる やりかたでは 0.5 だった
+     （はかりかたは その あと 変えた。下の「確認」。今の ループは 0.2〜0.3 ほど）。
    - ループは 1 拍目の 32 サンプル 前から 始まる（つなぎ目が 打楽器の 最初の 1 サンプルに かからないように）。
 5. マスター：30 Hz の ハイパス、ゆるい リミッター（先読み、60 ms で 戻る）、音量を そろえる
    （ループ −18 LUFS、短い 曲 −16 LUFS）、トゥルーピークは −2.0 dBTP を ねらう（確認の 上限は −1.5）。
    ループは 輪のまま 処理する（ハイパスも リミッターも つなぎ目を またいで 続く）。
-6. 書き出し：作業用 WAV（16 bit）、コミットする OGG（Vorbis `-q:a 2`。ビットが 毎回 同じに なる 設定）、
+6. 短い 曲（ループしない もの）は おわりの 0.3 秒を なめらかに 消す（二乗余弦。`SHORT_FADE_S`）。
+7. 書き出し：作業用 WAV（16 bit）、コミットする OGG（Vorbis `-q:a 2`。ビットが 毎回 同じに なる 設定）、
    Godot の `.import`（ループは `loop=true`、短い 曲は `false`）。`clear.wav` は モノラル 16 bit で、
    今の `.import` を そのまま 使う。
+   - ループの OGG：エンコーダーは 曲の おわりの あとを 知らないので、最後の ブロックに 誤差が 出て、つなぎ目で
+     プチっと なる（`bgm_clinic`・`bgm_spark` の OGG で はかった。WAV では 出なかった）。そこで ループの あとに
+     頭の 4096 サンプル（`OGG_LOOP_EXTRA`）を つけて エンコードし、その ぶんだけの パケットを `tools/music/oggtrim.py` で
+     取りのぞいて、さいごの ページの 長さ（グラニュール位置）を ループの 長さに する。oggtrim が わからない 形の
+     ストリームだと（ValueError）、つけたし なしで ふつうに エンコードしなおす（報告に 出る）。
+   - 戻した OGG の トゥルーピークが −1.6 dBTP（`OGG_TP_MAX`）を こえたら、その ぶん（＋0.2 dB）マスターを 下げて
+     もう一度 エンコードする（Vorbis は リミッターの 上限を 少し こえる）。この とき パートごとの 音
+     （`out/<名前>/stems/`）と `broken_loop.wav` は 下げない（くらべるのは パートどうしの 比だけ なので 確認は 変わらない）。
 
-1 曲の build は **その 曲の ファイルだけ** 書く（OGG・`.import`・`tools/music/out/<名前>/`）。一時ファイルも
-曲名つきで `tools/music/out/<名前>/tmp/` に 置く。この 文書の 表は `table` だけが 書く。何人かが 同時に
+1 曲の build は **その 曲の ファイルだけ** 書く（OGG・`.import`・`tools/music/out/<名前>/`）。一時ファイル
+（MIDI・パートの WAV・エンコード中の OGG）は `tools/music/out/<名前>/tmp/` に 置き、できあがったら 置きかえる
+（`godot/assets/audio/` に 書きかけの ファイルを 残さない。`.import` だけは 同じ フォルダの `*.tmp`、`.gitignore` 済み）。この 文書の 表は `table` だけが 書く。何人かが 同時に
 別の 曲を build しても ぶつからない。
 
 ## 確認（`python -m tools.music check`）
@@ -76,8 +89,8 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
 
 | 項目 | 内容 |
 |---|---|
-| つなぎ目 | 終わりの 50 ms で 線形予測（24 次）を 作り、つなぎ目の あとの 4 サンプルの 予測誤差を、前の 誤差の 99.5 % 点と くらべる（3 倍まで）。前後 2 ms の 音量が 10 dB 以上 落ちない こと（頭に 響きが ない＝1 周目を 使った）。`seamtest` で、正しい ループは 通り、1 周目を 1000 サンプル 短く 切った もの・1000 サンプル 短い もの・頭を 20 ms 削った ものは 落ちる ことを 示す |
-| ピーク | トゥルーピーク（4 倍 オーバーサンプル）−1.5 dBTP 以下 |
+| つなぎ目 | つなぎ目の 前 50 ms で 線形予測（24 次）を 作り、あとの 4 サンプルの 予測誤差を、前 200 ms の 誤差の 中央値の 6 倍と くらべる（2 倍まで。`SEAM_CLICK_MAX`）。前後 2 ms の 音量が 10 dB 以上 落ちない（頭に 響きが ない＝1 周目を 使った）。最後の 小節の 打楽器が、ファイルの おわりから 数えた 拍に ±3 ms で のる（`SEAM_TIMING_MS`。切る 場所が ずれて いない）。OGG を 戻した ものも 同じく はかる（タイミング 以外）。`seamtest` で、作った ループと 戻した OGG は 通り、1 周目を 使って 1000 サンプル 短い もの・200／1000／5000 サンプル 短く 切った もの・頭を 20 ms 削った ものは 落ちる ことを 示す |
+| ピーク | トゥルーピーク（4 倍 オーバーサンプル）−1.5 dBTP 以下。WAV と、OGG を 戻した もの の 両方 |
 | 音量 | 目標 ±0.5 LU（ループ −18、短い 曲 −16。モノラルは 両方の スピーカーで 鳴らした ものとして はかる） |
 | 無音 | ループの 中に 0.4 秒より 長い デジタル無音が ない |
 | 長さ | 小節数 × 拍 × テンポ（MIDI の 整数テンポ）から 決まる サンプル数と ぴったり 同じ |
@@ -108,7 +121,7 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
 | カルテと クイズ | `bgm_karte` | フェーズ `karte` |
 | 場面（場所） | 場所の `"bgm"`（`stage_db.gd`） | `Game._start_level()` → `Sfx.stage_music()` |
 | ボスの いる 場面（ミッションに `"type": "boss"`） | `bgm_boss` | `Sfx.stage_music()` |
-| みちの ちず（フェーズ `hop`） | 通って きた 場所の 曲の まま | `PHASE_MUSIC` に 書かない |
+| みちの ちず（フェーズ `hop`） | 鳴って いる 曲の まま：ふつうの 場面の あとは `bgm_clinic`（あとの はなしで 変わる）、あとの はなしが 無い 場面（とおりみちなど）の あとは 通って きた 場所の 曲 | `PHASE_MUSIC` に 書かない |
 | 体に はいる／でる 画面 | `jingle_enter`／`jingle_exit`（音楽の 上に） | `Sfx.PHASE_JINGLE` |
 | カルテ「かいけつ！」 | `jingle_karte` | `karte.gd` の `_show_solved()` |
 | 場面クリア・エンディング | `clear.wav` | `Sfx.play("clear")`（短い 曲として 鳴らす） |
@@ -119,6 +132,12 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
 - フェーズは `Game.phase_changed` → `Sfx.on_phase()`（`game.gd` の `_ready` で つなぐ）。`PHASE_MUSIC` に ない フェーズ
   （`scene`・`hop`・しらない 名前）は 今の 曲の まま で、エラーに しない。
 - 曲の 切りかえ：2 つの プレーヤーで 0.6 秒の 等パワーの クロスフェード。同じ 曲なら 何も しない（はじめから に もどらない）。
+  消えて いく とちゅうの 曲を また 呼ぶと（A → B → A を 0.6 秒の うちに、`stop_bgm()` の すぐ あとに 同じ 曲）、
+  はじめから に せず、その 位置から 大きく もどす。
+- カルテを 始める とき（`Game.start_episode()`）は `bgm_clinic` に する（そうだんと 同じ 曲なので そうだんでは 変わらない）。
+  1 フレームに 2 回 曲を 変えると、プレーヤーが 2 つ しか ないので 消えて いく 曲が ぷつっと 止まる
+  （前は ここで `bgm_title` に して いて、カルテから「つぎの カルテへ」で カルテの 曲が 止まった。
+  「つづきから」で あとの はなしが 無い 場面から 入ると みちの ちずで タイトルの 曲が 鳴った）。
 - 短い 曲（`jingle_*`・`clear`）：`Sfx.play_short()`（`Sfx.play()` で 呼んでも ここへ 来る）。鳴って いる あいだ
   音楽を 24 dB 下げる（0.12 秒で 下げ、0.6 秒で もどす。短い 曲は ハ長調で、場所の 曲とは 調が ちがう。
   少し 下げるだけだと 2 つの 曲が 同時に 聞こえて にごるので、ほとんど 聞こえない ところまで 下げる）。
@@ -131,7 +150,10 @@ GODOT=/path/to/Godot_v4.7 ~/music-venv/bin/python -m tools.music godot   # Godot
 - テスト（`godot/tests/smoke.gd` の `_check_music`・`_check_phase_music`）：ゲームが 呼ぶ 曲の 名前を 全部 あつめ
   （場所の `"bgm"`・ボス・全カルテの 全場面・`PHASE_MUSIC`・`PHASE_JINGLE`・`src` の 中に 文字で 書いた `play_bgm("…")`／`Sfx.play("jingle_…")`）、
   ファイルが ある・ループは `loop=true`・短い 曲は ループしない・古い `bgm_*.wav` が ない・しらない フェーズで 曲が 変わらない、を 見る。
-  全カルテを 通す とき、フェーズごとと 場所ごとに 鳴って いる 曲も 見る（はい（肺）は `bgm_boss`）。
+  全カルテを 通す とき、フェーズごとと 場所ごとに 曲の 名前と、その ファイルが 本当に 鳴って いるかを 見る。くらべる 名前は
+  テストに 文字で 書いて ある（`PHASE_WANT`。`PHASE_MUSIC` を 写さない）。場面は 場所の `"bgm"`（ボスの いる 場面は `bgm_boss`）、
+  みちの ちずは タイトルの 曲で ない こと。`_check_music_changes` は A → B → A・`stop_bgm()` の あと 同じ 曲・
+  カルテ →「つぎの カルテへ」（カルテの 曲が 止まらず 消えて いく）・あとの はなしが 無い 場面からの「つづきから」を 見る。
 
 ## ブラウザ版（Web）での 鳴らし方
 
@@ -166,8 +188,12 @@ AudioWorklet を はさんで 128 フレームごとの 音の 大きさを 記�
 
 ## 聞く ページ（ダッシュボードの「おとを きく」）
 
-CI が `tools/music_site.sh _site/music` で 曲を 写し（ffmpeg が あれば MP3 も 作る。無ければ OGG だけ）、
+CI が ffmpeg を 入れて（失敗しても 先へ 進む）、`tools/music_site.sh _site/music` で 曲を 写し（ffmpeg が あれば MP3 も 作る。
+無ければ OGG だけ。古い iPhone の Safari は OGG Vorbis を 鳴らせないので MP3 が 要る）、
 `tools/build_dashboard.py --music-dir _site/music` が 1 曲 1 つの プレーヤー（名前・どこで 鳴るか・調・テンポ・秒）を 出す。
+プレーヤーには OGG と（あれば）MP3 の 両方を 書き、ブラウザが どちらも 鳴らせない とき・ファイルが 読めない ときは
+「この ブラウザでは 鳴らせません…」の 文に かわる。1 つ 鳴らすと ほかは 止まる。`tools/run_tests.sh` の ダッシュボードの
+試し作りも `--music-dir godot/assets/audio` で この 部分を 通す（ここで こけても ダッシュボードは 出る：「いまは 出せません」）。
 ループの 曲には「つなぎ目の 前から」（おわりの 4 秒 前から 鳴らす）。どこで 鳴るかの 文は `build_dashboard.py` の
 `MUSIC_SCREENS`／`MUSIC_AFTER` と `stage_db.gd` の `"bgm"`。手元で 見る ときは Range に こたえる サーバーで 出す
 （`python3 -m http.server` は Range に こたえないので、シークと「つなぎ目の 前から」が 効かない）。
@@ -178,21 +204,21 @@ CI が `tools/music_site.sh _site/music` で 曲を 写し（ffmpeg が あれ�
 
 | name | where | tempo | metre | key | bars | seconds | LUFS | true peak (dBTP) | bytes |
 |---|---|---|---|---|---|---|---|---|---|
-| bgm_air | lungs (no boss), nose | 66 | 6/8 | E major | 32 | 58.18 | -18.0 | -1.9 | 634,305 |
-| bgm_boss | scenes with a boss | 138 | 4/4 | D minor | 32 | 55.65 | -18.1 | -4.1 | 575,755 |
-| bgm_clinic | consult, guess, the talk after a scene | 84 | 4/4 | F major | 24 | 68.57 | -18.0 | -1.9 | 744,861 |
+| bgm_air | lungs (no boss), nose | 66 | 6/8 | E major | 32 | 58.18 | -18.0 | -2.0 | 633,092 |
+| bgm_boss | scenes with a boss | 138 | 4/4 | D minor | 32 | 55.65 | -18.1 | -4.3 | 576,353 |
+| bgm_clinic | consult, guess, the talk after a scene | 84 | 4/4 | F major | 24 | 68.57 | -18.0 | -1.9 | 745,431 |
 | bgm_karte | karte and quiz | 92 | 4/4 | G major | 24 | 62.61 | -18.0 | -4.2 | 641,085 |
 | bgm_mouth | mouth | 120 | 4/4 | D major | 32 | 64.00 | -18.1 | -2.0 | 712,437 |
-| bgm_pump | heart (right and left) | 116 | 4/4 | Eb major | 32 | 66.21 | -18.0 | -3.7 | 718,470 |
-| bgm_spark | brain | 108 | 4/4 | Bb lydian | 28 | 62.22 | -18.0 | -2.0 | 671,908 |
-| bgm_title | title, episode select, picture book, ending | 112 | 4/4 | C major | 32 | 68.57 | -18.0 | -3.8 | 735,527 |
-| bgm_tube | esophagus, blood vessel | 132 | 4/4 | A major | 32 | 58.18 | -18.0 | -4.6 | 650,053 |
+| bgm_pump | heart (right and left) | 116 | 4/4 | Eb major | 32 | 66.21 | -18.0 | -3.8 | 717,123 |
+| bgm_spark | brain | 108 | 4/4 | Bb lydian | 28 | 62.22 | -18.0 | -1.6 | 673,368 |
+| bgm_title | title, episode select, picture book, ending | 112 | 4/4 | C major | 32 | 68.57 | -18.0 | -3.6 | 736,328 |
+| bgm_tube | esophagus, blood vessel | 132 | 4/4 | A major | 32 | 58.18 | -18.0 | -5.3 | 651,365 |
 | bgm_tummy | stomach, small intestine | 100 | 4/4 | G dorian | 24 | 57.60 | -18.0 | -2.8 | 660,278 |
 | clear | scene clear | 160 | 4/4 | C major | 2 | 3.40 | -16.0 | -5.5 | 299,924 |
 | jingle_enter | enter-the-body screen | 138 | 4/4 | C major | 2 | 3.98 | -16.0 | -5.2 | 46,596 |
 | jingle_exit | leave-the-body screen | 138 | 4/4 | C major | 2 | 3.98 | -16.0 | -5.0 | 43,460 |
 | jingle_karte | karte complete | 92 | 4/4 | G major | 1 | 3.31 | -16.0 | -5.5 | 36,776 |
 
-All music files in godot/assets/audio: 7,171,435 bytes (budget 8,000,000).
+All music files in godot/assets/audio: 7,173,616 bytes (budget 8,000,000).
 
 <!-- music-table:end -->

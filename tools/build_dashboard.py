@@ -140,9 +140,15 @@ MUSIC_AFTER = [
 def music_list(gd: str, audio_md: str) -> list:
     """「おとを きく」の 曲の 一覧：名前・どこで・テンポ・調・秒（docs/audio.md の 表から。無ければ 空）。"""
     places = {}
-    for m in re.finditer(r'"name": "([^"]+)", "kanji": "([^"]+)".*?"bgm": "(\w+)"', gd, re.S):
-        places.setdefault(m.group(3), []).append("%s（%s）" % (m.group(1), m.group(2)))
-    rows = list(MUSIC_SCREENS) + [(k, "・".join(v)) for k, v in places.items()] + list(MUSIC_AFTER)
+    # 場所 1 つずつ（"id": " で 切る）。"bgm" が 無い 場所は ゲームと 同じく bgm_title（sfx.gd の DEFAULT_STAGE_MUSIC）
+    for entry in gd.split('"id": "')[1:]:
+        m = re.search(r'"name": "([^"]+)", "kanji": "([^"]+)"', entry)
+        if not m:
+            continue
+        b = re.search(r'"bgm": "(\w+)"', entry)
+        places.setdefault(b.group(1) if b else "bgm_title", []).append("%s（%s）" % (m.group(1), m.group(2)))
+    screens = [(k, w + ("・" + "・".join(places.pop(k)) if k in places else "")) for k, w in MUSIC_SCREENS]
+    rows = screens + [(k, "・".join(v)) for k, v in places.items()] + list(MUSIC_AFTER)
     info = {r.get("name", ""): r for r in first_table(audio_md.split("music-table:start", 1)[-1])} if "music-table:start" in audio_md else {}
     out = []
     for name, where in rows:
@@ -150,6 +156,10 @@ def music_list(gd: str, audio_md: str) -> list:
         out.append({"name": name, "where": where, "loop": name.startswith("bgm_"),
                     "tempo": i.get("tempo", ""), "key": i.get("key", ""), "seconds": i.get("seconds", "")})
     return out
+
+
+## プレーヤーが 鳴らせない とき（ブラウザが OGG も MP3 も 使えない・ファイルが 読めない）に 出す 文
+NO_SOUND = "この ブラウザでは 鳴らせません。ほかの ブラウザ（Chrome・Firefox・新しい Safari）で 開いて ください。"
 
 
 def music_section(rows: list, music_dir: pathlib.Path, rel: str) -> str:
@@ -166,9 +176,10 @@ def music_section(rows: list, music_dir: pathlib.Path, rel: str) -> str:
             srcs = '<source src="%s%s.%s" type="audio/%s">' % (e(rel), e(n), ext, "ogg" if ext == "ogg" else "wav")
             if (music_dir / (n + ".mp3")).is_file():
                 srcs += '<source src="%s%s.mp3" type="audio/mpeg">' % (e(rel), e(n))
-            player = '<audio controls preload="none"%s data-name="%s">%s</audio>' % (" loop" if r["loop"] else "", e(n), srcs)
+            player = '<audio controls preload="none"%s data-name="%s">%s%s</audio>' % (" loop" if r["loop"] else "", e(n), srcs, NO_SOUND)
             if r["loop"]:
                 player += '<button type="button" class="seam" data-name="%s">つなぎ目の 前から</button>' % e(n)
+            player += '<span class="note nosound" hidden>%s</span>' % NO_SOUND
         else:
             player = '<span class="note">ファイルは CI が 出す（ここには まだ ない）</span>'
         items.append('<li class="track"><div><b>%s</b><span>%s</span><small>%s</small></div><div class="player">%s</div></li>'
@@ -178,6 +189,7 @@ def music_section(rows: list, music_dir: pathlib.Path, rel: str) -> str:
             'ループの 曲は くり返します。「つなぎ目の 前から」は おわりの 4 秒 前から 鳴らして、さいしょに もどる 所を 聞く ボタン'
             '（ブラウザの くり返しは つなぎ目に わずかな すきまが 出る ことが ある。ゲームの 中では サンプル単位で つながる）。'
             'ゲームの 中では 音楽は 効果音より 小さく（−5 dB）、曲の かわりめは 0.6 秒で 入れかわります。</p>'
+            '<p class="note">音色：MuseScore General（MIT。© S. Christian Collins、Fluid R3 © Frank Wen ほか）。</p>'
             '<div class="card"><ul class="tracks">%s</ul></div></section>' % "".join(items))
 
 
@@ -597,6 +609,19 @@ document.querySelectorAll("li.track audio").forEach(function (a) {{
     document.querySelectorAll("li.track audio").forEach(function (b) {{ if (b !== a) b.pause(); }});
   }});
 }});
+// 鳴らせない プレーヤー（どの 形式も 使えない、または ファイルが 読めない）は「鳴らせません」の 文に かえる
+document.querySelectorAll("li.track audio").forEach(function (a) {{
+  var box = a.parentNode, srcs = a.querySelectorAll("source");
+  var off = function () {{
+    a.hidden = true;
+    var b = box.querySelector("button.seam"); if (b) b.hidden = true;
+    var n = box.querySelector(".nosound"); if (n) n.hidden = false;
+  }};
+  var ok = false;
+  srcs.forEach(function (s) {{ if (a.canPlayType && a.canPlayType(s.type)) ok = true; }});
+  if (!ok) off();
+  else if (srcs.length) srcs[srcs.length - 1].addEventListener("error", off);
+}});
 document.querySelectorAll("button.seam").forEach(function (btn) {{
   btn.addEventListener("click", function () {{
     var a = btn.parentNode.querySelector("audio");
@@ -673,7 +698,11 @@ def main() -> None:
     mdir = pathlib.Path(a.music_dir) if a.music_dir and pathlib.Path(a.music_dir).is_dir() else None
     mrel = (os.path.relpath(mdir.resolve(), out.parent.resolve()).replace(os.sep, "/") + "/") if mdir else ""
     audio_md = (ROOT / "docs/audio.md").read_text(encoding="utf-8") if (ROOT / "docs/audio.md").is_file() else ""
-    music = music_section(music_list(gd, audio_md), mdir, mrel)
+    try:
+        music = music_section(music_list(gd, audio_md), mdir, mrel)
+    except Exception as ex:   # 「おとを きく」で こけても ダッシュボードは 出す
+        print("music section failed: %r" % ex)
+        music = '<section id="music"><h2>おとを きく</h2><p class="note">いまは 出せません（ダッシュボードを 作る ときに エラー）。</p></section>'
     out.write_text(render(data, story, updated, git_rev(), bool(log), lineup, play, compare, compare_page, music), encoding="utf-8")
     print("wrote %s（%s）" % (out, ", ".join("%s %d" % (k, len(v)) for k, v in data.items())))
 

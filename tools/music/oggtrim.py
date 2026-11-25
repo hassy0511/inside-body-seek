@@ -41,7 +41,8 @@ def ogg_crc(data: bytes) -> int:
 
 class Page:
     def __init__(self, raw: bytes):
-        assert raw[:4] == b"OggS", "not an Ogg page"
+        if len(raw) < 27 or raw[:4] != b"OggS":
+            raise ValueError("not an Ogg page")
         self.flags = raw[5]
         self.granule = struct.unpack_from("<q", raw, 6)[0]
         self.serial, self.seq = struct.unpack_from("<II", raw, 14)
@@ -49,6 +50,8 @@ class Page:
         self.lacing = list(raw[27:27 + n])
         self.body = raw[27 + n:27 + n + sum(self.lacing)]
         self.size = 27 + n + sum(self.lacing)
+        if len(raw) < self.size:
+            raise ValueError("truncated Ogg page")
 
     def to_bytes(self) -> bytes:
         head = bytearray(b"OggS" + bytes([0, self.flags]) + struct.pack("<q", self.granule)
@@ -85,10 +88,16 @@ def _packets(pages):
 def trim(data: bytes, total: int) -> bytes:
     """Keep the first `total` samples of a single-stream Ogg Vorbis file.
 
-    Raises ValueError when the stream does not look like plain libvorbis
-    output (two modes: short and long block), so the caller can fall back."""
+    Raises ValueError for anything it does not handle, so the caller can fall
+    back to a plain encode: input that is not Ogg, not Vorbis, has no audio
+    packets, or whose packet sizes (from the mode bit, read as short/long block)
+    do not match the encoder's own granule positions; also when the cut would
+    fall on the first page with audio (decoders read a short granule there as
+    trimming at the START: ffmpeg and libvorbis then disagree on the length)."""
     pages = read_pages(data)
     pk = _packets(pages)
+    if len(pk) < 4:
+        raise ValueError("no audio packets")
     ident = pk[0][2]
     if ident[:7] != b"\x01vorbis":
         raise ValueError("not a Vorbis stream")
@@ -118,9 +127,11 @@ def trim(data: bytes, total: int) -> bytes:
     if total > final:
         raise ValueError("the stream is shorter than the cut")
     keep = next(k for k, gk in enumerate(gran) if gk >= total)
-    if keep == 0 or gran[keep - 1] >= total:
+    if keep == 0:
         raise ValueError("no packet ends after the cut")
     pi, si, _ = audio[keep]
+    if pi == audio[0][0]:
+        raise ValueError("the cut falls on the first audio page")
     pages = pages[:pi + 1]
     last = pages[pi]
     nbytes = sum(last.lacing[:si + 1])

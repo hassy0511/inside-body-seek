@@ -158,7 +158,9 @@ def song() -> Song:
                       groove])
     kit.grid((8, 8), {"kick": "x...x...", "snare": "..o.....", "hat": "x.xx...."})
     kit.fill(8, 4, "snare:.5- snare:.5")
-    kit.grid((9, 15), {"hat": "..x...x.", "shaker": "o.x.o.xo"})
+    b = {"hat": "..x...x.", "shaker": "o.x.o.xo"}
+    grid_bars(kit, 9, [b, b, b, dict(b, hat="..x...xo"),                     # 12: soft hat pickup
+                       b, dict(b, hat="..x....."), b])                      # 14: last hat left out
     kit.grid((16, 16), {"hat": "..x.....", "shaker": "oxoxo..."})
     kit.fill(16, 3.5, "snare:.5- snare:.5- snare:.5")
     full = {"kick": "o...o...", "snare": "..x...x.", "hat": "x.xxx.xx", "shaker": "o.o.o.o."}

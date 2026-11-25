@@ -55,7 +55,7 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 | `godot/assets/models/characters/*.glb` | キャラクターの 3D モデル（Blender スクリプトの出力） |
 | `godot/assets/models/stages/*.glb` | 場所の地形＋スポーン位置（Blender スクリプトの出力） |
 | `godot/assets/ui/*.png` | 納品された絵（顔・全身など）。同じ名前で置くと自動で使われる |
-| `godot/assets/audio/*.wav` | 効果音（`tools/gen_audio.py` の出力） |
+| `godot/assets/audio/*.wav`（`clear.wav` の ほか） | 効果音（`tools/gen_audio.py` の出力） |
 | `godot/assets/audio/bgm_*.ogg`・`jingle_*.ogg`・`clear.wav` | 音楽（`tools/music/` で楽譜から作る。`docs/audio.md`） |
 | `blender/characters.py` | キャラクターを作る bpy スクリプト |
 | `blender/stages.py` | ステージの地形とマーカーを作る bpy スクリプト |
@@ -175,7 +175,7 @@ python3 tools/gen_audio.py
 
 - フォント：Rounded M+（M PLUS Rounded 1c）— SIL Open Font License 1.1（`godot/assets/fonts/LICENSE.txt`）
 - エンジン：Godot Engine（MIT）
-- 音楽の 音色：MuseScore General（MIT。一部 パブリックドメイン・CC0）。曲は このリポジトリで 作った もの（音色の ファイルは コミットしない）。
+- 音楽の 音色：MuseScore General（MIT。© 2018-2021 S. Christian Collins、Fluid R3 © 2000-2002, 2008 Frank Wen ほか。一部 パブリックドメイン・CC0。全文は `/usr/share/doc/musescore-general-soundfont/copyright`）。曲は このリポジトリで 作った もの（音色の ファイルは コミットしない）。
 - それ以外のコード・モデル・音・文章はこのリポジトリで作ったものです。
 
 体のしくみの説明は子ども向けに簡単にしてあります。数字（食道の長さ・肺胞の数など）はおおよその値です。

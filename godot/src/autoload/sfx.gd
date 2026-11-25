@@ -27,7 +27,9 @@ const FADE := 0.6
 ## Sfx.play() で 呼ばれても「短い 曲」として 鳴らす 名前（jingle_* は いつも）
 const SHORT_PIECES := ["clear"]
 ## フェーズ → 曲。書いて いない フェーズ（scene・hop・しらない もの）は 今の 曲の まま。
-## scene の 曲は Game._start_level() が stage_music() で 決める。hop（みちの ちず）は 通って きた 場所の 曲を つづける
+## scene の 曲は Game._start_level() が stage_music() で 決める。hop（みちの ちず）は 鳴って いる 曲を つづける：
+## ふつうの 場面の あとは あとの はなし（after）で 変わった bgm_clinic、あとの はなしが 無い 場面
+## （とおりみちなど）の あとは 通って きた 場所の 曲。カルテの はじめ（start_episode）は bgm_clinic
 const PHASE_MUSIC := {
 	"consult": "bgm_clinic", "guess": "bgm_clinic", "after": "bgm_clinic",
 	"enter": "bgm_clinic", "exit": "bgm_clinic", "karte": "bgm_karte",
@@ -127,16 +129,23 @@ func play_short(name: String) -> void:
 	_short.play()
 
 
-## ループの 曲に 切りかえる（同じ 曲なら そのまま）。無い 名前・"" なら 音楽を 消す
+## ループの 曲に 切りかえる（同じ 曲なら そのまま）。無い 名前・"" なら 音楽を 消す。
+## 消えて いく とちゅうの 曲を また 呼んだら、はじめから に せず その 位置から 大きく もどす
 func play_bgm(name: String) -> void:
-	if _bgm_name == name and _music[_cur].playing:
+	if _bgm_name == name and _music[_cur].playing and _target[_cur] > 0.0:
 		return
 	_bgm_name = name
 	var path := path_of(name) if name != "" else ""
+	var nxt := 1 - _cur
+	for i in [_cur, nxt]:
+		if path != "" and _music[i].playing and _music[i].stream != null and _music[i].stream.resource_path == path:
+			_target[i] = 1.0
+			_target[1 - i] = 0.0
+			_cur = i
+			return
 	_target[_cur] = 0.0                # いまの 曲は 消えて いく（_process で 止めて 手ばなす）
 	if path == "":
 		return
-	var nxt := 1 - _cur
 	var p := _music[nxt]
 	p.stop()
 	p.stream = load(path)

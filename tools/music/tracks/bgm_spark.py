@@ -47,8 +47,10 @@ CHORDS (one bar each; two in a bar share it)
   T   Bb6 | C/Bb | Gm7 | C7sus4 C7   (back to Bb6 in bar 1)
 
 THE MOTIF (tools/music/motif.py; in B-flat Lydian: Bb F E D | C D F)
-  bars 1-2    as written (lead)              bars 3-4    a third higher (lead)
-  bars 17-20  again (lead, celesta an octave up)
+  bars 1-2    as written (lead)              bars 3-4    the brain's own answer
+                                             F5 D5 F5 G5 F5 | E5 G5 A5 G5 (lead)
+  bars 17-20  again (lead, celesta an octave up); bar 20 climbs further: E5 G5 A5 C6 A5,
+              a step below the D6 of bar 21
   bars 25, 27 its head on Bb, then on D (music box, call)
   bars 26     its tail on G (lead, answer: G A C)
   bar 13      B's climb (G Bb D F) borrows the motif's long-short pickup shape.
@@ -67,6 +69,12 @@ INSTRUMENTS (name: GM instrument, pan, role)
 """
 from tools.music import motif
 from tools.music.score import Song
+
+
+def grid_bars(kit, first: int, patterns: list):
+    """One drum pattern (a dict of lanes) per bar, from bar `first` on."""
+    for i, pat in enumerate(patterns):
+        kit.grid((first + i, first + i), pat)
 
 
 def song() -> Song:
@@ -106,7 +114,10 @@ def song() -> Song:
 
     # --- melody: A --------------------------------------------------------------
     lead.place(1, 1, motif.notes(s, 4))                                  # Bb F E D | C D F
-    lead.place(3, 1, motif.notes(s, 4, shift=2))                         # D A G F | E F A
+    # bars 3-4: the brain's own continuation (the motif's long-short rhythm, its own
+    # contour; E5 on C6 is the Lydian "bright idea" note), not the title's sequence.
+    # Bar 4 stops at A5 so that C6 in bar 6 stays the one high point of A.
+    lead.line(3, 1, "F5:1 D5:.5 F5:.5 G5:1.5 F5:.5 | E5:1 G5:1 A5:1.5 G5:.5")
     lead.line(5, 1, "D5:.5 F5:.5 Bb5:1 G5:1.5 F5:.5 | A5:1 E5:1 F#5:1* C6:1 |"
                     " Bb5:1.5 A5:.5 G5:1 E5:1 | F5:2 r:1 C5:.5 D5:.5")
     cel.line(2, 4, "F6:.5 A6:.5")                                         # answers
@@ -121,7 +132,7 @@ def song() -> Song:
 
     # --- melody: A' (motif again, new ending) --------------------------------------------
     lead.place(17, 1, motif.notes(s, 4))
-    lead.place(19, 1, motif.notes(s, 4, shift=2))
+    lead.line(19, 1, "F5:1 D5:.5 F5:.5 G5:1.5 F5:.5 | E5:1 G5:.5 A5:.5 C6:1.5 A5:.5")
     lead.line(21, 1, "D5:.5 F5:.5 Bb5:1 D6:1.5 C6:.5 | C6:1 A5:1 F#5:1* A5:1 |"
                      " Bb5:1.5 A5:.5 G5:1 E5:1 | F5:1.5 G5:.5 E5:1 r:1")
     for n in lead.notes:                                                  # celesta doubles
@@ -183,17 +194,27 @@ def song() -> Song:
     kit.grid((1, 4), clock)
     kit.grid((5, 7), {"kick": "x...x...", "stick": "..x...x.", "hat": ".o.o.o.o", "block_hi": "x...x..."})
     kit.grid((8, 8), {"kick": "x...x...", "stick": "..x.....", "hat": ".o.o...."})
-    kit.fill(8, 3, "block_hi:.5 block_lo:.5 block_hi:.25 block_hi:.25 block_lo:.5")
-    kit.grid((9, 15), {"kick": "x..x....", "stick": "....x...", "hat": "x.x.x.xo"})
+    kit.fill(8, 3, "block_lo:.5- block_hi:.25 block_hi:.25 block_lo:.25 block_hi:.25 triangle:.5")
+    b1 = {"kick": "x..x....", "stick": "....x...", "hat": "x.x.x.xo"}
+    grid_bars(kit, 9, [b1, b1, b1,
+                       dict(b1, kick="x..x...x"),                          # a pickup into bar 13
+                       b1,
+                       dict(b1, stick="......x."),                         # the backbeat moves to 4
+                       b1])
     kit.grid((16, 16), {"kick": "x.......", "hat": "xoxo...."})
-    kit.fill(16, 3, "high_tom:.5- mid_tom:.5 low_tom:.5 floor_tom:.5")
+    kit.fill(16, 3, "stick:.25- stick:.25 block_hi:.5 high_tom:.5 block_lo:.5")
     kit.hit(17, 1, "crash", 76)
-    kit.grid((17, 23), {"kick": "x..x..x.", "snare": "....x...", "hat": "xoxoxoxo", "block_hi": "...x...x"})
+    a2 = {"kick": "x..x..x.", "snare": "....x...", "hat": "xoxoxoxo", "block_hi": "...x...x"}
+    grid_bars(kit, 17, [a2, a2, a2,
+                        dict(a2, kick="x..x..xx"),                         # a pickup into bar 21
+                        a2,
+                        dict(a2, snare=".....x.."),                        # the backbeat comes late
+                        a2])
     kit.grid((24, 24), {"kick": "x..x....", "snare": "....x...", "hat": "xoxo...."})
-    kit.fill(24, 4, "snare:.5- snare:.5")
+    kit.fill(24, 4, "block_hi:.25- block_lo:.25 snare:.5")
     kit.grid((25, 26), {"block_hi": "x...x...", "triangle": "x......."})
     kit.grid((27, 27), {"kick": "x...x...", "stick": "..x...x.", "hat": "xoxoxoxo"})
     kit.grid((28, 28), {"kick": "x.......", "hat": "xo......"})
-    kit.fill(28, 2, "snare:.5- snare:.5 block_hi:.5 block_lo:.5 high_tom:.5 mid_tom:.25 low_tom:.25")
+    kit.fill(28, 2, "stick:.5- stick:.25 stick:.25 high_tom:.5 mid_tom:.5 snare:.5 triangle:.5>")   # the spark: up to a triangle "ping"
     kit.hit(1, 1, "triangle", 70)
     return s

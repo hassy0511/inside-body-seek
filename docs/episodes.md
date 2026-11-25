@@ -301,7 +301,7 @@ func scene_stage(ep: Dictionary, i: int) -> Dictionary:
 - 「画面」と「Level」は 同時に 生きない：画面を 出す 前に かならず `unload_level()`（ポーズは `level != null` の ときしか 開かないので、画面の 上に ポーズは 出ない）。場所の カードだけは、クリアした Level の 上に ポップアップで 出る。
 - **はじめて 遊ぶ 子が 動きだす までの ボタン**：しんさつ スタート → OPENING 1 → そうだん 2 → よそう（えらぶ ＋ しゅっぱつ）→ たびの 画面（しらべに いこう）＝ 7 回。
 - **入口と 出口は かならず 通る**（話の とちゅうから 入る とき だけ 通らない）：「つづきから」は からだの 中（さいごに おえた 場面の `after` → みちの ちず）に もどるので 入口は 出ない。「クイズに もういちど」は カルテだけなので 出口は 出ない。テストと 撮影の `start_episode(id, "scene", n)` も 入口を 通らない。
-- BGM：カルテえらび・そうだん・よそう ＝ `bgm_title`。場面 ＝ `stage.get("bgm")`、無ければ `difficulty >= 3` で `bgm_boss`、ほかは `bgm_stage`。enter・after・exit・karte は 鳴っている ものの まま。
+- BGM：`Sfx`（`docs/audio.md`「ゲームの 中で」）。カルテえらび ＝ `bgm_title`。そうだん・よそう・あとの はなし・入口・出口 ＝ `bgm_clinic`、カルテ ＝ `bgm_karte`、場面 ＝ 場所の `"bgm"`（ボスの ミッションが あれば `bgm_boss`）、みちの ちずは 鳴って いる ものの まま。
 
 ### 3.2 `game.gd`（`Game`）
 

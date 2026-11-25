@@ -185,7 +185,11 @@ func start_episode(ep_id: String, from_phase := "consult", from_scene := 0, gues
 		hop_to = EpisodeDB.next_scene(ep, hop_from, skip_pass)
 		if hop_to < 0:
 			from_phase = "exit"
-	Sfx.play_bgm("bgm_title")
+	# 画面の 曲を 先に 決める。そうだんと 同じ 曲なので consult では 変わらない（同じ フレームに 2 回 変えると、
+	# 消えて いく カルテの 曲が 止まる）。つづきから あとの はなしが 無くて みちの ちずへ 行く ときも この 曲。
+	# 場面と カルテから 入る とき（テスト・撮影）は、その フェーズが 自分の 曲を 鳴らす
+	if not from_phase in ["scene", "karte"]:
+		Sfx.play_bgm("bgm_clinic")
 	_enter(from_phase)
 
 

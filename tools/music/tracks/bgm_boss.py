@@ -38,7 +38,7 @@ CHORDS (one bar each; two in a bar share it)
 
 THE MOTIF (tools/music/motif.py; in D minor upside down: D5 G4 A4 Bb4 | C5 Bb4 G4)
   bars 1-2, 17-18   upside down (clarinet)          bars 5-6, 21-22   upside down a third higher
-  bars 9-10         the right way up in F (horn)     bars 11-12        a third higher (horn)
+  bars 9-10         the right way up in F (horn)     bars 11-12        its own answer, chord tones (horn)
   bars 25, 27       head upside down (english horn)  bars 26, 28       tail upside down (xylophone)
 
 HIGH POINTS  A: Bb5 bar 7.  B: F5 bar 13 (and 16).  A': C6 bar 23.  C: Bb5 bar 31.
@@ -63,6 +63,12 @@ note under A1 is lifted an octave (E1/F1 made the low end boom in the spectrogra
 """
 from tools.music import motif
 from tools.music.score import Song
+
+
+def grid_bars(kit, first: int, patterns: list):
+    """One drum pattern (a dict of lanes) per bar, from bar `first` on."""
+    for i, pat in enumerate(patterns):
+        kit.grid((first + i, first + i), pat)
 
 
 def song() -> Song:
@@ -116,7 +122,7 @@ def song() -> Song:
     clar.line(7, 1, "G5:1 Bb5:1 A5:1.5 G5:.5 | F5:.5 E5:.5 D5:1 E5:1 C5:1")
     # --- melody: B (relief, horn; the motif the right way up in F) ------------------
     horn.place(9, 1, motif.notes(s, 4, at_bar=9))                     # F4 C5 Bb4 A4 | G4 A4 C5
-    horn.place(11, 1, motif.notes(s, 4, shift=2, at_bar=9))           # A4 E5 D5 C5 | Bb4 C5 E5
+    horn.line(11, 1, "C5:1.5 A4:.5 E5:2 | D5:1.5 Bb4:.5 G4:1 C5:1")    # own answer (Am7 | Bb C7)
     horn.line(13, 1, "A4:.5 C5:.5 F5:2 E5:.5 C5:.5 | D5:1.5 C5:.5 Bb4:1 Db5:1* |"
                      " Bb4:1 D5:.5 F5:.5 E5:1 C5:1 | D5:1 F5:1 E5:1.5 C#5:.5*")
     horn.auto_swell(1.5)
@@ -215,13 +221,29 @@ def song() -> Song:
     timp.line(32, 3, "A2:.25- A2:.25- A2:.25 A2:.25 A2:.25 A2:.25 A2:.25> r:.25")
 
     # --- drums (standard kit: a short kick, snare, crash, wood block) ----------------------------
-    kit.grid((1, 7), {"snare": "..o...o.", "kick": "o.......", "block_hi": "......x."})
+    sneak = {"snare": "..o...o.", "kick": "o.......", "block_hi": "......x."}
+    grid_bars(kit, 1, [sneak, sneak, sneak,
+                       dict(sneak, block_hi="......xx"),                   # a pickup into bar 5
+                       sneak,
+                       dict(sneak, snare="..o....."),                      # the backbeat on 4 drops
+                       sneak])
     kit.grid((8, 8), {"snare": "..o.....", "kick": "o......."})
-    kit.fill(8, 3, "snare:.5- snare:.5 snare:.25 snare:.25 snare:.5")
-    kit.grid((9, 15), {"snare": "o.x.o.x.", "kick": "o......."})
+    # the villain tiptoes: wood blocks, a rest, then one snare (its own fill, not the title's)
+    kit.fill(8, 3, "block_hi:.25- block_hi:.25 block_lo:.5 r:.5 snare:.5>")
+    march = {"snare": "o.x.o.x.", "kick": "o......."}
+    grid_bars(kit, 9, [march, march, march,
+                       dict(march, snare="o.x.o.xo"),                      # a pickup into bar 13
+                       march,
+                       dict(march, snare="o.x.o..."),                      # beat 4 left out
+                       march])
     kit.grid((16, 16), {"kick": "o...x..."})
     kit.hit(17, 1, "crash", 80)
-    kit.grid((17, 23), {"kick": "x...x...", "snare": "..x..ox.", "block_hi": ".......x"})
+    a2 = {"kick": "x...x...", "snare": "..x..ox.", "block_hi": ".......x"}
+    grid_bars(kit, 17, [a2, a2, a2,
+                        dict(a2, kick="x...x..x"),                         # a pickup into bar 21
+                        a2,
+                        dict(a2, snare="..x..o.."),                        # the backbeat on 4 drops
+                        a2])
     kit.grid((24, 24), {"kick": "x.x....."})
     kit.fill(24, 3, "snare:.25- snare:.25- snare:.25 snare:.25 snare:.5 snare+crash:.5>")
     kit.grid((25, 28), {"snare": "......o.", "block_hi": "..x...x."})
