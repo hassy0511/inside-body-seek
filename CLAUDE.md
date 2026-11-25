@@ -48,6 +48,7 @@ tools/run_tests.sh                 # 全部：インポート → 床プロー�
 tools/run_tests.sh --episode=ep03  # カルテ 1 本だけ
 tools/run_tests.sh --stage=mouth   # 場所 1 つだけ（既定の ミッション）
 tools/export_web.sh /tmp/web       # ブラウザ版を 書き出す（「WEB EXPORT: OK」。テンプレートの 入れかたは test.yml。見る ときは http で 出す）
+tools/web_text_check.sh            # ブラウザ版と テストで 文の 行の 折りかたが 同じか（「WEB TEXT: OK（N 画面、M 文）」。約 8 分。写しを 書き出すので XDG_DATA_HOME は そのままで よい。--setting=off で ちがいが 出る ことを たしかめる）
 tools/screenshot.sh mouth /tmp/a.png --play=3   # Xvfb + Mesa でスクリーンショット（見た目の確認）
 tools/screenshot.sh model:pod /tmp/b.png        # キャラクター 1 体だけ
 tools/screenshot.sh guess:ep03 /tmp/c.png       # カルテの 画面（select／consult:ep03／guess_go:ep01／after:ep03:0／karte:ep03:1／ep03:1 …）

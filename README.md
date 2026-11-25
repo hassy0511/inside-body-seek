@@ -65,6 +65,7 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 | `tools/music/` | 音楽を楽譜から作る（`python -m tools.music build`。`docs/audio.md`） |
 | `tools/run_tests.sh` | Godot ヘッドレスのテスト（全カルテ ＋ 全部の場所 ＋ ダッシュボードの試し作り） |
 | `tools/export_web.sh` | ブラウザで遊べる版（Web）の書き出し。CI が GitHub Pages の `play/` に出す |
+| `tools/web_text_check.sh` | ブラウザ版とテストで、画面の文が同じ行で折れるかをくらべる（「WEB TEXT: OK」。文・フォント・書き出しの設定を変えたら回す。Chromium が要るので CI では回さない） |
 | `tools/compare/` | 同じ指示文で別々に作られた 2 つの実装（A・B）を遊べる形にする、一時的なくらべもの |
 | `godot/tests/smoke.gd` | その中身（画面はボタンを押して進め、場面は自動操縦でクリアまで） |
 | `tools/screenshot.sh`、`godot/tests/shot.gd` | 画面・場面・モデルのスクリーンショット（Xvfb + Mesa） |

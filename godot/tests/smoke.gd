@@ -161,6 +161,7 @@ func _ready() -> void:
 				await _check_esophagus()
 			if _only_place == "" or _only_place == "stomach":
 				await _check_pools()
+				await _check_arrow()
 			for id in BACK_PLACES:
 				if _only_place == "" or id == _only_place:
 					await _check_back_hold(id)
@@ -466,6 +467,16 @@ func _check_data() -> void:
 			var t := "%sの %s（%s）" % [EpisodeDB.PATIENTS[who]["name"], st["name"], st["kanji"]]
 			if not HudScreen.title_fits(t):
 				_fail("HUD の 題が 入らない：%s" % t)
+	# なみの ある 場所：左上の 数を なおす 長さ（"body_cm"）を かならず 書く。カードの「やく N センチ」と 同じ 数
+	var cm_re := RegEx.create_from_string("やく (\\d+) センチ")
+	for pid in StageDB.stage_ids():
+		var wv: Dictionary = StageDB.get_stage(pid).get("waves", {})
+		if StageDB.get_stage(pid).has("waves") and not wv.has("body_cm"):
+			_fail("data: %s の \"waves\" に body_cm が ない（左上の センチが しょくどうの 25 に なって しまう）" % pid)
+		elif wv.has("body_cm"):
+			var m := cm_re.search(String(StageDB.card(pid, "stage").get("text", "")))
+			if m == null or int(m.get_string(1)) != int(round(float(wv["body_cm"]))):
+				_fail("data: %s の body_cm %s が カードの「やく N センチ」と ちがう" % [pid, wv["body_cm"]])
 	var plain := StageDB.get_stage("mouth")
 	if HudScreen.title_text(plain) != "%s（%s）" % [plain["name"], plain["kanji"]]:
 		_fail("HUD の 題：場所だけの ときは 場所の 名前だけ（%s）" % HudScreen.title_text(plain))
@@ -825,6 +836,27 @@ func _check_texts(root: Control, where: String) -> void:
 			_text_seen[n.text] = true
 			for p in EpisodeDB.text_problems(n.text):
 				_fail("%s: 画面の 文「%s」: %s" % [where, n.text, p])
+
+
+## HUD の ミッションの 行：数（「0 / 6」）だけが 下の 行に のこらない（さいごの ことばと 同じ 行）
+func _check_mission_lines(where: String) -> void:
+	await get_tree().process_frame
+	var count_re := RegEx.create_from_string("^\\d+ / \\d+$")
+	for l in Game.hud._mission_labels:
+		if not is_instance_valid(l):
+			continue
+		var para := TextParagraph.new()
+		para.add_string(l.text, l.get_theme_font("font"), l.get_theme_font_size("font_size"))
+		para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+		para.width = l.size.x
+		var lines: Array[String] = []
+		for i in para.get_line_count():
+			var r := para.get_line_range(i)
+			lines.append(String(l.text.substr(r.x, r.y - r.x)).replace(T.WJ, "").strip_edges())
+		if lines.size() != l.get_line_count():
+			_info("%s: ミッションの 行を はかりなおすと %d 行（ラベルは %d 行）：%s" % [where, lines.size(), l.get_line_count(), lines])
+		if lines.size() > 1 and count_re.search(lines[-1]) != null:
+			_fail("%s: ミッションの 数「%s」だけが 下の 行に のこる：%s" % [where, lines[-1], lines])
 
 
 ## root の 下の、見えている ラベルと ボタンが 画面（1280×720）の 中に あり、文が 切れて いないか。
@@ -2009,6 +2041,7 @@ func _run_place(id: String) -> void:
 		_fail("place %s: 曲が %s（%s の はず）" % [id, Sfx.bgm_name(), Sfx.stage_music(st)])
 	if Game.hud == null or Game.hud.title_label().text != "%s（%s）" % [st["name"], st["kanji"]]:
 		_fail("place %s: 場所だけの ときの HUD の 題が ちがう" % id)
+	await _check_mission_lines("place " + id)
 	_finished = false
 	var t := 0.0
 	var last_report := 0.0
@@ -2055,6 +2088,11 @@ func _check_esophagus() -> void:
 		_fail("esophagus: 場所だけ なのに かたまりが %d こ" % peri.lumps.size())
 	if peri._rings.size() < 30:
 		_fail("esophagus: きんにくの わが %d こ（30 こ いじょうの はず）" % peri._rings.size())
+	# はじめて のるまでの 左上は「なみに のろう！」（0 センチを 見せない）
+	for i in 3:
+		await get_tree().physics_frame
+	if peri.ride_count == 0 and (not is_instance_valid(peri._readout_label) or peri._readout_label.text != "なみに のろう！"):
+		_fail("esophagus: のる まえの 左上が「なみに のろう！」で ない：%s" % (peri._readout_label.text if is_instance_valid(peri._readout_label) else "（ない）"))
 	var r := await _eso_forward(lvl, 60.0, "place")
 	if not r["done"]:
 		_fail("esophagus: ↑ だけで ゴールに つかない（%.1f 秒）" % r["t"])
@@ -2062,6 +2100,7 @@ func _check_esophagus() -> void:
 		_fail("esophagus: きんにくの わが しまらない（いちばん %.2f）" % r["squeezed"])
 	if r["max_speed"] < peri.speed - 1.5 or r["rides"] < 1:
 		_fail("esophagus: なみに のって はやく ならない（さいこう %.1f m/s、のった %d 回）" % [r["max_speed"], r["rides"]])
+	await _eso_recount()
 	# 2. ep03 の とおりみち：かたまり なし
 	Game.start_episode("ep03", "scene", 1)
 	lvl = Game.level
@@ -2127,6 +2166,7 @@ func _check_esophagus() -> void:
 	if p.hearts < hearts0 or lvl.damage_taken:
 		_fail("esophagus: かたまりで ハートが へった")
 	Input.action_release("move_up")
+	await _eso_lost()
 	# 4. ep02 を はじめから ↑ だけで（ものしりカード「food」も 見つかる：どの かたまりの そばでも）
 	Game.start_episode("ep02", "scene", 1)
 	lvl = Game.level
@@ -2138,11 +2178,11 @@ func _check_esophagus() -> void:
 		_fail("esophagus: ep02 を ↑ だけで いっても ものしりカード「food」が 見つからない")
 	if lvl.peristalsis.ride_m > lvl.path.total + 1.0:
 		_fail("esophagus: なみに のった きょり %.0f m が 道の 長さ %.0f m より 長い" % [lvl.peristalsis.ride_m, lvl.path.total])
-	# 子どもに 見せる 数は 本物の しょくどうの 長さ（カードの「やく 25 cm」）に なおした センチ。ゲームの m は 出さない
+	# 子どもに 見せる 数は 本物の しょくどうの 長さ（カードの「やく 25 センチ」）に なおした センチ。ゲームの m は 出さない
 	var peri2 = lvl.peristalsis
 	var cm: int = peri2.ride_cm()
 	var ct: String = peri2.clear_text("い（胃）の いりぐちに ついた！")
-	_info("esophagus ep02: なみに のった %.0f m → 見せる 数 %d センチ（%s）、のった あとで 出さなかった ヒント %d" % [peri2.ride_m, cm, ct, lvl.hints_skipped])
+	_info("esophagus ep02: なみに のった %.0f m → 見せる 数 %d センチ（%s）" % [peri2.ride_m, cm, ct])
 	if cm < 1 or cm > int(peri2.body_cm):
 		_fail("esophagus: 見せる きょり %d センチが 0 か しょくどうの 長さ %d センチより 長い" % [cm, int(peri2.body_cm)])
 	if not ct.ends_with("%d センチ すすんだよ！" % cm):
@@ -2174,6 +2214,112 @@ func _check_esophagus() -> void:
 	Game.unload_level()
 	Game.show_title()
 	await get_tree().process_frame
+
+
+## なみの 番号：船が その なみに のれる ところ（peristalsis の のる はんい）に いる なみ。なければ -1
+func _eso_wave_at(peri, pp: float) -> int:
+	for i in peri.waves.size():
+		if pp >= peri.waves[i] - peri.ZONE_BACK and pp <= peri.waves[i] + peri.ZONE_FRONT + 4.0:
+			return peri._wave_ids[i]
+	return -1
+
+
+## ながく のって から ぶつかる（ep02）：船は のって いる あいだに なみの 先頭より 前へ 出て いく（2.5 秒で 10 m ほど）。
+## ぶつかった なみには もう のれない（_lost）。おちた すぐ あと（_off の 0.5 秒が おわった とき）に 同じ なみに
+## のりなおせたら、かたまりを よけても よけなくても 同じに なる
+func _eso_lost() -> void:
+	Game.start_episode("ep02", "scene", 1)
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var peri = lvl.peristalsis
+	var p = lvl.player
+	var t := 0.0
+	while not peri.riding and t < 12.0:
+		Input.action_press("move_up")
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	t = 0.0
+	while t < 2.5:
+		Input.action_press("move_up")
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	var pp: float = lvl.path.progress_at(p.global_position)
+	var w0 := _eso_wave_at(peri, pp)
+	for lp0 in peri.lumps:
+		lp0.prog = -50.0
+	var lp = peri.lumps[0]
+	var smp: Dictionary = lvl.path.sample(pp)
+	var dflat: Vector3 = smp["direction"]
+	dflat.y = 0.0
+	lp.prog = pp + 6.0
+	lp.side = (p.global_position - (smp["position"] as Vector3)).dot(dflat.normalized().cross(Vector3.UP))
+	var b0: int = peri.bumps
+	t = 0.0
+	while peri.bumps == b0 and t < 3.0:
+		Input.action_press("move_up")
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		w0 = _eso_wave_at(peri, lvl.path.progress_at(p.global_position)) if peri.riding else w0
+	lp.prog = -50.0
+	if peri.bumps == b0 or w0 < 0:
+		_fail("esophagus: ながく のって から おいた かたまりに ぶつからない（なみ %d）" % w0)
+		Input.action_release("move_up")
+		return
+	t = 0.0
+	var off := false
+	var again := -1
+	while t < 8.0:
+		Input.action_press("move_up")
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		off = off or not peri.riding
+		if off and peri.riding:
+			again = _eso_wave_at(peri, lvl.path.progress_at(p.global_position))
+			break
+	Input.action_release("move_up")
+	_info("esophagus bump（2.5 秒 のって から）：%.2f 秒で また のった（なみ %d → %d）" % [t, w0, again])
+	if again < 0:
+		_fail("esophagus: ながく のって から ぶつかった あと 8 秒 たっても なみに のれない")
+	elif again == w0 or t < 1.0:
+		_fail("esophagus: ぶつかった なみに %.2f 秒で のりなおせた（なみ %d → %d。よけなくても かわらない）" % [t, w0, again])
+
+
+## のった ところを 2 回 数えない（場所だけ）：2 秒 のって、30 m うしろへ もどし、つぎの なみが もとの ところを こえるまで はこぶ（なにも おさない。↑ だと なみより 先に ついて しまう）。
+## ride_m は もう とおった ところでは ふえない（前は もどって のりなおすと 数が 2 回 ふえた）
+func _eso_recount() -> void:
+	Game.start_stage("esophagus")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var peri = lvl.peristalsis
+	var p = lvl.player
+	var t := 0.0
+	while not peri.riding and t < 12.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	t = 0.0
+	while t < 2.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	var best: float = lvl.path.progress_at(p.global_position)
+	p.global_position = (lvl.path.sample(best - 30.0)["position"] as Vector3) + Vector3.UP * 1.2
+	p.velocity = Vector3.ZERO
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var m0: float = peri.ride_m
+	var rode := false
+	t = 0.0
+	while t < 10.0 and lvl.path.progress_at(p.global_position) < best:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		rode = rode or peri.riding
+	var added: float = peri.ride_m - m0
+	_info("esophagus: 30 m もどって のりなおし（%s）、%.1f 秒で もとの ところ %.0f m へ。ride_m は %.1f m ふえた" % ["のった" if rode else "のらない", t, best, added])
+	if not rode or lvl.path.progress_at(p.global_position) < best:
+		_fail("esophagus: もどった あと なみに のって もとの ところへ もどれない（この テストが 何も 見て いない）")
+	elif added > 3.0:
+		_fail("esophagus: もう とおった ところを また 数えた（ride_m が %.1f m ふえた）" % added)
 
 
 ## a を sa 秒、b を sb 秒 押して から ↑ で ゴールまで。船が しょくどうの はば（かたがわ 7.2 m）から 出ない こと、
@@ -2463,27 +2609,89 @@ func _check_pools() -> void:
 ## ひろい 場所で ↓ を 12 びょう 押しつづける（うしろの かべに はさまり、もどしが 2 回 はたらく）。
 ## 船は へやの 中に いる こと：下に 上向きの ゆかが あり、スタートより 6 m いじょう 下へ おちて いない。
 ## （前は もどしが かべの 外へ 3 m うごかし、船が へやの 下へ おちて いた）
-## はさまった ときの もどし（player._free_step）：どの むきへ 40 m たのんでも、かべを こえず、行き先の 下に ゆかが ある
+## はさまった ときの もどし（player._free_step）：どの むきへ 40 m たのんでも、かべの 1 m 手前より 先へ 行かず、
+## 行き先の 下に ゆかが ある。かべの 外に ゆかが ない 場所（とじた へや）でも かべを 見る（行き先の ゆかだけ では
+## かべを 見ない もどしが 0 を かえして 見のがされる）。かべの 1 m 手前に ゆかが あるのに 0 なら、うごかない もどし
 func _check_free_step(p, where: String) -> void:
+	const WANT := 40.0
 	var space: PhysicsDirectSpaceState3D = p.get_world_3d().direct_space_state
 	var from: Vector3 = p.global_position + Vector3.UP * 0.5
 	var moved := 0
+	var idle: Array[int] = []
 	for i in 16:
 		var d := Vector3(cos(TAU * i / 16.0), 0.0, sin(TAU * i / 16.0))
-		var step: float = p._free_step(d, 40.0)
+		var step: float = p._free_step(d, WANT)
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + d * (WANT + 1.0), 1))
+		var room: float = WANT if hit.is_empty() else from.distance_to(hit["position"]) - 1.0
+		if step > maxf(room, 0.0) + 0.01:
+			_fail("%s: もどし %.1f m が かべを こえる（むき %d、かべの 手前 %.1f m まで）" % [where, step, i, room])
+			continue
 		if step <= 0.0:
+			if room > 0.4:
+				var to0: Vector3 = from + d * room
+				var g0: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(to0, to0 + Vector3.DOWN * 12.0, 1))
+				if not g0.is_empty() and (g0["normal"] as Vector3).y >= 0.3:
+					idle.append(i)
 			continue
 		moved += 1
 		var to: Vector3 = from + d * step
-		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, 1))
-		if not hit.is_empty():
-			_fail("%s: もどし %.1f m が かべを こえる（むき %d）" % [where, step, i])
-			continue
 		var g: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(to, to + Vector3.DOWN * 12.0, 1))
 		if g.is_empty() or (g["normal"] as Vector3).y < 0.3:
 			_fail("%s: もどし %.1f m の 行き先に ゆかが ない（むき %d）" % [where, step, i])
 	if moved == 0:
 		_fail("%s: もどしが どの むきにも うごかない" % where)
+	if not idle.is_empty():
+		_fail("%s: かべの 手前に ゆかが あるのに もどしが 0 の むき %s" % [where, idle])
+
+
+## 行き先の 矢印（ミクロごうの 上の 矢じるし）：いつも 画面に 向き、画面の 上で 行き先の がわを 指す
+## （上 ＝ まえ、右 ＝ みぎ、下 ＝ うしろ）。船を まわして いくつかの 向きで 見る。
+## 画面の 上の 向きは、描かれた 矢じるしの 先を カメラで 画面に うつして はかる（作りの 式を なぞらない）
+func _check_arrow() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "arrow stomach"
+	var seen := 0
+	var lo := INF
+	var hi := -INF
+	for step in 5:
+		if step > 0:
+			Input.action_press("move_right")
+			for i in 55:
+				await get_tree().physics_frame
+			Input.action_release("move_right")
+		for i in 50:
+			await get_tree().physics_frame
+		var cam: Camera3D = get_viewport().get_camera_3d()
+		var tp: Vector3 = lvl.current_target_position()
+		if cam == null or tp == Vector3.INF:
+			continue
+		var rel: Vector3 = cam.global_transform.affine_inverse() * tp   # カメラから 見た 行き先（x ＝ 右、-z ＝ おく）
+		var flat := Vector2(rel.x, -rel.z)
+		if not p.arrow.visible:
+			continue
+		seen += 1
+		var dart: Node3D = p.arrow.get_node("Dart")
+		var facing: float = p.arrow.global_transform.basis.z.normalized().dot(cam.global_transform.basis.z.normalized())
+		if facing < 0.99:
+			_fail("%s: 矢印が 画面に 向いて いない（向きの そろい %.2f）" % [where, facing])
+		var c: Vector2 = cam.unproject_position(dart.global_position)
+		var tip: Vector2 = cam.unproject_position(dart.global_transform * Vector3(0, 0.36, 0))
+		var v := (tip - c).normalized()   # 画面の 上での 矢印の 向き（y は 下が ＋）
+		var bearing := atan2(flat.x, flat.y)
+		lo = minf(lo, bearing)
+		hi = maxf(hi, bearing)
+		if absf(flat.x) > 0.3 * flat.length() and signf(v.x) != signf(flat.x):
+			_fail("%s: 行き先は %s なのに 矢印は %s を 指す（むき %.0f°）" % [where, "みぎ" if flat.x > 0 else "ひだり", "みぎ" if v.x > 0 else "ひだり", rad_to_deg(bearing)])
+		if absf(flat.y) > 0.3 * flat.length() and signf(-v.y) != signf(flat.y):
+			_fail("%s: 行き先は %s なのに 矢印は 画面の %s を 指す（むき %.0f°）" % [where, "まえ" if flat.y > 0 else "うしろ", "上" if v.y < 0 else "下", rad_to_deg(bearing)])
+	_info("%s: 矢印を 見た 回数 %d、行き先の むき %.0f°〜%.0f°" % [where, seen, rad_to_deg(lo), rad_to_deg(hi)])
+	if seen < 3 or hi - lo < 1.0:
+		_fail("%s: 矢印を 見た 向きが 少ない（%d 回、はば %.0f°。この テストが 何も 見て いない）" % [where, seen, rad_to_deg(hi - lo) if seen > 0 else 0.0])
+	Game.unload_level()
 
 
 func _check_back_hold(id: String) -> void:
@@ -2504,6 +2712,13 @@ func _check_back_hold(id: String) -> void:
 	var last: Vector3 = p.global_position
 	var t := 0.0
 	Input.action_press("move_down")
+	if tube:
+		# くだの はじめで うしろへ はねかえされる（てきに あたった）：はねかえりでも はじめから 外へ 出ない
+		var hearts0: int = p.hearts
+		p.hurt(p.global_position + (lvl.path_direction_at(p.global_position) as Vector3))
+		if p.hearts >= hearts0:
+			_fail("%s: hurt() が はたらかない（この テストが 何も 見て いない）" % where)
+		last = p.global_position
 	while t < 12.0:
 		await get_tree().physics_frame
 		t += get_physics_process_delta_time()
@@ -2516,6 +2731,7 @@ func _check_back_hold(id: String) -> void:
 		var g: Dictionary = p.get_world_3d().direct_space_state.intersect_ray(q)
 		if g.is_empty() or (g["normal"] as Vector3).y < 0.3:
 			no_floor += 1
+	_check_free_step(p, where + "（↓ で うしろに おしつけた あと）")
 	Input.action_release("move_down")
 	_info("%s: ↓ 12 びょうで もどし %d 回、いちばん 下 %.1f m、ゆかが ない フレーム %d" % [where, rescues, low, no_floor])
 	# ひろい 場所では かべに おしつけて もどしが はたらく。くだでは はじめで とまる（もどしは なくて よい）
@@ -2525,5 +2741,49 @@ func _check_back_hold(id: String) -> void:
 		_fail("%s: 船が スタートより %.1f m 下へ おちた（へやの 外）" % [where, -low])
 	if no_floor > 5:
 		_fail("%s: 船の 下に ゆかが ない フレームが %d（へやの 外）" % [where, no_floor])
+	if id == "intestine":
+		await _check_tube_rescue(lvl)
 	Game.unload_level()
 	await get_tree().process_frame
+
+
+## くだの とちゅうで うしろへ おして はさまる（うしろに かべ）：もどしは 道の まえへ（うしろの かべへ おしこまない）
+func _check_tube_rescue(lvl) -> void:
+	var p = lvl.player
+	var where := "tube rescue %s" % lvl.stage_id
+	p.global_position = (lvl.path.sample(40.0)["position"] as Vector3) + Vector3.UP * 1.2
+	p.velocity = Vector3.ZERO
+	for i in 20:
+		await get_tree().physics_frame
+	var pd: Vector3 = lvl.path_direction_at(p.global_position)
+	var wall := StaticBody3D.new()
+	wall.collision_layer = 1
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(30, 20, 0.5)
+	cs.shape = bx
+	wall.add_child(cs)
+	lvl.add_child(wall)
+	wall.global_position = p.global_position - pd * 1.5
+	wall.look_at(wall.global_position + pd, Vector3.UP)
+	await get_tree().physics_frame
+	var forward := 0
+	var backward := 0
+	var last: Vector3 = p.global_position
+	var t := 0.0
+	Input.action_press("move_down")
+	while t < 7.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		if p.global_position.distance_to(last) > 0.45:
+			var dp: float = lvl.path.progress_at(p.global_position) - lvl.path.progress_at(last)
+			if dp > 2.0:
+				forward += 1
+			elif dp < -0.5:
+				backward += 1
+		last = p.global_position
+	Input.action_release("move_down")
+	wall.queue_free()
+	_info("%s: うしろに かべ、↓ 7 びょうで まえへ もどし %d 回、うしろへ %d 回" % [where, forward, backward])
+	if forward == 0 or backward > 0:
+		_fail("%s: うしろへ おして はさまった とき まえへ もどさない（まえ %d 回、うしろ %d 回）" % [where, forward, backward])

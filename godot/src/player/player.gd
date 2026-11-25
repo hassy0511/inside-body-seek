@@ -202,6 +202,7 @@ func _physics_process(delta: float) -> void:
 		if along < carry_speed:
 			target_vel += carry_dir * (carry_speed - along)
 	steer(target_vel, ACCEL if hit_stun <= 0.0 else 5.0, delta)
+	velocity = _tube_start_guard(velocity, true)   # はねかえり（hurt・bump）も はじめから 外へ 出さない
 	if dir.length() > 0.1 and not is_steering():
 		# slerp は 反対向きのとき 軸の正規化エラーを出すことがあるので、普通の補間＋正規化にする
 		var h := heading.lerp(dir, minf(1.0, 10.0 * delta))
@@ -257,7 +258,7 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 		if _stuck_count <= 2 and level.has_method("path_direction_at"):
 			# まず 3 m 後ろへ（くだなら道にそって）
 			var back: Vector3 = -level.path_direction_at(global_position) if level.path.is_valid() else -heading
-			if not is_steering() and level.path.is_valid() and dir.dot(-back) < 0.0:
+			if _in_tube() and level.path.is_valid() and dir.dot(-back) < 0.0:
 				# くだで うしろへ おして はさまった（はじめの ふた など）：まえへ もどす
 				back = -back
 			if is_steering():
@@ -281,14 +282,25 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 		_stuck_from = global_position
 
 
+## くだの 場所か（カメラが 道に そう）。自動操縦でも くだなら true
+func _in_tube() -> bool:
+	return camera != null and bool(camera.get("tube_mode"))
+
+
 ## くだの 場所の はじめ（TUBE_START_GUARD m まで）では、道を うしろへ むかう 速さを けす。
-## ひらいた はじめから 船が 外へ 出て おちる ことが ない ように（ひろい 場所と 自動操縦は そのまま）
-func _tube_start_guard(v: Vector3) -> Vector3:
-	if level == null or camera == null or not camera.get("tube_mode") or not level.has_method("path_direction_at"):
+## ひらいた はじめから 船が 外へ 出て おちる ことが ない ように。ひろい 場所では なにも しない。
+## くだなら 自動操縦（テスト）にも かかる。flat：よこの 速さ（x・z）だけ 見る（はねかえった あとの velocity に つかう）
+func _tube_start_guard(v: Vector3, flat := false) -> Vector3:
+	if level == null or not _in_tube() or not level.has_method("path_direction_at"):
 		return v
 	if level.path == null or not level.path.is_valid() or level.path.progress_at(global_position) > TUBE_START_GUARD:
 		return v
 	var pd: Vector3 = level.path_direction_at(global_position)
+	if flat:
+		pd.y = 0.0
+		if pd.length() < 0.01:
+			return v
+		pd = pd.normalized()
 	var along := v.dot(pd)
 	if along < 0.0:
 		v -= pd * along

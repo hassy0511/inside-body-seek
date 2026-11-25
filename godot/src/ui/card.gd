@@ -139,6 +139,7 @@ static func picture(kind: String, stage_id: String, size: Vector2, spin := true)
 static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	var box := Control.new()
 	box.custom_minimum_size = size
+	box.size = size   # ならべる 前から 大きさを もたせる（下の SubViewport が 0×0 に ならない）
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var model_name := kind
 	if kind == "stage" or kind == "goal" or kind == "":
@@ -161,7 +162,8 @@ static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
-	sv.size = Vector2i(size)
+	# 大きさは 書かない：stretch が 入れものの 大きさに 合わせる（stretch の 下で 書くと Godot が 警告を 出して 書きかえない）。
+	# 入れもの（box）には 上で 大きさを もたせて あるので、0×0 の 絵（ブラウザ版の「Could not create render target」）に ならない
 	sv.own_world_3d = true
 	svc.add_child(sv)
 	var cam := Camera3D.new()
@@ -192,10 +194,8 @@ static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	pivot.rotation.y = -0.5
 	sv.add_child(pivot)
 	box.add_child(svc)
-	box.ready.connect(func():
-		# 画面の 大きさに 合わせて こまかく 描く（窓が 大きい ときに ぼやけない）
-		sv.size = Vector2i(size * T.window_scale(box))
-		if spin:
+	if spin:
+		box.ready.connect(func():
 			var tw := box.create_tween().set_loops()
 			tw.tween_property(pivot, "rotation:y", TAU, 6.0).from(0.0))
 	return box

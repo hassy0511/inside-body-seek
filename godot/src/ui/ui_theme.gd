@@ -100,6 +100,11 @@ static func nobreak(text: String) -> String:
 	return out
 
 
+## どこでも 折れない 文（空白の 前後にも WJ）。前の ことばにも くっつく（ミッションの「 0 / 6」を 1 行め に のこさない）
+static func glue(text: String) -> String:
+	return WJ + text.replace(" ", WJ + " " + WJ)
+
+
 ## 自動で 折りかえす 本文の ラベル（ことばの 途中で 折らない）。あとで 文を 入れかえる ときも nobreak() を 通す
 static func body(text: String, size := 26, color := INK, regular := true) -> Label:
 	var l := label(nobreak(text), size, color)

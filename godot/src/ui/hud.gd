@@ -192,7 +192,9 @@ func _refresh_missions() -> void:
 	if level == null:
 		return
 	for m in level.missions:
-		var l := T.body(("● " if m.done else "○ ") + m.label(), 24, Color(0.45, 0.7, 0.5) if m.done else T.INK, false)
+		# 数（0 / 6）は さいごの ことばと 同じ 行に（数だけが 下の 行に のこらない）
+		var txt: String = ("● " if m.done else "○ ") + (m.text if m.is_reach() else m.text + T.glue("  %d / %d" % [m.current, m.count]))
+		var l := T.body(txt, 24, Color(0.45, 0.7, 0.5) if m.done else T.INK, false)
 		_mission_box.add_child(l)
 		_mission_labels.append(l)
 

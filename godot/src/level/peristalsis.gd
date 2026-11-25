@@ -7,7 +7,8 @@ extends Node3D
 ## ・しまる わの すぐ 前（w − ZONE_BACK 〜 w ＋ ZONE_FRONT）に いる ミクロごうは なみに のる：
 ##   前へは なみの はやさより おそく ならない（player.carry_*）。よこは じぶんで うごける。
 ##   のった しゅんかんに 音、カメラが 少し ひろがり、左上の「なみに のって ○ センチ」が のびる。
-##   出す 数は 本物の からだの 長さ（"waves" の "body_cm"。しょくどうは やく 25 cm）に なおす（ゲームの 道は 400 m より 長い）。
+##   はじめて のるまでは 左上は「なみに のろう！」（0 センチを 見せない）。
+##   出す 数は 本物の からだの 長さ（"waves" の "body_cm"。しょくどうは やく 25 センチ）に なおす（ゲームの 道は 400 m より 長い）。
 ## ・場面の "lumps"（かず）が あれば、のみこんだ ばかりの たべものの かたまりを 出す（カルテ 2）。かたまりは ゆっくり くだり、
 ##   わが しまる ときに ぐっと おされる。い（胃）の 入口まで いくと スタートの うしろから また 来る（つぎの ひとくち）。
 ##   ミクロごうが ぶつかると はねかえって なみから おち、少しの あいだ ゆっくり（ハートは へらない）。つぎの なみが また のせて くれる。
@@ -331,7 +332,7 @@ func clear_text(base: String) -> String:
 	return "%s なみに のって %d センチ すすんだよ！" % [base, ride_cm()]
 
 
-## なみに のって すすんだ 長さを 本物の からだの センチに なおした 数（カードの「やく 25 cm」と 合う）
+## なみに のって すすんだ 長さを 本物の からだの センチに なおした 数（カードの「やく 25 センチ」と 合う）
 func ride_cm() -> int:
 	var total: float = level.path.total if level != null and level.path != null else 0.0
 	if total <= 0.0:
@@ -379,13 +380,22 @@ func _update_readout(delta: float) -> void:
 	if _readout == null or not is_instance_valid(_readout):
 		return
 	_pulse = maxf(_pulse - delta * 2.0, 0.0)
-	_readout_label.text = ("なみに のってる！ %d センチ" if riding else "なみに のって %d センチ") % ride_cm()
+	_readout_label.text = readout_text()
 	_readout.add_theme_stylebox_override("panel", _box_on if riding else _box_off)
 	_readout.pivot_offset = _readout.size * 0.5
 	_readout.scale = Vector2.ONE * (1.0 + Game.HudScene.READOUT_PULSE * _pulse)
 	for c in _readout.get_child(0).get_children():
 		if not (c is Label):
 			c.queue_redraw()
+
+
+## 左上の 文：はじめて のるまでは 数を 出さない
+func readout_text() -> String:
+	if riding:
+		return "なみに のってる！ %d センチ" % ride_cm()
+	if ride_count == 0:
+		return "なみに のろう！"
+	return "なみに のって %d センチ" % ride_cm()
 
 
 func _exit_tree() -> void:

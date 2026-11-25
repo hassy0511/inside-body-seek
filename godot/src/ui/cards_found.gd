@@ -115,13 +115,17 @@ func _ready() -> void:
 
 
 ## だいめいの 折れて よい ところ：空白の あと・「（」の 前・ひらがなと カタカナの さかい（「かぜ｜ウイルス｜だいおう」）。
+## ただし 1 字の じょし（「コレステロールの かたまり」の「の」）は 前の ことばに つける（行の はじめに じょしを 出さない）。
 ## ほかの 字の あいだは 折らない（T.nobreak）。タイルは せまいので、ことばの さかいで 2〜3 行に する
+const PARTICLES := "のはがをにとでも"
+
+
 static func segments(title: String) -> PackedStringArray:
 	var out := PackedStringArray()
 	var cur := ""
 	for i in title.length():
 		var ch := title[i]
-		if cur != "" and (ch == "（" or _script(ch) * _script(cur[cur.length() - 1]) < 0):
+		if cur != "" and (ch == "（" or (_script(ch) * _script(cur[cur.length() - 1]) < 0 and not _lone_particle(title, i))):
 			out.append(cur)
 			cur = ""
 		if ch == " " or ch == "　":
@@ -133,6 +137,18 @@ static func segments(title: String) -> PackedStringArray:
 	if cur != "":
 		out.append(cur)
 	return out
+
+
+## i の 字が 1 字だけの じょし（あとが 空白か おわり）か
+static func _lone_particle(title: String, i: int) -> bool:
+	if not PARTICLES.contains(title[i]):
+		return false
+	return i + 1 >= title.length() or title[i + 1] == " " or title[i + 1] == "　"
+
+
+## 行の はしの 空白を とる（全角の 空白 U+3000 も。strip_edges は とらない）
+static func _trim(s: String) -> String:
+	return s.strip_edges().lstrip("　").rstrip("　").strip_edges()
 
 
 ## ひらがな ＝ 1、カタカナ（ー を ふくむ）＝ -1、ほか ＝ 0
@@ -157,13 +173,13 @@ static func title_lines(title: String, size: int) -> PackedStringArray:
 	var cur := ""
 	for seg in segments(title):
 		var trial := cur + seg
-		if cur != "" and _width(trial.strip_edges(), size) > TILE.x - 20.0:
-			out.append(cur.strip_edges())
+		if cur != "" and _width(_trim(trial), size) > TILE.x - 20.0:
+			out.append(_trim(cur))
 			cur = seg
 		else:
 			cur = trial
-	if cur.strip_edges() != "":
-		out.append(cur.strip_edges())
+	if _trim(cur) != "":
+		out.append(_trim(cur))
 	return out
 
 
@@ -178,7 +194,7 @@ static func title_size(title: String) -> int:
 	while size > TITLE_MIN:
 		var ok := true
 		for p in parts:
-			if Game.font_bold.get_string_size(p.strip_edges(), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > TILE.x - 20.0:
+			if Game.font_bold.get_string_size(_trim(p), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > TILE.x - 20.0:
 				ok = false
 		if ok:
 			break
@@ -223,7 +239,7 @@ func overflow() -> String:
 			return "タイル %s の だいめいが %d 行" % [keys[i], l.get_line_count()]
 		var tt := String(StageDB.card(stage_id, keys[i]).get("title", ""))
 		for p in segments(tt):
-			if _width(p.strip_edges(), title_size(tt)) > TILE.x - 20.0:
+			if _width(_trim(p), title_size(tt)) > TILE.x - 20.0:
 				return "タイル %s の だいめいが ことばの とちゅうで 折れる（%s）" % [keys[i], p]
 		# 行は じぶんで 決めた もの だけ（ラベルの 折りかえしに まかせない）：どの 行も 幅に 入り、ことばの さかいで 切れて いる
 		if l.autowrap_mode != TextServer.AUTOWRAP_OFF:
@@ -236,6 +252,8 @@ func overflow() -> String:
 				return "タイル %s の だいめいの 行「%s」が タイルに 入らない" % [keys[i], ln]
 			if not _on_border(tt, ln):
 				return "タイル %s の だいめいの 行「%s」が ことばの とちゅうで 切れて いる" % [keys[i], ln]
+			if ln != lines[0] and _lone_particle(ln, 0):
+				return "タイル %s の だいめいの 行「%s」が じょしで はじまる" % [keys[i], ln]
 	if _bubble.get_combined_minimum_size().y > ROW_Y - 56.0 - 8.0:
 		return "ふきだしが 高い"
 	return ""
@@ -252,6 +270,6 @@ static func _on_border(title: String, line: String) -> bool:
 		var joined := ""
 		for b in range(a, segs.size()):
 			joined += segs[b]
-			if joined.strip_edges() == line:
+			if _trim(joined) == line:
 				return true
 	return false
