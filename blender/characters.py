@@ -18,6 +18,8 @@ try:
     from . import common as C
     from . import mushiba as MUSHIBA
     from . import pod as POD
+    from . import pylori as PYLORI
+    from . import wallcell as WALLCELL
 except ImportError:  # blender -b -P で直接実行したとき
     import os
     import sys
@@ -25,6 +27,8 @@ except ImportError:  # blender -b -P で直接実行したとき
     from blender import common as C
     from blender import mushiba as MUSHIBA
     from blender import pod as POD
+    from blender import pylori as PYLORI
+    from blender import wallcell as WALLCELL
 
 
 def curve_tube(name, points, radius, mat, resolution=4, smooth=True, taper=False):
@@ -93,26 +97,8 @@ def build_mushiba():
 
 
 def build_pylori():
-    purple = C.material("PyloriPurple", (0.6, 0.42, 0.8), 0.6)
-    light = C.material("PyloriLight", (0.8, 0.7, 0.95), 0.6)
-    pts = []
-    n = 26
-    for i in range(n):
-        t = i / (n - 1)
-        a = t * math.pi * 3.0
-        pts.append((math.cos(a) * 0.28, (t - 0.5) * 1.4, math.sin(a) * 0.28))
-    body = curve_tube("pylori_body", pts, 0.17, purple, 5)
-    parts = [body]
-    # べん毛（うしろに 3 本）
-    for k in range(3):
-        a = k * math.pi * 2 / 3
-        fl = [(math.cos(a) * 0.12, -0.75 - j * 0.1, math.sin(a) * 0.12 + math.sin(j * 1.3 + k) * 0.06) for j in range(7)]
-        parts.append(curve_tube(f"pylori_fl{k}", fl, 0.03, light, 3, taper=True))
-    parts += C.eyes("pylori", 0.78, 0.15, spacing=0.14, r=0.08, pupil=0.045)
-    parts.append(C.smile("pylori", 0.84, 0.0, 0.08, thickness=0.018))
-    o = C.join(parts, "pylori")
-    C.shade_smooth(o, 60)
-    return o
+    """ピロリきん。絵から 3D 化した 本番の 形は blender/pylori.py に ある。"""
+    return PYLORI.build_pylori()
 
 
 def build_akudama():
@@ -254,29 +240,8 @@ def build_zendama():
 
 
 def build_wallcell():
-    """い（胃）の かべの さいぼう（仮）。W2 の 色（からだ #ECA66F、ねんえきの あわ #9EDCE5）で、角の まるい ずんぐりした 形。
-    ミクロごうより 小さく して、さわった ときに 船が かくれない ように する。絵が 来たら 作りなおす"""
-    def linear(h):
-        c = [int(h[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
-        return tuple(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
-
-    body_m = C.material("CellOrange", linear("#ECA66F"), 0.8)
-    cap_m = C.material("CellMucus", linear("#9EDCE5"), 0.45)
-    cheek = C.material("Cheek", (1.0, 0.6, 0.65), 0.8)
-    body = C.add_sphere("wallcell_body", 0.42, (0, 0, 0), 28, 18, body_m, scale=(1.05, 0.95, 0.95))
-    parts = [body]
-    parts += C.eyes("wallcell", 0.37, 0.05, spacing=0.17, r=0.085, pupil=0.045)
-    parts.append(C.smile("wallcell", 0.4, -0.12, 0.11, thickness=0.022))
-    for sx in (-1, 1):
-        parts.append(C.add_sphere(f"wallcell_cheek{sx}", 0.05, (sx * 0.27, 0.33, -0.08), 8, 6, cheek))
-    # ねんえきの あわ：あたまに のる もこもこ（3 つの まるで）
-    parts.append(C.add_sphere("wallcell_mucus", 0.36, (0, 0, 0.33), 20, 12, cap_m, scale=(1.15, 1.05, 0.55)))
-    for i, (dx, dy) in enumerate([(-0.2, 0.05), (0.18, -0.05), (0.0, 0.2)]):
-        parts.append(C.add_sphere(f"wallcell_mucus{i}", 0.17, (dx, dy, 0.48), 12, 8, cap_m))
-    o = C.join(parts, "wallcell")
-    C.apply_modifiers(o)
-    C.shade_smooth(o, 50)
-    return o
+    """い（胃）の かべの さいぼう。絵から 3D 化した 本番の 形は blender/wallcell.py に ある。"""
+    return WALLCELL.build_wallcell()
 
 
 def build_villus():

@@ -11,6 +11,7 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ## 光：絵と くらべる 向きは、カメラの 左上から 当たる やわらかい 白い 光（--light=studio）。game_* は level.gd の いまの 光と 同じ。
 ## --light=dark で 暗い ステージを まねた 光、--light=flat で 光なし（色と 焼いた 影だけ）、
 ## --light=shadow で ゲームの 光に 太陽の 影を 足した もの（ステージが 影を 使う ように なった ときの 見え方）に する。
+## --size=2.6 で 正投影の 写す 幅（m。既定 1.72）を 変える（大きい キャラクター 用）。
 ## --hide=Window のように 書くと、その 名前の 部品を かくして 撮る（中を 見る とき）。--no-omni で 船の 明かり（player.gd の OmniLight）を 消す。
 ## --stage=mouth [--play=秒] を 書くと、モデルではなく 本物の 場所を 自動操縦で 進めてから、HUD を かくして 撮る
 ## （ピコの ふきだしが 船に 重なって 見えないので）。画面 全体（stage_<id>.png）と、船の まわりを 3 倍に した 絵（stage_<id>_zoom.png）。
@@ -34,6 +35,7 @@ var _env: Environment
 var _sun: DirectionalLight3D
 var _omni: OmniLight3D
 var _floor: MeshInstance3D
+var _ortho := 1.72
 
 
 func _ready() -> void:
@@ -59,6 +61,8 @@ func _ready() -> void:
 			stage = a.substr(8)
 		elif a.begins_with("--play="):
 			play = float(a.substr(7))
+		elif a.begins_with("--size="):
+			_ortho = float(a.substr(7))
 	DirAccess.make_dir_recursive_absolute(out)
 	if stage != "":
 		await _shoot_stage(stage, play, out)
@@ -164,7 +168,7 @@ func _set_view(v: String, light: String) -> void:
 		var d: Vector3 = (VIEWS[v][0] as Vector3).normalized()
 		var at: Vector3 = VIEWS[v][3] if VIEWS[v].size() > 3 else Vector3.ZERO
 		_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-		_cam.size = VIEWS[v][2] if VIEWS[v].size() > 2 else 1.72
+		_cam.size = VIEWS[v][2] if VIEWS[v].size() > 2 else _ortho
 		_cam.position = at + d * 6.0
 		_cam.look_at(at, VIEWS[v][1])
 	if mode == "studio":

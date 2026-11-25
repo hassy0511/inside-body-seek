@@ -190,6 +190,8 @@ static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	var half := maxf(bb.size.x, maxf(bb.size.y, bb.size.z)) * 0.5
 	if reach > half:
 		model.scale *= half / reach
+	# 上下は 形の まん中を わくの まん中に（原点が ゆかの 近くや 上に ある モデル（かべの さいぼう）でも 切れない）
+	model.position.y = -(bb.position.y + bb.size.y * 0.5) * model.scale.y
 	pivot.add_child(model)
 	pivot.rotation.y = -0.5
 	sv.add_child(pivot)
