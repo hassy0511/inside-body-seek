@@ -218,6 +218,11 @@ func _static_step(delta: float) -> void:
 func _player() -> Node3D:
 	if not is_inside_tree():
 		return null
+	# 毎フレーム 呼ぶので、場面が 知って いる 船を そのまま 使う（グループを さがすと 毎回 配列を 作る）
+	if level != null:
+		var lp = level.get("player")
+		if lp != null and is_instance_valid(lp):
+			return lp
 	var ps := get_tree().get_nodes_in_group("player")
 	return ps[0] if ps.size() > 0 else null
 

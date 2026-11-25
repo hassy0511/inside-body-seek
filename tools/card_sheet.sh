@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ものしりカードの 3D の 絵を キャラクターの GLB ぜんぶ について ならべた 1 枚（Xvfb + Mesa）。
-#   使い方: GODOT=/path/to/godot tools/card_sheet.sh <出力.png> [--angles=-50,0,50] [--still] [--size=260x300]
+#   使い方: GODOT=/path/to/godot tools/card_sheet.sh <出力.png> [--angles=-50,0,50] [--still] [--size=320x400]
 #   くわしい 説明は godot/tests/card_sheet.gd の 先頭。
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -13,6 +13,9 @@ const Sheet := preload("res://src/ui/karte_sheet.gd")
 const STILL_DEG := 35.0
 const SWAY_DEG := 50.0
 const SWAY_SEC := 8.0
+## カードの 左の 絵の わく。文の 列の 幅（548）は 変えずに、カードを 880 → 940 に 広げて 絵に 回した
+## （絵を はかった 大きさの まま 出す ように したら、よこ 260 では 前より 小さく 見えた）。納品の 挿絵（約 256×300）も 比を 保って この わくに 入る
+const PIC_SIZE := Vector2(320, 400)
 const PIC_CAM := Vector3(0, 0.75, -4.2)
 const PIC_FOV := 40.0
 ## 形の はこの かどが わくの はし から この わりあい（まん中 0、はし 1）より 内がわ
@@ -58,8 +61,8 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	_panel.anchor_right = 0.5
 	_panel.anchor_top = 0.5
 	_panel.anchor_bottom = 0.5
-	_panel.offset_left = -440
-	_panel.offset_right = 440
+	_panel.offset_left = -470
+	_panel.offset_right = 470
 	_panel.offset_top = -230
 	_panel.offset_bottom = 230
 	_panel.add_theme_stylebox_override("panel", T.rounded(T.CREAM, 30, 6, T.YELLOW))
@@ -87,7 +90,7 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	var sid := stage_id if stage_id != "" else Game.current_stage_id
 	var pic: Control = null
 	if not is_karte:
-		pic = picture(image_kind, sid, Vector2(260, 300))
+		pic = picture(image_kind, sid, PIC_SIZE)
 	if pic:
 		hb.add_child(pic)
 
@@ -174,11 +177,22 @@ static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	var svc := SubViewportContainer.new()
 	svc.stretch = true
 	svc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# 絵は いつも size ぴったり（入れもの box の まん中）。ならべる 側が box を のばしても 絵の 大きさは 変えない：
+	# カードの 中では box が たてに のびる（はじめは 260×300 の 絵が 260×404 に のびて いた）。それに 合わせて 絵まで のばすと、たての 画角は 同じ なので
+	# 中身が 1.4 倍に 大きく なって、よこが わくで 切れた（ピロリきんの しょく手と 顔）。picture_fit() は size で はかって いる
+	svc.anchor_left = 0.5
+	svc.anchor_right = 0.5
+	svc.anchor_top = 0.5
+	svc.anchor_bottom = 0.5
+	svc.offset_left = -size.x * 0.5
+	svc.offset_right = size.x * 0.5
+	svc.offset_top = -size.y * 0.5
+	svc.offset_bottom = size.y * 0.5
+	box.set_meta("pic_size", size)
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
-	# 大きさは 書かない：stretch が 入れものの 大きさに 合わせる（stretch の 下で 書くと Godot が 警告を 出して 書きかえない）。
-	# 入れもの（box）には 上で 大きさを もたせて あるので、0×0 の 絵（ブラウザ版の「Could not create render target」）に ならない
+	# SubViewport の 大きさは 書かない：stretch が svc の 大きさ（上で 決めた size）に 合わせる（stretch の 下で 書くと Godot が 警告を 出す）。
+	# svc は 作った ときから size なので、0×0 や 大きすぎる 絵（ブラウザ版の「Could not create render target」）に ならない
 	sv.own_world_3d = true
 	svc.add_child(sv)
 	var cam := Camera3D.new()

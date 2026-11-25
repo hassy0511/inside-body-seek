@@ -69,6 +69,7 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 | `tools/compare/` | 同じ指示文で別々に作られた 2 つの実装（A・B）を遊べる形にする、一時的なくらべもの |
 | `godot/tests/smoke.gd` | その中身（画面はボタンを押して進め、場面は自動操縦でクリアまで） |
 | `tools/screenshot.sh`、`godot/tests/shot.gd` | 画面・場面・モデルのスクリーンショット（Xvfb + Mesa） |
+| `tools/card_sheet.sh`、`godot/tests/card_sheet.gd` | ものしりカードの 3D の絵を、キャラクターの GLB ぜんぶについて角度ごとに 1 枚にならべる（`<出力.png> [--angles=-50,0,50] [--still] [--size=320x400]`。絵は回らず、顔のまわりでゆれる） |
 | `tools/build_dashboard.py` | 進み具合のページ（GitHub Pages）を作る。CI が main への push ごとに回す |
 
 ## 3D モデルの作り直し（Blender）
@@ -140,7 +141,7 @@ Godot は GLB の中の Empty の名前を見てスポーンします（`MK_<種
 
 ## 絵と 3D モデルの発注（Codex）
 
-見た目はすべて仮（スクリプト生成）。本番の絵は Codex に発注し、届いた絵をもとに Claude が組み込む。
+見た目は、届いた絵から作りなおしたもの（ミクロごう・むしばきん・ピロリきん・い（胃）の かべの さいぼう、口・食道・胃のステージ。状態は `docs/dashboard.md` 4 章）のほかは仮（スクリプト生成）。本番の絵は Codex に発注し、届いた絵をもとに Claude が組み込む。
 
 - 発注書と進め方：`docs/art_orders/README.md`（波 W0〜W4、渡すもの、納品先 `art/concepts/`、修正の出し方）
 - Codex に貼る文：`docs/art_orders/codex_prompts.md`（いま出すものは `docs/dashboard.md` 7 章）

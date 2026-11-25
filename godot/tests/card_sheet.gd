@@ -1,6 +1,6 @@
 extends Control
 ## ものしりカードの 3D の 絵（card.gd の _model_picture）を、キャラクターの GLB ぜんぶ について ならべた 1 枚に する。
-##   tools/card_sheet.sh <出力.png> [--angles=-50,0,50] [--still] [--size=260x300]
+##   tools/card_sheet.sh <出力.png> [--angles=-50,0,50] [--still] [--size=320x400]
 ## 1 行 ＝ 1 体（godot/assets/models/characters/*.glb の 名前じゅん）、1 列 ＝ 1 つの 向き（絵の まわる 軸の 角度。0 ＝ 顔が 正面）。
 ## --still を 書くと、さいごの 列に 止まった 絵（タイルと 同じ、spin = false の まま）を 足す。
 ## 絵の まわりの うすい わくが カードの 絵の わく。ここから 出た ところは カードでは 切れる。
@@ -13,7 +13,7 @@ func _ready() -> void:
 	var out := "/tmp/card_sheet.png"
 	var angles: Array[float] = [-50.0, 0.0, 50.0]
 	var still := false
-	var size := Vector2i(260, 300)
+	var size := Vector2i(320, 400)   # カードの 絵の わく（card.gd の PIC_SIZE）
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.substr(6)
