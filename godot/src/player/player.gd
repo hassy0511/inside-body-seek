@@ -45,6 +45,11 @@ var level: Node = null
 var camera: Node3D = null
 var model: Node3D
 var arrow: Node3D
+## 矢印の 向き（rad。0 ＝ 画面の 上 ＝ まえ、＋ ＝ 右、±π ＝ うしろ）。テストが 見る
+var arrow_angle := 0.0
+const ARROW_Y := 1.6
+const ARROW_NEAR := 7.0          # この m より 近くて
+const ARROW_NEAR_ANGLE := 0.45   # まえ ±26° に ある 行き先には 矢印を 出さない
 var hitbox: Area3D
 var _blink := 0.0
 var _propeller: Node3D
@@ -100,24 +105,42 @@ func _ready() -> void:
 
 
 func _make_arrow() -> Node3D:
+	# 行き先の 矢印：ひらたい 矢じるしを いつも 画面に 向けて、船の 上に うかべる。
+	# 画面の 上 ＝ まえ、右 ＝ みぎ、下 ＝ うしろ（カメラは いつも 船の 後ろに いる）。
+	# 前は 円すいを 行き先へ 向けて いた：行き先が まえに ある とき（いちばん 多い）は まうしろから 見る ことに なり、
+	# ただの 丸に 見えた（ブラウザ版の 見なおしで、ゴールの 横の「青い 玉」に 見えた）
 	var pivot := Node3D.new()
 	pivot.name = "Arrow"
-	pivot.position = Vector3(0, 1.9, 0)
-	var mi := MeshInstance3D.new()
-	var cone := CylinderMesh.new()
-	cone.top_radius = 0.0
-	cone.bottom_radius = 0.28
-	cone.height = 0.7
-	mi.mesh = cone
-	mi.rotation_degrees = Vector3(-90, 0, 0)
-	mi.position = Vector3(0, 0, -0.5)
-	# 水色（光る 黄色は ゴールだけに する。黄色い 矢印は まうしろから 見ると まるく、ゴールの 輪と まちがえた）。
-	# 光らせすぎない：色を 足しすぎると 白い 玉に 見える
-	mi.material_override = ModelLib.flat_material(Color(0.30, 0.74, 1.0), Color(0.05, 0.22, 0.42))
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	pivot.add_child(mi)
+	pivot.position = Vector3(0, ARROW_Y, 0)
+	var dart := Node3D.new()
+	dart.name = "Dart"
+	pivot.add_child(dart)
+	# 白い ふちの 上に 水色（光る 黄色は ゴールだけ）。光を 受けない 色で 描く（かげで 色が かわらない）
+	dart.add_child(_dart_mesh(1.0, Color(1.0, 1.0, 1.0), 0.0))
+	dart.add_child(_dart_mesh(0.74, Color(0.22, 0.62, 0.98), 0.012))
 	pivot.visible = false
 	return pivot
+
+
+## 矢じるしの 形（上向き。たて 0.66 m・よこ 0.60 m に k を かけた 大きさ）。z は 画面の 手前へ ずらす 量
+func _dart_mesh(k: float, color: Color, z: float) -> MeshInstance3D:
+	var tip := Vector3(0.0, 0.36, z) * Vector3(k, k, 1.0)
+	var right := Vector3(0.30, -0.30, z) * Vector3(k, k, 1.0)
+	var notch := Vector3(0.0, -0.12, z) * Vector3(k, k, 1.0)
+	var left := Vector3(-0.30, -0.30, z) * Vector3(k, k, 1.0)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for v in [tip, right, notch, tip, notch, left]:
+		st.add_vertex(v)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = color
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 func _physics_process(delta: float) -> void:
@@ -474,7 +497,7 @@ func _update_arrow(delta: float) -> void:
 	if to.length() < 3.0:
 		arrow.visible = false
 		return
-	# くだの 場所で 行き先が 道の 先に ある ときは 出さない（道は 1 本。まうしろから 見た 矢印は 黄色い まるに 見え、ゴールと まちがえる）
+	# くだの 場所で 行き先が 道の 先に ある ときは 出さない（道は 1 本。まえを 指す 矢印が ずっと 出て いると じゃまに なる）
 	if level.get("stage") is Dictionary and level.stage.get("kind", "") == "tube" and level.get("path") != null and level.path.is_valid():
 		var pd: Vector3 = level.path.direction_at(global_position)
 		pd.y = 0.0
@@ -482,6 +505,19 @@ func _update_arrow(delta: float) -> void:
 			arrow.visible = false
 			return
 	arrow.visible = true
-	var yaw := HoverBody.yaw_for(to.normalized())
-	arrow.rotation.y = lerp_angle(arrow.rotation.y, yaw, minf(1.0, 8.0 * delta))
-	arrow.position.y = 1.9 + sin(Time.get_ticks_msec() / 200.0) * 0.1
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	# いつも 画面に 向ける（大きさは そのまま：撮影の 道具は 大きさ 0 で かくす）
+	var sc := arrow.scale
+	var cb := cam.global_transform.basis.orthonormalized()
+	var bob := sin(Time.get_ticks_msec() / 200.0) * 0.1
+	arrow.global_transform = Transform3D(cb.scaled(sc), global_position + Vector3.UP * (ARROW_Y + bob))
+	# 行き先を カメラから 見た 向き（x ＝ 右、-z ＝ おく）。0 ＝ まえ（画面の 上）、＋ ＝ 右
+	var rel := cb.inverse() * to
+	var want := atan2(rel.x, -rel.z)
+	arrow_angle = lerp_angle(arrow_angle, want, minf(1.0, 8.0 * delta))
+	(arrow.get_node("Dart") as Node3D).rotation.z = -arrow_angle
+	# 行き先が すぐ まえに 見えて いる あいだは かくす（矢印が 相手に かぶさる）
+	if to.length() < ARROW_NEAR and absf(want) < ARROW_NEAR_ANGLE:
+		arrow.visible = false
