@@ -41,6 +41,17 @@ func _dash_center() -> Vector2:
 	return Vector2(size.x - 80, size.y - 235)
 
 
+## スティック・ボタンが 画面の 上で しめる 四角（HUD の しらせが 重ならない ことを テストが 見る）
+func button_rects() -> Dictionary:
+	var o := get_global_rect().position
+	var r := STICK_R + 10.0
+	return {
+		"stick": Rect2(o + _stick_home() - Vector2(r, r), Vector2(r, r) * 2.0),
+		"action": Rect2(o + _action_center() - Vector2(85, 85), Vector2(170, 170)),
+		"dash": Rect2(o + _dash_center() - Vector2(60, 60), Vector2(120, 120)),
+	}
+
+
 func _input(event: InputEvent) -> void:
 	if not visible or Game.level == null:
 		return

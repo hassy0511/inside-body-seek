@@ -15,6 +15,9 @@ var pitch := -0.33
 var distance := 5.2   # 絵（雰囲気画）の 近さに 寄せた。ミクロごうは 画面の 幅の 1 割ほど
 var height := 0.8   # ミクロごうが 画面の まん中より 少し 下（ふきだしの 上）に 来る 高さ
 var tube_mode := false
+## 0〜1：はやく はこばれて いる（しょくどうの なみ）。画角を 少し ひろげる（peristalsis.gd が 入れる）
+var boost := 0.0
+const BOOST_FOV := 9.0
 ## 俯瞰モード（しんけいパズルで ぜんぶの しんけいを 見せるとき）
 var overview_center: Vector3 = Vector3.INF
 var _cur_distance := 5.2
@@ -79,7 +82,7 @@ func _physics_process(delta: float) -> void:
 	var want_h := 6.0 if ov else height
 	var want_d := 36.0 if ov else distance
 	var want_p := -1.25 if ov else pitch
-	var want_fov := 85.0 if ov else 68.0
+	var want_fov := 85.0 if ov else 68.0 + BOOST_FOV * boost
 	var pw := 1.0 - exp(-3.0 * delta)
 	_cur_height = lerpf(_cur_height, want_h, pw)
 	_cur_distance = lerpf(_cur_distance, want_d, pw)
@@ -89,11 +92,12 @@ func _physics_process(delta: float) -> void:
 	if ov:
 		focus = overview_center - Vector3(-sin(yaw), 0, -cos(yaw)) * 9.0
 	var want := focus + Vector3.UP * _cur_height
-	var w := 1.0 - exp(-6.0 * delta)
+	# はやく はこばれて いる ときは おくれを へらす（まがる くだで カメラが かべの 外に 出ない）
+	var w := 1.0 - exp(-(6.0 + 14.0 * boost) * delta)
 	global_position = global_position.lerp(want, w)
 	var moving := Vector3(target.velocity.x, 0, target.velocity.z).length() > 1.0 if target is CharacterBody3D else true
 	var ty := _desired_yaw()
-	var yw := 1.0 - exp(-(2.6 if moving or tube_mode else 0.6) * delta)
+	var yw := 1.0 - exp(-((2.6 + 4.0 * boost) if moving or tube_mode else 0.6) * delta)
 	var steering: bool = target.has_method("is_steering") and target.is_steering()
 	if steering:
 		yw = 1.0 - exp(-STEER_FOLLOW * delta)

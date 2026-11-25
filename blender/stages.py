@@ -24,6 +24,8 @@ try:
     from . import common as C
     from . import characters as CH
     from . import stage_mouth as SM
+    from . import stage_esophagus as SE
+    from . import stage_stomach as SS
 except ImportError:
     import os
     import sys
@@ -31,6 +33,8 @@ except ImportError:
     from blender import common as C
     from blender import characters as CH
     from blender import stage_mouth as SM
+    from blender import stage_esophagus as SE
+    from blender import stage_stomach as SS
 
 
 # ------------------------------------------------------------------ 道（スプライン）
@@ -222,192 +226,14 @@ def build_mouth():
 
 # ------------------------------------------------------------------ 2. しょくどう
 def build_esophagus():
-    wall = C.material("EsophagusWall", (0.93, 0.46, 0.5), 0.85)
-    band = C.material("EsophagusBand", (0.76, 0.27, 0.37), 0.8)
-    fold = C.material("EsophagusFold", (0.96, 0.51, 0.56), 0.8)
-    wall2 = C.material("TracheaWall", (0.97, 0.82, 0.76), 0.85)
-    cart = C.material("TracheaRing", (1.0, 0.95, 0.9), 0.6)
-    flap = C.material("Epiglottis", (0.86, 0.42, 0.52), 0.8)
-    mucus = C.material("Mucus", (1.0, 0.88, 0.92), 0.2)
-    # ながい くねくねの すべりだい（やく 450 m・ゆるやかに くだる）
-    ctrl = [(0, 0, 0), (0, 28, -5), (9, 60, -14), (-11, 98, -26), (8, 140, -40), (-13, 182, -55),
-            (11, 225, -72), (-9, 268, -88), (6, 308, -103), (-5, 345, -116), (0, 375, -125), (0, 398, -130)]
-    pts = catmull_rom(ctrl, 18)
-    R = 5.2
-    RIBS, RIB_EVERY = 0.15, 6   # ふし（きんにくの しめつけ）：ふとい・ほそいを くりかえす
-
-    def rib_factor(i):
-        return 1.0 + RIBS * (0.5 + 0.5 * math.sin(i * math.pi * 2 / RIB_EVERY))
-
-    total = path_length(pts)
-    acc = [0.0]
-    for i in range(1, len(pts)):
-        acc.append(acc[-1] + (pts[i] - pts[i - 1]).length)
-
-    def local_radius(frac):
-        """ふしで 太さが かわるので、その場所の 本当の 半径"""
-        target = total * max(0.0, min(1.0, frac))
-        for i in range(1, len(pts)):
-            seg = acc[i] - acc[i - 1]
-            if acc[i] >= target or i == len(pts) - 1:
-                t = 0.0 if seg == 0 else max(0.0, min(1.0, (target - acc[i - 1]) / seg))
-                return R * (rib_factor(i - 1) * (1 - t) + rib_factor(i) * t)
-        return R
-
-    def fp(frac, side=0.0, up=0.5):
-        return floor_point(pts, frac, local_radius(frac), side, up)
-
-    main = solid_tube("esophagus", pts, R, wall, resolution=7, ribs=RIBS, rib_every=RIB_EVERY)
-    main.data.materials.append(wall2)
-    # きかん（くうきの みち）：始まりのすぐ先で 右に分かれる 行き止まり。ゆかは すこし ひくめに
-    BR = 0.065
-    pos, d = along(pts, BR)
-    tr_pts = catmull_rom([pos + side_of(d, 1.5) + Vector((0, 0, -1.6)), pos + side_of(d, 9.0) + Vector((0, 3, -0.2)),
-                          pos + side_of(d, 16.0) + Vector((0, 6, 2.0))], 6)
-    TR = 3.6
-    tr = solid_tube("trachea", tr_pts, TR, wall)
-    tr.data.materials.append(wall2)
-    for poly in tr.data.polygons:   # ブーリアン（INDEX）で 2 番目の色が きかんに のこる
-        poly.material_index = 1
-    main = boolean_union([main, tr], "Esophagus")
-    C.displace_noise(main, 0.15, 2.5, 22)
-    C.apply_modifiers(main)
-    bpy.ops.object.shade_smooth()
-    orient_inward(main, pts + tr_pts)
-    objs = [main]
-    bvh = floor_bvh(main)
-
-    def on_floor(frac, side=0.0, up=0.0):
-        """でこぼこを ふくめた 本当の ゆかの 高さに おく"""
-        p0, d0 = along(pts, frac)
-        p = p0 + side_of(d0, side * local_radius(frac))
-        hit, _n, _i, _d = bvh.ray_cast(Vector((p.x, p.y, p0.z)), Vector((0, 0, -1)), R * 2.5)
-        z = hit.z if hit is not None else fp(frac, side, 0.0).z
-        return Vector((p.x, p.y, z + up))
-
-    # 気管の入口をふさぐ「ふた」（こうとうがい）：かべから 5 m ほど おくで、すこし かたむいた ふた
-    fi = 7
-    fpos = tr_pts[fi]
-    fd = (tr_pts[fi + 1] - tr_pts[fi - 1]).normalized()
-    rot = fd.to_track_quat("Z", "Y").to_euler()
-    rot.x += math.radians(12)
-    objs.append(C.add_cylinder("Epiglottis", 3.9, 0.45, fpos, rot, 24, flap))
-    # きかんの なんこつの わ（かざり）：しろっぽい わっかで「ちがう くだ」と わかる
-    rings = []
-    for i in (4, 6):   # かべ（side≒5.2）より おく、ふたより てまえ
-        rd = (tr_pts[i + 1] - tr_pts[i - 1]).normalized()
-        rings.append(C.add_torus(f"cart{i}", TR - 0.15, 0.32, tr_pts[i], rd.to_track_quat("Z", "Y").to_euler(), cart, 20, 6))
-    # きんにくの わ（かざり）：ほそい ところに こい ピンクの おび。ゆかは ほぼ たいら
-    for i in range(6, len(pts) - 2, RIB_EVERY):
-        frac = acc[i] / total
-        if abs(frac - BR) < 0.03 or frac > 0.965:
-            continue   # わかれみち と ゴールの まわりは あけておく
-        bd = (pts[i + 1] - pts[i - 1]).normalized()
-        major = R * rib_factor(i) - 0.1
-        rings.append(C.add_torus(f"band{i}", major, 0.5, pts[i] + Vector((0, 0, -0.25)), bd.to_track_quat("Z", "Y").to_euler(), band, 20, 6))
-    # いの いりぐち（ふんもん）：ゴールの てまえの ひとまわり ほそい わ
-    gpos, gd = along(pts, 0.955)
-    rings.append(C.add_torus("cardia", local_radius(0.955) - 0.6, 0.6, gpos + Vector((0, 0, -0.1)), gd.to_track_quat("Z", "Y").to_euler(), band, 24, 8))
-    objs.append(C.join(rings, "NC_MuscleBands"))
-    # ねんまくの たてじわ（かざり）：ゆかに そって はしる やわらかい すじ。はやさと ゆかが わかる
-    folds = []
-    for k, deg in enumerate((-42, -15, 15, 42)):
-        fpts = []
-        for i in range(1, len(pts) - 1, 3):
-            t = (pts[i + 1] - pts[i - 1]).normalized()
-            r = side_of(t, 1.0)
-            dn = t.cross(r)
-            if dn.z > 0:
-                dn = -dn
-            th = math.radians(deg + 7.0 * math.sin(i * 0.21 + k * 1.7))
-            off = dn * math.cos(th) + r * math.sin(th)
-            fpts.append(pts[i] + off * (R * rib_factor(i) - 0.08))
-        folds.append(tube(f"fold{k}", fpts, 0.26, fold, 0.0, 1.0, 0.0, 3, False, 1, flip=False))
-    objs.append(C.join(folds, "NC_Folds"))
-    # ねばねばの つば（かざり）：つるつる すべる かんじ
-    random.seed(23)
-    drops = []
-    for i in range(14):
-        f = random.uniform(0.03, 0.96)
-        s = random.uniform(-0.7, 0.7)
-        r = random.uniform(0.45, 0.75)
-        drops.append(C.add_sphere(f"drop{i}", r, on_floor(f, s, 0.05), 10, 6, mucus, scale=(1.0, 1.4, 0.35)))
-    objs.append(C.join(drops, "NC_Mucus"))
-    # たべもののかたまり（床に・あたる）：さいしょの 1 つは カードの そば、ほかは ばらばら。まんなかは あけておく
-    random.seed(21)
-    foods = []
-    spots = [(0.14, -0.35), (0.19, 0.3)]
-    while len(spots) < 12:
-        f = random.uniform(0.22, 0.93)
-        s = random.choice((-1, 1)) * random.uniform(0.15, 0.55)
-        if all(abs(f - g) > 0.035 for g, _ in spots) and all(abs(f - c) > 0.02 for c in (0.33, 0.5, 0.66)):
-            spots.append((f, s))
-    for i, (f, s) in enumerate(spots):
-        o = CH.build_food()
-        o.location = on_floor(f, s, 0.7)
-        o.rotation_euler = (0, 0, random.uniform(0, math.pi * 2))
-        foods.append(o)
-    objs.append(C.join(foods, "FoodChunks"))
-    # マーカー（道は ふとい ところでも ゆかから 6 m いないに なるよう すこし ひくめ）
-    n = max(2, int(total / 8.0))
-    for i in range(n + 1):
-        p, _ = along(pts, i / n)
-        mk(f"MK_path_{i:03d}", p + Vector((0, 0, -0.4)))
-    mk("MK_player", fp(0.01, 0.0, 1.2))
-    mk("MK_goal", fp(0.985, 0.0, 0.8))
-    mk("MK_checkpoint_1", fp(0.33, 0.0, 0.5))
-    mk("MK_checkpoint_2", fp(0.66, 0.0, 0.5))
-    mk("MK_pickup_heart_item_1", fp(0.5, 0.4, 1.0))
-    mk("MK_card_epiglottis", fp(BR, 0.0, 1.0))
-    mk("MK_card_food", fp(0.14, 0.0, 1.0))
-    mk("MK_sign_goal", fp(0.985, 0.0, 1.0))
-    return objs
+    """しょくどうは 式から 作る 作りかた（blender/stage_esophagus.py）。"""
+    return SE.build()
 
 
 # ------------------------------------------------------------------ 3. い
 def build_stomach():
-    wall = C.material("StomachWall", (0.98, 0.72, 0.5), 0.85)
-    rugae = C.material("Rugae", (0.95, 0.6, 0.45), 0.85)
-    objs = []
-    SC = (30, 38, 10)
-    room = ellipsoid_room("room", (0, 0, 0), SC, wall, 56, 32, 0.0, flip=False)
-    entry_pts = catmull_rom([Vector((0, 34, 16)), Vector((0, 36, 8)), Vector((0, 31, -2))], 6)
-    exit_pts = catmull_rom([Vector((14, -24, -7)), Vector((22, -32, -8)), Vector((30, -42, -10))], 6)
-    entry = solid_tube("entry", entry_pts, 4.0, wall)
-    exit_t = solid_tube("exit", exit_pts, 4.0, wall)
-    room = boolean_union([room, entry, exit_t], "StomachRoom")
-    C.displace_noise(room, 0.8, 7.0, 32)
-    C.apply_modifiers(room)
-    bpy.ops.object.shade_smooth()
-    orient_inward(room, [Vector((0, 0, 0))] + entry_pts + exit_pts)
-    objs.append(room)
-    # ひだ（かざり）：床の上の うねうねした帯
-    bands = []
-    for i in range(6):
-        y = -24 + i * 9.5
-        b = C.add_torus(f"ruga{i}", 22.0 - abs(y) * 0.35, 0.8, (0, y, -9.4), (0, 0, 0), rugae, 40, 8)
-        b.scale = (1.0, 0.18, 0.6)
-        bands.append(b)
-    bands_o = C.join(bands, "NC_Rugae")
-    objs.append(bands_o)
-    # マーカー（床の高さは だ円の式から）
-    def fz(x, y, up=1.2):
-        return bowl_z(x, y, SC, up)
-    mk("MK_player", (0, 26, fz(0, 26, 1.5)))
-    mk("MK_goal", (23, -33, -12.0))
-    mk("MK_hazard_acid_r7_1", (0, 2, fz(0, 2, 0.0)))
-    mk("MK_hazard_acid_r5_2", (-12, 12, fz(-12, 12, 0.0)))
-    mk("MK_hazard_acid_r6_3", (11, -12, fz(11, -12, 0.0)))
-    for i, (x, y) in enumerate([(-19, -2), (17, 14), (-9, -22)]):
-        mk(f"MK_friend_wallcell_{i + 1}", (x, y, fz(x, y)))
-    for i, (x, y) in enumerate([(-15, 6), (-18, -10), (13, 20), (20, 4), (-3, -24)]):
-        mk(f"MK_enemy_pylori_{i + 1}", (x, y, fz(x, y)))
-    mk("MK_pickup_heart_item_1", (10, 24, fz(10, 24)))
-    mk("MK_card_acid", (0, 11, fz(0, 11)))
-    mk("MK_path_000", (0, 26, fz(0, 26)))
-    mk("MK_path_001", (0, 0, fz(0, 0)))
-    mk("MK_path_002", (23, -33, -12.0))
-    return objs
+    """い（胃）は 式から 作る（blender/stage_stomach.py）。"""
+    return SS.build()
 
 
 # ------------------------------------------------------------------ 4. しょうちょう

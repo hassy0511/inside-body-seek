@@ -5,7 +5,12 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ## --frames=N で待つフレーム数。--play=秒 で自動操縦してから撮る。--touch で タッチそうさの 見た目。
 ## --stage= に 書ける もの（「,」で ならべると 1 回の 起動で 何枚も 撮る。その ときの --out= は フォルダ。
 ## ファイル名は「:」「+」を「_」に した もの）：
-##   title / zukan / card / card:<場所 id>:<カードの キー>（card:mouth:mushiba） / pause / model:<キャラクター id>
+##   title / zukan（い（胃）の カードは まだ 開いて いない しるし つき） / card / card:<場所 id>:<カードの キー>（card:mouth:mushiba。「みつけた ものしりカード」の
+##                     画面から その カードを 開いた ところ） / pause / model:<キャラクター id>
+##   chip:<場所 id>:<カードの キー>   場所だけで 遊んで いる とき（＋ --play=秒）に その カードを みつけた しらせ
+##                     （HUD の ひだりの 小さい ふだ。ピコの はじめの ひとことも 出て いる。+touch で タッチの ボタンと いっしょに）
+##   cards:<場所 id>[:n] 「みつけた ものしりカード」の 画面（場面の クリアの あと）。n ＝ 何まい（無ければ その 場所の 全部 ＋ stage。
+##                     cards:intestine が いちばん 多い 5 まい）
 ##   select_new        カルテえらび（はじめて：ep01 だけ 開いて いる）
 ##   select            カルテえらび（ep01 クリアずみ・ep02 が 開いた 状態）
 ##   resume            カルテえらび（クリアずみの ep02 を 遊びなおして 場面 1 まで おえた 状態：ボタンが いちばん 多い）
@@ -122,7 +127,7 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 	var num := int(parts[1 if is_scene else 2]) if parts.size() > (1 if is_scene else 2) else 0
 	if flags.has("cleared") and EpisodeDB.ids().has(ep_id):
 		SaveData.record_clear(ep_id)
-	if mode != "model" and mode != "card" and mode != "guide" and not EpisodeDB.ids().has(ep_id):
+	if not mode in ["model", "card", "guide", "chip", "cards"] and not EpisodeDB.ids().has(ep_id):
 		push_error("unknown episode: %s" % ep_id)
 		return false
 	var page := 0
@@ -216,7 +221,10 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 			SaveData.mark_card(id, "karte")
 		for sid in ["mouth", "esophagus", "stomach"]:
 			for key in StageDB.get_stage(sid)["cards"].keys():
-				SaveData.mark_card(sid, key)
+				if sid == "stomach":
+					SaveData.find_card(sid, key)   # い（胃）は みつけたが まだ 開いて いない（ピンクの まる）
+				else:
+					SaveData.mark_card(sid, key)
 		Game.show_zukan()
 		if mode == "zukan_karte":
 			await get_tree().process_frame
@@ -228,12 +236,44 @@ func _setup(stage: String, flags: PackedStringArray) -> bool:
 		# キャラクターモデルを 大きく 1 体だけ映す（Blender の作り直し確認用）
 		_show_model(stage.substr(6))
 	elif stage == "card" or stage.begins_with("card:"):
-		# card:mouth:mushiba のように 場所と カードの キーを 書くと その カード（キャラクターの 3D の 絵つき）
+		# card:mouth:mushiba のように 場所と カードの キーを 書くと その カード（キャラクターの 3D の 絵つき）。
+		# カードは「みつけた ものしりカード」の 画面から 開く（ゲームの とちゅうには 出さない）
 		var cp := (stage + ":stomach:stage").split(":") if stage == "card" else stage.split(":")
-		Game.testing = false  # カードを自動で閉じない
-		Game.start_stage(cp[1])
-		Game.show_card(StageDB.card(cp[1], cp[2]), Callable(), cp[2], cp[1])
+		var scr = load("res://src/ui/cards_found.gd").new()
+		scr.setup(cp[1], [cp[2]])
+		Game._set_screen(scr)
+		await _wait_unlocked()
+		scr.open(0)
 		await get_tree().create_timer(0.9, true).timeout   # 「わかった！」が 押せる ように なる まで
+	elif mode == "cards":
+		var keys: Array = StageDB.get_stage(parts[1])["cards"].keys().filter(func(k): return k != "stage")
+		keys.append("stage")
+		if parts.size() > 2:
+			keys = keys.slice(0, int(parts[2]))
+		var scr = load("res://src/ui/cards_found.gd").new()
+		scr.setup(parts[1], keys)
+		Game._set_screen(scr)
+	elif mode == "chip":
+		Game.start_stage(parts[1])
+		var waited := 0
+		while (Game.level == null or not Game.level.started) and waited < 600:
+			await get_tree().process_frame
+			waited += 1
+		if _play > 0.0 and Game.level:
+			var t := 0.0
+			while t < _play and Game.level and not Game.level.finished:
+				await get_tree().physics_frame
+				t += get_physics_process_delta_time()
+				Autopilot.drive(Game.level, get_tree())
+		if Game.level == null or Game.hud == null:
+			push_error("chip: 場所が もう おわった（--play を みじかく）")
+			return false
+		var ck: String = parts[2] if parts.size() > 2 else "stage"
+		SaveData.data["cards_seen"].erase(SaveData.card_key(parts[1], ck))   # とちゅうで もう みつけて いても もう一度
+		Game.find_card(parts[1], ck)
+		Game.hud._chip_timer = 1.0e9   # ソフトウェア描画は おそく、待つ あいだに 2.5 秒 すぎて 消える ので とめておく
+		if Game.level != null:
+			Game.level._card_cd = 1.0e9    # 撮る までに ほかの カードを みつけて 入れかわらない ように
 	elif stage == "pause":
 		# 場面 2 の とちゅうで ポーズ（おえた 場面が あるので「つづきから できるよ」が 出る）
 		SaveData.set_resume("ep02", 1, "stomach")

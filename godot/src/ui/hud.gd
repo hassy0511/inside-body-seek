@@ -2,6 +2,19 @@ extends Control
 ## ゲーム中の表示：ハート・ミッション・メッセージ（ドクター・ピコ）・ポケット。
 
 const T := preload("res://src/ui/ui_theme.gd")
+const CardPopup := preload("res://src/ui/card.gd")
+## ものしりカードを みつけた ときの 小さい しらせ（チップ）。ひだりうえ、ハートと ポケットの 下（CHIP_POS）。
+## はじめての そうじゅうの てびきが 出て いる ときは その みぎ（CHIP_POS_GUIDE）。ピコの ふきだしは 4 行で y 413 まで
+## のびるので、ひだりの まんなかには 置かない。幅は CHIP_MAX_W まで（ミッションの わく（x 760〜）に とどかない）、
+## てびきの みぎでは CHIP_MAX_W_GUIDE まで。ながい だいめいは その 幅に 入らない ときだけ 字を 小さく する。
+## ゲームは 止めない。本文は 出さない（読むのは クリアの あとの「みつけた ものしりカード」と ずかん）
+const CHIP_POS := Vector2(24, 132)
+const CHIP_POS_GUIDE := Vector2(304, 132)
+const CHIP_MAX_W := 640.0
+const CHIP_MAX_W_GUIDE := 440.0
+const CHIP_TITLE_SIZE := 26
+const CHIP_PIC := 64.0
+const CHIP_SECONDS := 2.5
 ## 上の 題（だれの からだの どこか）：26 px、幅 TITLE_WIDTH まで（テストが 全部の 話と 場所で はかる）
 const TITLE_SIZE := 26
 const TITLE_WIDTH := 650.0
@@ -20,6 +33,10 @@ var _pocket: Label
 var _stage_label: Label
 var _title_face: Control
 var _pause_btn: Button
+var _top: PanelContainer
+var _mission_panel: PanelContainer
+var _chip: PanelContainer = null
+var _chip_timer := 0.0
 
 
 func _ready() -> void:
@@ -57,6 +74,7 @@ func _ready() -> void:
 	_stage_label = T.label("", TITLE_SIZE, T.INK, HORIZONTAL_ALIGNMENT_CENTER)
 	th.add_child(_stage_label)
 	add_child(top)
+	_top = top
 
 	var mp := PanelContainer.new()
 	mp.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -71,6 +89,7 @@ func _ready() -> void:
 	_mission_box.add_theme_constant_override("separation", 6)
 	mp.add_child(_mission_box)
 	add_child(mp)
+	_mission_panel = mp
 
 	_pause_btn = T.button("", 30)
 	_pause_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -179,6 +198,13 @@ func _refresh_missions() -> void:
 
 func _process(delta: float) -> void:
 	_msg_hold = maxf(_msg_hold - delta, 0.0)
+	if _chip != null and is_instance_valid(_chip):
+		_chip_timer -= delta
+		if _chip_timer <= 0.0:
+			_chip.queue_free()
+			_chip = null
+		elif _chip_timer < 0.3:
+			_chip.modulate.a = _chip_timer / 0.3
 	if _msg_timer > 0.0:
 		_msg_timer -= delta
 		if _msg_timer <= 0.0:
@@ -213,6 +239,76 @@ func say(text: String, seconds := 4.0, hold := 0.0) -> bool:
 	var t := create_tween()
 	t.tween_property(_msg_panel, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	return true
+
+
+## ものしりカードを みつけた しらせ：カードの 絵と だいめいだけ、CHIP_SECONDS 秒。つぎが 来たら 入れかえる
+func show_card_chip(card: Dictionary, key: String, stage_id: String) -> void:
+	if _chip != null and is_instance_valid(_chip):
+		_chip.queue_free()
+	var chip := PanelContainer.new()
+	chip.name = "CardChip"
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var g := get_node_or_null("SteerGuide")
+	var by_guide: bool = g != null and g.visible and not g.is_queued_for_deletion()
+	chip.position = CHIP_POS_GUIDE if by_guide else CHIP_POS
+	var max_w := CHIP_MAX_W_GUIDE if by_guide else CHIP_MAX_W
+	chip.add_theme_stylebox_override("panel", T.rounded(Color(T.CREAM, 0.94), 18, 4, T.YELLOW))
+	var m := MarginContainer.new()
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for side in ["left", "right"]:
+		m.add_theme_constant_override("margin_" + side, 10)
+	for side in ["top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 6)
+	chip.add_child(m)
+	var hb := HBoxContainer.new()
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_theme_constant_override("separation", 10)
+	m.add_child(hb)
+	hb.add_child(CardPopup.picture(key, stage_id, Vector2(CHIP_PIC, CHIP_PIC)))
+	var vb := VBoxContainer.new()
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 0)
+	vb.add_child(T.label("ものしりカード　みつけた！", 18, Color(0.75, 0.5, 0.2)))
+	var title := T.label(String(card.get("title", "")), CHIP_TITLE_SIZE, T.INK)
+	title.name = "Title"
+	vb.add_child(title)
+	hb.add_child(vb)
+	add_child(chip)
+	# ながい だいめいは 字を 小さく して 幅に 入れる（本物の フォントで はかる）
+	var size := CHIP_TITLE_SIZE
+	while size > 18 and chip.get_combined_minimum_size().x > max_w:
+		size -= 2
+		title.add_theme_font_size_override("font_size", size)
+	chip.reset_size()
+	_chip = chip
+	_chip_timer = CHIP_SECONDS
+	chip.modulate.a = 0.0
+	var t := chip.create_tween()
+	t.tween_property(chip, "modulate:a", 1.0, 0.15)
+
+
+## いま 出て いる しらせ（無ければ null。テストが 重なりを 見る）
+func card_chip() -> Control:
+	return _chip if _chip != null and is_instance_valid(_chip) and not _chip.is_queued_for_deletion() else null
+
+
+## しらせが 重なっては いけない HUD の 部品の 画面の 上の 四角（見えている ものだけ）。テストが 使う
+func hud_rects() -> Dictionary:
+	var out := {"hearts": _heart_box.get_global_rect(), "title": _top.get_global_rect(), "pause": _pause_btn.get_global_rect()}
+	if _mission_box.get_child_count() > 0:
+		out["missions"] = _mission_panel.get_global_rect()
+	if _pocket.text != "":
+		out["pocket"] = _pocket.get_global_rect()
+	if _msg_panel.visible:
+		out["pico"] = _msg_panel.get_global_rect()
+	var g := get_node_or_null("SteerGuide")
+	if g != null and g.visible:
+		out["guide"] = (g as Control).get_global_rect()
+	var tc: Control = Game.touch_controls
+	if tc != null and is_instance_valid(tc) and tc.visible:
+		out.merge(tc.button_rects())
+	return out
 
 
 func _draw_hearts() -> void:

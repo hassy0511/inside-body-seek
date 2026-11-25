@@ -54,19 +54,38 @@ const STAGES: Array[Dictionary] = [
 	{
 		"id": "esophagus", "order": 2, "name": "しょくどう", "kanji": "食道", "title": "つるつる すべりだい",
 		"difficulty": 1, "env": "stage_esophagus", "kind": "tube", "bgm": "bgm_tube",
-		"fog": Color(0.95, 0.6, 0.6), "ambient": Color(1.0, 0.85, 0.85), "fog_density": 0.016,
+		"fog": Color(0.95, 0.6, 0.6), "ambient": Color("#FFE5E2"), "fog_density": 0.016,
 		"flow_speed": 2.0,
+		# 見た目（納品の 雰囲気画 mood_esophagus.png と spec の 色見本 順2）。キーの 説明は src/level/stage_look.gd の 先頭。
+		# 記録は docs/art_orders/W3_01_食道_取り込みの結果.md
+		"look": {
+			"background": Color("#A0303C"), "fog_color": Color("#9C2C3A"), "fog_depth": [10.0, 85.0], "fog_curve": 1.0,
+			"tonemap": "linear", "exposure": 1.0,
+			"sun": Vector3(-70, 10, 0), "sun_color": Color("#FFE5E2"), "light_gain": 0.44, "light_wrap": 0.7, "lamp_gain": 0.45,
+			"fill": Vector3(-12, 0, 0), "fill_energy": 0.8, "fill_color": Color("#FFE5E2"),
+			"glow": 0.5, "glow_bloom": 0.03,
+			"hemi_up": Color(0.65, 0.62, 0.62), "hemi_down": Color(0.86, 0.75, 0.78),
+			"surfaces": {
+				"floor": {"color": Color("#FAA3A8"), "tex_tint": Color(1.11, 0.99, 0.96)}, "wall": {"color": Color("#E1686F"), "tex_tint": Color(1.2, 0.96, 0.97)},
+				"ring": {"color": Color("#FF9496"), "rim": 0.0}, "flap": {"color": Color("#FD7480"), "rim": 0.25},
+				"mucus": {"color": Color("#FFC0C0"), "rim": 0.6}, "cartilage": {"color": Color("#F8D2BC"), "rim": 0.2},
+				"trachea": {"color": Color("#9A2C3A")}, "deep": {"color": Color("#A6303C")},
+			},
+		},
+		# なみ（ぜんどううんどう）：src/level/peristalsis.gd。かたまり（"lumps"）は 場面の データで 出す（カルテ 2）
+		"waves": {"every": 3.0, "speed": 20.0},
 		"missions": [
 			{"type": "reach", "text": "しょくどうを くだって い（胃）へ いこう"},
 		],
-		"intro": "のみこまれた！ ここは しょくどう（食道）。ぎゅっ、ぎゅっと おしてくる なみに のって、い（胃）まで くだろう。",
+		"intro": "ここは しょくどう（食道）。うしろから くる なみに のって、い（胃）まで くだろう。",
 		"hints": [
-			{"at": 1.0, "text": "ピンクの なみ（ぜんどううんどう）に のると はやく すすめるよ。"},
-			{"at": 12.0, "text": "たべものの かたまりは よけてね。はたの ところが チェックポイントだよ。"},
+			{"at": 1.0, "text": "うしろから きんにくの わが ぎゅっと しまって くるよ。その なみに のると はやく すすめる！"},
+			{"at": 12.0, "text": "← → で よこに うごけるよ。はたの ところが チェックポイントだよ。", "text_touch": "ひだりの まるを よこに ひくと よこに うごけるよ。はたの ところが チェックポイントだよ。"},
 		],
+		"clear_say": "い（胃）の いりぐちに ついた！",
 		"cards": {
 			"stage": {"title": "しょくどう（食道）", "text": "のみこんだ たべものは しょくどうを とおって い（胃）へ いく。ながさは やく 25 cm。\nしょくどうは きんにくの くだで、ぎゅっ、ぎゅっと しめて たべものを おしおくる。\nこれを「ぜんどううんどう」というよ。だから さかだちしても たべものは い（胃）へ いけるんだ！"},
-			"food": {"title": "たべものの かたまり", "text": "よく かまないと、おおきな かたまりの まま おちてくる。\nひとくち 30かい かむと いいよ。"},
+			"food": {"title": "たべものの かたまり", "text": "よく かまないと、おおきな かたまりの まま のみこむ ことに なる。\nおおきな かたまりは のどや しょくどうに つかえやすいんだ。\nひとくち 30かい かむと いいよ。"},
 			"epiglottis": {"title": "のどの わかれみち", "text": "のどには くうきの みち（きかん）と たべものの みち（しょくどう）が ある。\nのみこむとき「ふた」（こうとうがい）が しまって、たべものが きかんに はいらないように しているんだ。\nあわてて たべると ふたが まにあわず「むせる」よ。"},
 			"wave": {"title": "ぜんどううんどう", "text": "きんにくが なみのように じゅんばんに ちぢんで、たべものを おしおくる うごき。\nしょくどうだけでなく、い（胃）や ちょう（腸）も おなじ うごきを するよ。"},
 		},
@@ -76,16 +95,32 @@ const STAGES: Array[Dictionary] = [
 	{
 		"id": "stomach", "order": 3, "name": "い", "kanji": "胃", "title": "ぐるぐる いのなか",
 		"difficulty": 1, "env": "stage_stomach", "kind": "arena", "bgm": "bgm_tummy",
-		"fog": Color(0.98, 0.8, 0.5), "ambient": Color(1.0, 0.9, 0.7), "fog_density": 0.012,
+		"fog": Color("#9E4B49"), "ambient": Color("#FFE8D5"), "fog_density": 0.012,
 		"flow_speed": 0.0,
+		# 見た目：納品の 雰囲気画 mood_stomach.png に 合わせた（docs/art_orders/W3_01_胃_取り込みの結果.md）。
+		# "juice" は いえきの いけの 水面（hazard_pool.gd が 使う。光らない 琥珀色）
+		"look": {
+			"background": Color("#8E2E36"), "fog_color": Color("#A5313A"), "fog_depth": [22.0, 95.0], "fog_curve": 1.0,
+			"tonemap": "linear", "exposure": 1.0,
+			"sun": Vector3(-32, 10, 0), "sun_color": Color("#FFE8D5"), "light_gain": 0.6, "light_wrap": 0.7, "lamp_gain": 0.4,
+			"fill": Vector3(-12, 0, 0), "fill_energy": 0.4, "fill_color": Color("#FFE8D5"),
+			"shadows": true, "shadow_opacity": 0.5, "shadow_blur": 3.0, "shadow_distance": 70.0, "shadow_size": 1024,
+			"glow": 0.5, "glow_bloom": 0.03,
+			"hemi_up": Color(0.5, 0.48, 0.48), "hemi_down": Color(0.66, 0.58, 0.6),
+			"surfaces": {
+				"floor": {"color": Color("#FDA086"), "tex_tint": Color(0.97, 0.81, 0.79)}, "wall": {"color": Color("#D45E5D"), "tex_tint": Color(1.04, 1.08, 1.0)},
+				"ring": {"color": Color("#F4927A")}, "juice": {"color": Color("#CC8A26")},
+			},
+			"bubbles": {"count": 10, "center": Vector3(0, 4, 0), "extents": Vector3(20, 4, 24), "size": [0.2, 0.5], "color": Color(1.0, 0.95, 0.9, 0.45)},
+		},
 		"missions": [
 			{"type": "defeat", "target": "pylori", "count": 4, "text": "ピロリきんを やっつけよう"},
 			{"type": "cheer", "target": "wallcell", "count": 3, "text": "い（胃）の かべの さいぼうを おうえんしよう"},
 			{"type": "reach", "text": "でぐちの ゴールへ いこう"},
 		],
-		"intro": "ここは い（胃）。きいろい いけは いえき（胃液）、ミクロごうが とけちゃうから はいらないでね！ ピロリきんが かべを いじめているよ。",
+		"intro": "ここは い（胃）。オレンジいろの いけは いえき（胃液）、ミクロごうが とけちゃうから はいらないでね！ ピロリきんが かべを いじめているよ。",
 		"hints": [
-			{"at": 1.0, "text": "きいろい いけ（いえき）に はいると ハートが へるよ。きをつけて！"},
+			{"at": 1.0, "text": "オレンジいろの いけ（いえき）に はいると ハートが へるよ。きをつけて！"},
 			{"at": 14.0, "text": "なかまには さわるだけで おうえんできるよ。"},
 		],
 		"cards": {

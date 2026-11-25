@@ -22,7 +22,8 @@ func _defaults() -> Dictionary:
 		"version": VERSION,
 		"episodes": {},        # ep_id -> {"clear": bool, "quiz": bool, "nd": {場面の キー: bool}}（nd[キー] ＝ その 場面を ハートを へらさずに クリアした ことが ある）
 		"resume": {},          # とちゅうの カルテ：{"ep": id, "cleared": おえた 場面の 数（1〜）, "key": おえた 場面の キー, "guess": さいしょの よそう}。無ければ 空
-		"cards_seen": [],      # "場所id/key" と "epNN/karte"
+		"cards_seen": [],      # "場所id/key" と "epNN/karte"（みつけた カード。ずかんで 読める）
+		"cards_new": [],       # みつけたが まだ 開いて いない カード（cards_seen の 一部。ずかんに しるし）。無い セーブは みんな 読んだ ことに する
 		"opening_seen": false,
 		"steer_guide_seen": false,   # はじめての そうじゅうの てびき（steer_guide.gd）を おえた
 		"settings": {"volume": 0.8, "touch": "auto", "unlock_all": false},
@@ -58,6 +59,10 @@ func load_data() -> void:
 		for c in parsed["cards_seen"]:
 			if c is String and not data["cards_seen"].has(c):
 				data["cards_seen"].append(c)
+	if parsed.get("cards_new") is Array:
+		for c in parsed["cards_new"]:
+			if c is String and data["cards_seen"].has(c) and not data["cards_new"].has(c):
+				data["cards_new"].append(c)
 	if ver != 2 and ver != VERSION:
 		# v1（ステージごとの ほし）や 知らない 版：ほしと クリアは 引きつがない。元の ファイルは 写して のこす
 		DirAccess.copy_absolute(path, "%s.v%d.json" % [path.get_basename(), ver])
@@ -272,10 +277,36 @@ func card_seen(owner_id: String, key: String) -> bool:
 	return data["cards_seen"].has(card_key(owner_id, key))
 
 
+## 見た（読んだ）ことに する：まとめ・カルテの 紙など、読む 画面で 出した もの
 func mark_card(owner_id: String, key: String) -> void:
 	var k := card_key(owner_id, key)
 	if not data["cards_seen"].has(k):
 		data["cards_seen"].append(k)
+		save()
+	open_card(owner_id, key)
+
+
+## ゲームの とちゅうで みつけた（ずかんに 入る。まだ 開いて いない しるし つき）。はじめて みつけたら true
+func find_card(owner_id: String, key: String) -> bool:
+	var k := card_key(owner_id, key)
+	if data["cards_seen"].has(k):
+		return false
+	data["cards_seen"].append(k)
+	data["cards_new"].append(k)
+	save()
+	return true
+
+
+## みつけたが まだ 開いて いないか
+func card_is_new(owner_id: String, key: String) -> bool:
+	return data["cards_new"].has(card_key(owner_id, key))
+
+
+## 開いて 読んだ（しるしを 消す）
+func open_card(owner_id: String, key: String) -> void:
+	var k := card_key(owner_id, key)
+	if data["cards_new"].has(k):
+		data["cards_new"].erase(k)
 		save()
 
 

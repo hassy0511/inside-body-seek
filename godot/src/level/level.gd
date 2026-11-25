@@ -40,7 +40,7 @@ const DeliverScript := preload("res://src/entities/deliver_zone.gd")
 const GoalScript := preload("res://src/entities/goal.gd")
 const CheckpointScript := preload("res://src/entities/checkpoint.gd")
 const HazardScript := preload("res://src/entities/hazard_pool.gd")
-const WaveScript := preload("res://src/entities/wave.gd")
+const PeristalsisScript := preload("res://src/level/peristalsis.gd")
 const GateScript := preload("res://src/entities/valve_gate.gd")
 const NeuronScript := preload("res://src/entities/neuron.gd")
 const LevelPathScript := preload("res://src/level/level_path.gd")
@@ -83,7 +83,7 @@ var gates: Array[ValveGate] = []
 var _hints: Array = []
 var _card_cd := 0.0
 var _card_check := 0.0
-var _wave_timer := 0.0
+var peristalsis: Peristalsis = null   # しょくどうの なみ（場所の "waves" が ある とき）
 var _seq: Array[int] = []
 var _seq_input := 0
 var _seq_round := 0
@@ -111,6 +111,10 @@ func _ready() -> void:
 	_spawn_all()
 	_build_missions()
 	_spawn_player()
+	if stage.has("waves") and path.is_valid():
+		peristalsis = PeristalsisScript.new()
+		peristalsis.setup(self)
+		add_child(peristalsis)
 
 
 ## すぐ 遊びはじめる（場所の カードは クリアの あとに Game が 出す。遊ぶ 前の 文を へらす）
@@ -780,9 +784,16 @@ func finish() -> void:
 	for e in get_tree().get_nodes_in_group("enemy"):
 		e.set_physics_process(false)
 	Sfx.play("clear")
-	say_story(stage.get("clear_say", "クリア！"), 3.0)
+	var cs: String = stage.get("clear_say", "クリア！")
+	if peristalsis != null:
+		cs = peristalsis.clear_text(cs)   # なみに のった きょり
+	say_story(cs, 3.0)
+	if stage.has("ep"):
+		Game.find_card(stage_id, "stage", true)   # 場所の カードは はじめて クリアした ときに みつかる（カルテの 場面だけ）。音は クリアの 曲に まかせる
 	var t := create_tween()
-	t.tween_interval(0.2 if Game.testing else 1.6)
+	# なみに のった きょりを 足した ときは 長めに 見せる（読みおわる 前に つぎの 画面に ならない）
+	var hold := 3.6 if peristalsis != null and peristalsis.ride_m >= 1.0 else 1.6
+	t.tween_interval(0.2 if Game.testing else hold)
 	t.tween_callback(func(): cleared.emit(stage_id, no_damage))
 
 
@@ -905,16 +916,6 @@ func _physics_process(delta: float) -> void:
 		var ht := String(h.get("text_touch", h["text"])) if on_touch else String(h["text"])
 		Game.say(ht, read_time(ht, 5.0))
 		_hints.remove_at(0)
-	# なみ（しょくどう）
-	if stage_id == "esophagus":
-		_wave_timer -= delta
-		if _wave_timer <= 0.0:
-			_wave_timer = 4.5
-			var w := WaveScript.new()
-			w.level = self
-			add_child(w)
-			w.global_position = path.start()
-			_add_card_point("wave", Vector3.INF, w)
 	# カード
 	_card_cd = maxf(_card_cd - delta, 0.0)
 	_card_check -= delta
@@ -932,8 +933,10 @@ func _physics_process(delta: float) -> void:
 			_start_sequence_round()
 
 
+## ものしりカードの 点に ちかづいた（9 m）：カードを みつける（Game.find_card：音と HUD の 小さい しらせ）。
+## ゲームは 止めない・ポップアップも 出さない。読むのは クリアの あと（「みつけた ものしりカード」）と ずかん
 func _check_cards() -> void:
-	if _card_cd > 0.0 or Game.is_popup_open() or elapsed < 2.5:
+	if _card_cd > 0.0 or elapsed < 2.5:
 		return
 	for i in card_points.size():
 		var cp: Dictionary = card_points[i]
@@ -947,11 +950,8 @@ func _check_cards() -> void:
 		if pos == Vector3.INF:
 			continue
 		if pos.distance_to(player.global_position) < 9.0:
-			SaveData.mark_card(stage_id, key)
-			_card_cd = 3.0
-			var card: Dictionary = stage["cards"][key]
-			Sfx.play("card")
-			Game.show_card(card, Callable(), key, stage_id)
+			_card_cd = 3.0      # しらせ（2.5 秒）が 重ならない
+			Game.find_card(stage_id, key)
 			return
 
 

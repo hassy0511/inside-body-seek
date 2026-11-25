@@ -1,5 +1,6 @@
 extends Control
-## ものしりカード。ゲームを止めて 1 枚見せる。「わかった！」で閉じる。
+## ものしりカード（1 枚を 大きく）。「わかった！」で閉じる。ずかんと「みつけた ものしりカード」の 画面から 開く。
+## ゲームの とちゅう（Level が 動いて いる あいだ）には 出さない（みつけた ことは HUD の 小さい しらせ。docs/episodes.md）。
 ## card に "karte"（話の id）が あれば、ずかんの カルテ：絵の 列の かわりに カルテの 紙（karte_sheet.gd）を 出す。
 
 signal closed
@@ -71,9 +72,7 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	var sid := stage_id if stage_id != "" else Game.current_stage_id
 	var pic: Control = null
 	if not is_karte:
-		pic = T.art_rect("cards/card_%s_%s" % [sid, image_kind], Vector2(260, 300)) if sid != "" else null
-		if pic == null:
-			pic = _make_picture(image_kind)
+		pic = picture(image_kind, sid, Vector2(260, 300))
 	if pic:
 		hb.add_child(pic)
 
@@ -115,6 +114,11 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	_btn = T.button("わかった！", 30, 240)
 	_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_btn.pressed.connect(close)
+	# 矢印で 下の 画面（ずかん・みつけた カード）の ボタンへ フォーカスが 出て いかない ように
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		_btn.set_focus_neighbor(side, NodePath("."))
+	_btn.focus_next = NodePath(".")
+	_btn.focus_previous = NodePath(".")
 	vb.add_child(_btn)
 
 	_panel.pivot_offset = _panel.size * 0.5
@@ -123,9 +127,19 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 	t.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-func _make_picture(kind: String) -> Control:
+## カードの 絵：納品された 挿絵（res://assets/ui/cards/card_<stage_id>_<kind>.png）が あれば それ、
+## 無ければ キャラクターの 3D（まわる）。カード・ゲーム中の 小さい しらせ・みつけた カードの 画面で 使う
+static func picture(kind: String, stage_id: String, size: Vector2, spin := true) -> Control:
+	var art: Control = T.art_rect("cards/card_%s_%s" % [stage_id, kind], size) if stage_id != "" else null
+	if art != null:
+		return art
+	return _model_picture(kind, size, spin)
+
+
+static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	var box := Control.new()
-	box.custom_minimum_size = Vector2(260, 300)
+	box.custom_minimum_size = size
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var model_name := kind
 	if kind == "stage" or kind == "goal" or kind == "":
 		model_name = "pico"
@@ -135,18 +149,19 @@ func _make_picture(kind: String) -> Control:
 	if model == null and ModelLib.PLACEHOLDER_COLORS.has(model_name):
 		model = ModelLib.placeholder(model_name, 0.7)
 	if model == null:
-		var circle := Control.new()
-		circle.custom_minimum_size = Vector2(260, 300)
-		circle.draw.connect(func():
-			circle.draw_circle(Vector2(130, 150), 90, T.PINK_LIGHT)
-			circle.draw_circle(Vector2(130, 150), 72, T.PINK))
-		return circle
+		var r := minf(size.x, size.y) * 0.3
+		box.draw.connect(func():
+			var c := box.size * 0.5
+			box.draw_circle(c, r, T.PINK_LIGHT)
+			box.draw_circle(c, r * 0.8, T.PINK))
+		return box
 	var svc := SubViewportContainer.new()
 	svc.stretch = true
+	svc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var sv := SubViewport.new()
 	sv.transparent_bg = true
-	sv.size = Vector2i(Vector2(260, 300) * T.window_scale(self))
+	sv.size = Vector2i(size)
 	sv.own_world_3d = true
 	svc.add_child(sv)
 	var cam := Camera3D.new()
@@ -174,10 +189,15 @@ func _make_picture(kind: String) -> Control:
 	if reach > half:
 		model.scale *= half / reach
 	pivot.add_child(model)
+	pivot.rotation.y = -0.5
 	sv.add_child(pivot)
-	var spin := create_tween().set_loops()
-	spin.tween_property(pivot, "rotation:y", TAU, 6.0).from(0.0)
 	box.add_child(svc)
+	box.ready.connect(func():
+		# 画面の 大きさに 合わせて こまかく 描く（窓が 大きい ときに ぼやけない）
+		sv.size = Vector2i(size * T.window_scale(box))
+		if spin:
+			var tw := box.create_tween().set_loops()
+			tw.tween_property(pivot, "rotation:y", TAU, 6.0).from(0.0))
 	return box
 
 

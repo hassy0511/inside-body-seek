@@ -48,10 +48,11 @@ Godot 4.7（GDScript）で動き、3D モデルは Blender の Python スクリ�
 | `godot/src/autoload/stage_db.gd` | **場所（臓器）の定義**：既定のミッション・ものしりカード・まとめ。カードの文を直すならここ |
 | `godot/src/autoload/game.gd` | 画面の流れ（タイトル → カルテえらび → そうだん → よそう → からだに はいる → 場面（あいだに みちの ちず）→ からだから でる → カルテ）と入力の設定 |
 | `godot/src/autoload/save_data.gd` | セーブ（カルテごとの星・とちゅうのカルテ・見たカード・設定） |
-| `godot/src/level/level.gd` | 場面（場所 1 つ）の読み込み・スポーン・ミッション進行・カード表示。話のことは知らず、わたされた辞書だけを読む |
+| `godot/src/level/level.gd` | 場面（場所 1 つ）の読み込み・スポーン・ミッション進行・カードを見つける合図（ゲームは止めない）。話のことは知らず、わたされた辞書だけを読む |
+| `godot/src/level/peristalsis.gd` | 食道のぜん動の波（筋肉の輪がしまり、船をはこぶ）。カルテ 2 の食べ物のかたまり（`entities/lump.gd`）と、気管のふたもここ |
 | `godot/src/player/` | プレイヤー（ホバー船）・カメラ・おくすりの弾 |
-| `godot/src/entities/` | 敵・ボス・なかま・アイテム・ゴール・チェックポイント・いえきの池・ぜん動の波・弁・神経 |
-| `godot/src/ui/` | カルテえらび（`episode_select.gd`）・はなし（`talk.gd`）・よそう（`guess.gd`）・カルテ（`karte.gd`、紙は `karte_sheet.gd`）と、その土台（`flow_screen.gd`）。HUD・ものしりカード・タイトル・ずかん・ポーズ・タッチ操作・テーマと絵の差しかえ口（`ui_theme.gd`） |
+| `godot/src/entities/` | 敵・ボス・なかま・アイテム・ゴール・チェックポイント・いえきの池・食べ物のかたまり・弁・神経 |
+| `godot/src/ui/` | カルテえらび（`episode_select.gd`）・はなし（`talk.gd`）・よそう（`guess.gd`）・カルテ（`karte.gd`、紙は `karte_sheet.gd`）と、その土台（`flow_screen.gd`）。HUD・ものしりカード（`card.gd`）と「みつけた ものしりカード」（`cards_found.gd`）・タイトル・ずかん・ポーズ・タッチ操作・テーマと絵の差しかえ口（`ui_theme.gd`） |
 | `godot/assets/models/characters/*.glb` | キャラクターの 3D モデル（Blender スクリプトの出力） |
 | `godot/assets/models/stages/*.glb` | 場所の地形＋スポーン位置（Blender スクリプトの出力） |
 | `godot/assets/ui/*.png` | 納品された絵（顔・全身など）。同じ名前で置くと自動で使われる |
@@ -108,7 +109,7 @@ Godot は GLB の中の Empty の名前を見てスポーンします（`MK_<種
 | `MK_gate_1` | 弁（ドア）。Empty の向きで通る方向が決まる |
 | `MK_neuron_1` | 神経（じゅんばんパズル） |
 | `MK_sign_ra` | かんばん（文字は `level.gd` の `SIGN_TEXT`） |
-| `MK_card_food` | 近づくとカードが出るだけの点（カードは `stage_db.gd`） |
+| `MK_card_epiglottis` | 近づくとカードが見つかるだけの点（カードは `stage_db.gd`。場面のとちゅうは HUD の小さいふだだけで、ゲームは止まらない） |
 
 ## カルテ（話）を増やすには
 

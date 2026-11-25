@@ -4,7 +4,8 @@ extends Node
 ## 画面は src/ui/ の Control をコードで組み立てて UILayer に置く。
 ## - カルテ（1 話）の 流れは _enter() の 1 か所で 切りかえる。データは EpisodeDB、設計は docs/episodes.md 3 章。
 ## - 「画面」と「Level」は 同時に 生きない（画面を 出す 前に unload_level()）。
-##   場所の ものしりカードだけは、クリアした Level の 上に ポップアップで 出る。
+## - ものしりカードは ゲームを 止めない：みつけたら HUD に 小さい しらせ（find_card()）。読むのは 場面の あとの
+##   「みつけた ものしりカード」（"cards" フェーズ。とおりみちでは 出さない）と ずかん。
 
 signal stage_started(stage_id: String)
 ## Level を 1 つ クリアする たびに 出る（カルテの 場面でも 場所モードでも）。stars は いつも 0（ほしは カルテごと）
@@ -15,6 +16,8 @@ signal episode_finished(ep_id: String, stars: int)
 signal phase_changed(phase: String, index: int)
 ## HUD に 文が 出た とき（テストが goal_say などを 見る）
 signal said(text: String)
+## ものしりカードを はじめて みつけた とき（テストが しらせと「みつけた ものしりカード」の 画面を 見る）
+signal card_found(stage_id: String, key: String)
 
 const UiThemeBuilder := preload("res://src/ui/ui_theme.gd")
 const TitleScreen := preload("res://src/ui/title.gd")
@@ -26,6 +29,7 @@ const HopScreen := preload("res://src/ui/hop.gd")
 const KarteScreen := preload("res://src/ui/karte.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
 const CardPopup := preload("res://src/ui/card.gd")
+const CardsFoundScreen := preload("res://src/ui/cards_found.gd")
 const PauseMenu := preload("res://src/ui/pause.gd")
 const HudScene := preload("res://src/ui/hud.gd")
 const SteerGuide := preload("res://src/ui/steer_guide.gd")
@@ -57,6 +61,9 @@ var _review := false       # クリアずみの カルテを 読みかえして 
 var skip_pass := false     # 遊びなおしで「とおりみちを とばす」を えらんだ（とおりみちの 場面を 遊ばない）
 var hop_from := -1         # みちの ちず：おえた 場面（-1 は 入口）。つぎの 場面は hop_to
 var hop_to := 0
+## いまの 場面で はじめて みつけた カードの キー（場面の やりなおしでも のこす。"cards" フェーズで 見せる）
+var found_cards: Array[String] = []
+var _found_place := ""
 
 ## 自動テスト用：true のとき カードやメッセージの待ちを短くする
 var testing := false
@@ -178,6 +185,7 @@ func start_episode(ep_id: String, from_phase := "consult", from_scene := 0, gues
 	first_guess = guess
 	_review = false
 	skip_pass = false
+	found_cards.clear()
 	if from_phase == "hop":
 		# とちゅうから みちの ちずへ（撮影・テスト用）：from_scene を おえた ところ。-1 は 入口（とおりみちを とばす）
 		skip_pass = from_scene < 0
@@ -276,9 +284,22 @@ func _enter(p: String, back := false) -> void:
 			t.setup(after_lines, {"mood": "sick", "banner": a.get("banner", ""), "last_label": "つぎへ ▶" if last else "つぎへ いこう ▶"})
 			t.finished.connect(_after_done, CONNECT_ONE_SHOT)
 			_set_screen(t)
+		"cards":
+			# みつけた ものしりカード（場面の クリアの あと。あとの はなしの 前）。読まずに 進んで よい
+			unload_level()
+			var c := CardsFoundScreen.new()
+			c.setup(_found_place, found_cards)
+			found_cards.clear()
+			c.finished.connect(func(): _enter("after"), CONNECT_ONE_SHOT)
+			_set_screen(c)
+			# ボタンの 画面なので 場面（ボス）の 曲の ままに しない。つぎの あとの はなしと 同じ 曲（同じなら 切れめ なく つづく）
+			var m := Sfx.phase_music("after")
+			if m != "":
+				Sfx.play_bgm(m)
 		"hop":
 			# みちの ちず：おえた 場面（hop_from）から つぎの 場面（hop_to）へ。ボタンで 進む
 			unload_level()
+			found_cards.clear()
 			var h := HopScreen.new()
 			h.setup(episode, hop_from, hop_to)
 			h.finished.connect(func():
@@ -336,6 +357,7 @@ func _on_karte_finished(go_next: bool) -> void:
 func start_stage(place_id: String) -> void:
 	episode = {}
 	phase = ""
+	found_cards.clear()
 	_start_level(StageDB.get_stage(place_id))
 
 
@@ -403,11 +425,14 @@ func _on_level_cleared(place_id: String, no_damage: bool) -> void:
 	if r.is_empty() or r["ep"] == id or not SaveData.is_cleared(id):
 		SaveData.set_resume(id, scene_index + 1, first_guess)
 	SaveData.mark_card(place_id, "summary")                    # 場所の「まとめ」は クリアで ずかんに 入る
-	# 場所の ものしりカードは、はじめて クリアした あとに 1 回（遊ぶ 前の 文を へらす）
-	var card: Dictionary = {} if SaveData.card_seen(place_id, "stage") else StageDB.card(place_id, "stage")
-	show_card(card, func():
-		SaveData.mark_card(place_id, "stage")
-		_enter("after"), "stage", place_id)
+	# この 場面で はじめて みつけた カード（場所の カード "stage" は はじめて クリアした ときに みつかる。Level.finish()）。
+	# ふつうの 場面は「みつけた ものしりカード」の 画面へ。とおりみちと、新しい カードが 無い ときは すぐ あとの はなしへ
+	if found_cards.is_empty() or EpisodeDB.is_pass(episode, scene_index):
+		found_cards.clear()
+		_enter("after")
+	else:
+		_found_place = place_id
+		_enter("cards")
 
 
 func show_ending() -> void:
@@ -418,8 +443,26 @@ func show_ending() -> void:
 	_set_screen(t)
 
 
-# ---------------------------------------------------------------- ポップアップ
-## ものしりカードを出す（ゲームは一時停止）。閉じたら on_close を呼ぶ。
+# ---------------------------------------------------------------- ものしりカード
+## ゲームの とちゅうで カードを みつけた（Level が 呼ぶ）。はじめてなら ずかんに 入れて（まだ 開いて いない しるし つき）、
+## 音と HUD の 小さい しらせ（絵と だいめい。本文は 出さない）。ゲームは 止めない。はじめて みつけたら true
+func find_card(stage_id: String, key: String, quiet := false) -> bool:
+	var card := StageDB.card(stage_id, key)
+	if card.is_empty() or not SaveData.find_card(stage_id, key):
+		return false
+	if not found_cards.has(key):
+		found_cards.append(key)
+	_found_place = stage_id
+	if not quiet:   # クリアの 曲と いっしょに 鳴らさない（場所の カード）
+		Sfx.play("card")
+	if hud != null and is_instance_valid(hud):
+		hud.show_card_chip(card, key, stage_id)
+	card_found.emit(stage_id, key)
+	return true
+
+
+## ものしりカードを 大きく 出す（ゲームは 一時停止）。閉じたら on_close を 呼ぶ。
+## Level が 動いて いる あいだには 呼ばない（ゲームを 止めない きまり。テストが 見る）。いまは 撮影（shot.gd）だけが 使う
 func show_card(card: Dictionary, on_close: Callable = Callable(), image_kind := "", stage_id := "") -> void:
 	if card.is_empty():
 		if on_close.is_valid():

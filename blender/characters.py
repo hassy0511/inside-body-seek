@@ -254,14 +254,25 @@ def build_zendama():
 
 
 def build_wallcell():
-    peach = C.material("CellPeach", (1.0, 0.75, 0.6), 0.8)
-    slime = C.material("Slime", (0.8, 0.95, 1.0), 0.3, alpha=0.6)
-    body = C.add_box("wallcell_body", (1.1, 0.9, 0.9), (0, 0, 0), (0, 0, 0), peach, bevel=0.3)
+    """い（胃）の かべの さいぼう（仮）。W2 の 色（からだ #ECA66F、ねんえきの あわ #9EDCE5）で、角の まるい ずんぐりした 形。
+    ミクロごうより 小さく して、さわった ときに 船が かくれない ように する。絵が 来たら 作りなおす"""
+    def linear(h):
+        c = [int(h[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
+        return tuple(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
+
+    body_m = C.material("CellOrange", linear("#ECA66F"), 0.8)
+    cap_m = C.material("CellMucus", linear("#9EDCE5"), 0.45)
+    cheek = C.material("Cheek", (1.0, 0.6, 0.65), 0.8)
+    body = C.add_sphere("wallcell_body", 0.42, (0, 0, 0), 28, 18, body_m, scale=(1.05, 0.95, 0.95))
     parts = [body]
-    parts += C.eyes("wallcell", 0.4, 0.15, spacing=0.22, r=0.1, pupil=0.05)
-    parts.append(C.smile("wallcell", 0.47, -0.1, 0.15, thickness=0.025))
-    bubble = C.add_sphere("wallcell_mucus", 0.3, (0, 0, 0.6), 14, 10, slime, scale=(1.5, 1.2, 0.5))
-    parts.append(bubble)
+    parts += C.eyes("wallcell", 0.37, 0.05, spacing=0.17, r=0.085, pupil=0.045)
+    parts.append(C.smile("wallcell", 0.4, -0.12, 0.11, thickness=0.022))
+    for sx in (-1, 1):
+        parts.append(C.add_sphere(f"wallcell_cheek{sx}", 0.05, (sx * 0.27, 0.33, -0.08), 8, 6, cheek))
+    # ねんえきの あわ：あたまに のる もこもこ（3 つの まるで）
+    parts.append(C.add_sphere("wallcell_mucus", 0.36, (0, 0, 0.33), 20, 12, cap_m, scale=(1.15, 1.05, 0.55)))
+    for i, (dx, dy) in enumerate([(-0.2, 0.05), (0.18, -0.05), (0.0, 0.2)]):
+        parts.append(C.add_sphere(f"wallcell_mucus{i}", 0.17, (dx, dy, 0.48), 12, 8, cap_m))
     o = C.join(parts, "wallcell")
     C.apply_modifiers(o)
     C.shade_smooth(o, 50)

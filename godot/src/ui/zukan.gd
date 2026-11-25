@@ -1,12 +1,14 @@
 extends Control
 ## ずかん：いちばん 上に カルテの 段（書いた カルテを 読みかえす）、その 下に 場所ごとの ものしりカード。
 ## 場所は どれかの カルテで 行く 場所だけを 出す（まだ 行けない 場所の「？？？」で 数を ふくらませない）。
+## みつけたが まだ 開いて いない カード（SaveData.card_is_new）には 右上に ピンクの まる。開くと 消える。
 
 const T := preload("res://src/ui/ui_theme.gd")
 const CardPopup := preload("res://src/ui/card.gd")
 
 var karte_buttons: Dictionary = {}   # ep_id -> Button（テストが 見る）
 var popup: Control = null            # いま 開いている カード（テストが 見る）
+var new_marks: Dictionary = {}       # "場所id/key" -> まだ 開いて いない しるし（テストが 見る）
 
 
 func _ready() -> void:
@@ -91,6 +93,10 @@ func _ready() -> void:
 			if seen:
 				T.colored_button(b, T.CREAM, T.PINK)
 				b.pressed.connect(func(): _open(card, key, sid))
+				if SaveData.card_is_new(sid, key):
+					var dot := _new_mark()
+					b.add_child(dot)
+					new_marks[SaveData.card_key(sid, key)] = dot
 			else:
 				b.disabled = true
 				b.focus_mode = Control.FOCUS_NONE
@@ -105,8 +111,30 @@ func _ready() -> void:
 		back.grab_focus()
 
 
+## まだ 開いて いない しるし：ボタンの 右上の ピンクの まる（字で なく 形で 描く）
+func _new_mark() -> Control:
+	var dot := Control.new()
+	dot.name = "NewMark"
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dot.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	dot.offset_left = -20
+	dot.offset_right = -4
+	dot.offset_top = 4
+	dot.offset_bottom = 20
+	dot.draw.connect(func():
+		dot.draw_circle(Vector2(8, 8), 8.0, Color.WHITE)
+		dot.draw_circle(Vector2(8, 8), 6.0, Color(0.95, 0.3, 0.45)))
+	return dot
+
+
 func _open(card: Dictionary, key: String, sid := "") -> void:
 	Sfx.play("card")
+	if sid != "" and SaveData.card_is_new(sid, key):
+		SaveData.open_card(sid, key)
+		var dot = new_marks.get(SaveData.card_key(sid, key))
+		if dot != null and is_instance_valid(dot):
+			dot.queue_free()
+		new_marks.erase(SaveData.card_key(sid, key))
 	var prev := get_viewport().gui_get_focus_owner()
 	var p := CardPopup.new()
 	p.setup(card, key, sid)

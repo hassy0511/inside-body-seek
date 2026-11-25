@@ -30,6 +30,12 @@ var heading := Vector3.FORWARD
 var control_enabled := true
 var speed_mult := 1.0
 var external_push := Vector3.ZERO
+## なみ（ぜんどううんどう）に のって いる あいだ、この むきに この はやさ（m/s）より おそく ならない（毎フレーム 0 に もどる。peristalsis.gd が 入れる）
+var carry_dir := Vector3.ZERO
+var carry_speed := 0.0
+## やわらかい ものに ぶつかって ゆっくりに なって いる のこりの 秒（ハートは へらない）
+var slow_time := 0.0
+const SLOW_MULT := 0.45
 ## いまの まわる はやさ（rad/s。ひだりまわりが ＋）
 var turn_rate := 0.0
 var invulnerable := 0.0
@@ -104,7 +110,10 @@ func _make_arrow() -> Node3D:
 	mi.mesh = cone
 	mi.rotation_degrees = Vector3(-90, 0, 0)
 	mi.position = Vector3(0, 0, -0.5)
-	mi.material_override = ModelLib.flat_material(Color(1.0, 0.85, 0.2), Color(1.0, 0.7, 0.1))
+	# 水色（光る 黄色は ゴールだけに する。黄色い 矢印は まうしろから 見ると まるく、ゴールの 輪と まちがえた）。
+	# 光らせすぎない：色を 足しすぎると 白い 玉に 見える
+	mi.material_override = ModelLib.flat_material(Color(0.30, 0.74, 1.0), Color(0.05, 0.22, 0.42))
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	pivot.add_child(mi)
 	pivot.visible = false
 	return pivot
@@ -157,8 +166,16 @@ func _physics_process(delta: float) -> void:
 		turn_rate = 0.0
 	if hit_stun > 0.0:
 		hit_stun -= delta
+	if slow_time > 0.0:
+		slow_time -= delta
+		speed_mult *= SLOW_MULT
 	var target_speed := (DASH_SPEED if dash else SPEED) * speed_mult
 	var target_vel := dir * target_speed + external_push
+	if carry_speed > 0.0 and hit_stun <= 0.0:
+		# なみに のって いる：前へは なみの はやさまで おされる（よこは じぶんで うごける）
+		var along := target_vel.dot(carry_dir)
+		if along < carry_speed:
+			target_vel += carry_dir * (carry_speed - along)
 	steer(target_vel, ACCEL if hit_stun <= 0.0 else 5.0, delta)
 	if dir.length() > 0.1 and not is_steering():
 		# slerp は 反対向きのとき 軸の正規化エラーを出すことがあるので、普通の補間＋正規化にする
@@ -193,6 +210,7 @@ func _physics_process(delta: float) -> void:
 	_check_stuck(delta, dir)
 	speed_mult = 1.0
 	external_push = Vector3.ZERO
+	carry_speed = 0.0
 	_update_arrow(delta)
 
 
@@ -214,10 +232,18 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 		if _stuck_count <= 2 and level.has_method("path_direction_at"):
 			# まず 3 m 後ろへ（くだなら道にそって）
 			var back: Vector3 = -level.path_direction_at(global_position) if level.path.is_valid() else -heading
-			if is_steering() and not level.path.is_valid():
-				back = -dir.normalized()   # すすもうと した むきの はんたいへ（うしろへ さがって はさまったら まえへ）
-			global_position += back * 3.0 + Vector3.UP * 0.5
-			velocity = back * 4.0
+			if is_steering():
+				# ひろい 場所：すすもうと した むきの はんたいへ（うしろへ さがって かべに はさまったら まえへ）。
+				# 道（MK_path）の ある 場所でも 道の むきは つかわない（スタートの うしろの かべへ おしこむ ことに なる）
+				back = -dir.normalized()
+			back.y = 0.0
+			back = back.normalized() if back.length() > 0.01 else -heading
+			var step := _free_step(back, 3.0)
+			if step > 0.4:
+				global_position += back * step + Vector3.UP * 0.5
+				velocity = back * 4.0
+			else:
+				velocity = Vector3.UP * 2.0
 			Game.say("はさまっちゃった！ ちょっと もどるね。", 2.0)
 		elif level.has_method("respawn_position"):
 			_stuck_count = 0
@@ -225,6 +251,29 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 			velocity = Vector3.ZERO
 			Game.say("あれ？ ぬけられない。チェックポイントから やりなおそう。", 3.0)
 		_stuck_from = global_position
+
+
+## はさまった ときに もどす きょり：かべ（world）の 手前で とまり、行き先の 下に ゆかが ある こと。
+## かべの 外へ 出して 下へ おちる ことが ない ように する（0 なら うごかさない）
+func _free_step(dir: Vector3, want: float) -> float:
+	var space := get_world_3d().direct_space_state
+	var from := global_position + Vector3.UP * 0.5
+	var dist := want
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * (want + 1.0), 1)
+	var hit := space.intersect_ray(q)
+	if not hit.is_empty():
+		dist = minf(want, from.distance_to(hit["position"]) - 1.0)
+	if dist <= 0.0:
+		return 0.0
+	var to := from + dir * dist
+	var down := PhysicsRayQueryParameters3D.create(to, to + Vector3.DOWN * 12.0, 1)
+	var g := space.intersect_ray(down)
+	if g.is_empty():
+		return 0.0
+	# 下に あるのが うら向きの 面（かべの 外がわ）なら ゆかでは ない
+	if (g["normal"] as Vector3).y < 0.3:
+		return 0.0
+	return dist
 
 
 ## のりものの 操作を つかうか（ひろい 場所で、自動操縦で ない とき）
@@ -353,6 +402,19 @@ func hurt(from: Vector3) -> void:
 		_respawn()
 
 
+## やわらかい ものに ぶつかった（しょくどうの たべものの かたまり）：はねかえって 少しの あいだ ゆっくり。ハートは へらない
+func bump(from: Vector3, strength := 7.0, slow := 1.0) -> void:
+	if _respawning:
+		return
+	var away := global_position - from
+	away.y = 0.0
+	if away.length() < 0.01:
+		away = -heading
+	velocity = away.normalized() * strength + Vector3.UP * 1.5
+	hit_stun = 0.25
+	slow_time = maxf(slow_time, slow)
+
+
 func heal(n := 1) -> void:
 	hearts = mini(hearts + n, MAX_HEARTS)
 	hearts_changed.emit(hearts)
@@ -393,6 +455,13 @@ func _update_arrow(delta: float) -> void:
 	if to.length() < 3.0:
 		arrow.visible = false
 		return
+	# くだの 場所で 行き先が 道の 先に ある ときは 出さない（道は 1 本。まうしろから 見た 矢印は 黄色い まるに 見え、ゴールと まちがえる）
+	if level.get("stage") is Dictionary and level.stage.get("kind", "") == "tube" and level.get("path") != null and level.path.is_valid():
+		var pd: Vector3 = level.path.direction_at(global_position)
+		pd.y = 0.0
+		if pd.length() > 0.01 and pd.normalized().dot(to.normalized()) > cos(deg_to_rad(35.0)):
+			arrow.visible = false
+			return
 	arrow.visible = true
 	var yaw := HoverBody.yaw_for(to.normalized())
 	arrow.rotation.y = lerp_angle(arrow.rotation.y, yaw, minf(1.0, 8.0 * delta))

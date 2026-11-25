@@ -28,8 +28,9 @@ for s in a b; do
   mkdir -p "$OUT/$s"
   (
     cd "$WORK/$s/godot" || exit 1
-    "$GODOT" --headless --path . --import >/dev/null 2>&1 || true
-    "$GODOT" --headless --path . --export-release "Web" "$OUT/$s/index.html" 2>&1 \
+    # ヘッドレスの Godot は まれに 終わらない ことが ある（CI で 40 分 止まった）。時間を 切る
+    timeout 300 "$GODOT" --headless --path . --import >/dev/null 2>&1 || true
+    timeout 300 "$GODOT" --headless --path . --export-release "Web" "$OUT/$s/index.html" 2>&1 \
       | grep -E "ERROR|WARNING" | grep -v -E "Draco|MeshOptimizer" | head -10
   )
   for f in index.html index.js index.wasm index.pck; do

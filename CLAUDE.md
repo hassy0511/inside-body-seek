@@ -8,15 +8,17 @@
 
 - 文章は ひらがな・カタカナ中心。一文字の臓器名は「い（胃）」「は（歯）」「ち（血）」のように漢字を添える。分かち書き（単語の間にスペース）。この きまりは `EpisodeDB.text_problems()` が 調べ、テストが データと 画面に 出た 文の 両方に かける（くわしくは `docs/episodes.md` 2.2）。
 - 体の事実は子ども向けに丸めてよいが、間違いは入れない（数値は `docs/design.md` の表に合わせる）。
-- **カルテ**（そうだん・よそう・場面ごとの 上書き・あとの はなし・カルテの 3 行・クイズ）は `godot/src/autoload/episode_db.gd`。**場所**（既定の ミッション・ものしりカード・まとめ）は `godot/src/autoload/stage_db.gd`。場所の 形と スポーン位置は `blender/stages.py`（Empty の名前 `MK_...` がスポーン）。作りなおした 場所は 1 つ 1 ファイル（`blender/stage_mouth.py`。部品は `blender/stage_kit.py`）。絵から 作りなおした キャラクターも 1 体 1 ファイル（`blender/pod.py`、`blender/mushiba.py`。手本は pod。絵との 見くらべは `tools/pod_views.sh <出力> <id>` と `tools/pod_compare.py`）で、`characters.py` の `BUILDERS` から 呼ぶ。
+- **カルテ**（そうだん・よそう・場面ごとの 上書き・あとの はなし・カルテの 3 行・クイズ）は `godot/src/autoload/episode_db.gd`。**場所**（既定の ミッション・ものしりカード・まとめ）は `godot/src/autoload/stage_db.gd`。場所の 形と スポーン位置は `blender/stages.py`（Empty の名前 `MK_...` がスポーン）。作りなおした 場所は 1 つ 1 ファイル（`blender/stage_mouth.py`・`stage_esophagus.py`・`stage_stomach.py`。部品は `blender/stage_kit.py`）。絵から 作りなおした キャラクターも 1 体 1 ファイル（`blender/pod.py`、`blender/mushiba.py`。手本は pod。絵との 見くらべは `tools/pod_views.sh <出力> <id>` と `tools/pod_compare.py`）で、`characters.py` の `BUILDERS` から 呼ぶ。
 - 場面は 体の 入口から じゅんばんに 並べ、とちゅうの 場所を とばさない（`validate()` の みちの きまり）。とおるだけの 場所は `"pass": true` と `say` の「とおりみち」（てき・ミッションなし。ハートの ほしに 数えない）。くわしくは `docs/episodes.md` 10 章。
 - カルテを 足すのは データだけ（`EPISODES` に 1 件。`docs/episodes.md` 8 章）。`episode_db.gd` の 先頭の「書きかたの きまり」は ダッシュボードが 読むので 守る。場面は `hints` と、さいごの 場面の `after` を かならず 書く。
 - 原因の 種あかしや 学びは、ボタンで 進む 画面（`after`・カルテ）に 書く。HUD の 文（`intro`・`goal_say` など）は 時間で 消えるので「いま 何を するか」だけ。
+- ものしりカードは ゲームを 止めない：場面の とちゅうは `Game.find_card()`（音と HUD の 小さい ふだ。本文なし）だけ。読むのは ふつうの 場面の あとの「みつけた ものしりカード」（`src/ui/cards_found.gd`、phase `cards`。新しい カードが ある ときだけ。とおりみちは 出さない）と ずかん。Level が 動いて いる あいだに `Game.show_card()` や ポップアップを 出さない（テストの `_watch_cards` が 失敗に する）。
+- 「よけろ」「のれ」と 言う ものは、そう しないと 何かが 起きる ように 作る（しょくどうの かたまりは ぶつかると なみから おちて おそく なる。ハートは へらない）。体に ふつうは 無い ものを 場所の モデルに 置かない（食べものの かたまりは カルテ 2 の 場面の データ `"lumps"` だけ）。
 - モデルを変えたら GLB を作り直す：`<venv>/bin/python -m blender.characters <name>` / `-m blender.stages <stage_env>`（`blender -b -P blender/stages.py -- stage_mouth` でも可）。
 - 生成した GLB・WAV はコミットする。`godot/.godot/` と `blender/out/` はコミットしない。
 - 音楽は `tools/music/`（1 曲 1 ファイル `tracks/<名前>.py`、共通の モチーフ `motif.py`）。`<music-venv>/bin/python -m tools.music build <名前>` で `godot/assets/audio/<名前>.ogg`（と `.import`）を 作り、`check` が `MUSIC: OK` を 出す こと。OGG と `clear.wav` は コミットし、作業用の `tools/music/out/` と 音色（86 MB の sf3）は コミットしない。手順は `docs/audio.md`。
 - どこで どの 曲かは 場所の `"bgm"`（`stage_db.gd`）と `sfx.gd` の `PHASE_MUSIC`（フェーズ）。ボスの いる 場面は `bgm_boss`。ブラウザ版では 音楽を Stream 再生に している（Sample 再生は OGG を 丸ごと ほどいて 手ばなさない。`docs/audio.md`）。
-- 操作：ひろい 場所（ひろば・へや）は 乗りものの ように 動かす（ひだり・みぎで 向きを 変え、カメラは いつも 後ろ。うえで 進み、したで 下がる）。くだの 場所は 道に そって 進み、ひだり・みぎで 横に 動く。数値は `player.gd`・`follow_camera.gd` の 先頭。入力を 決めて 動きを 記録する 道具は `godot/tests/steer_trace.tscn`。
+- 操作：ひろい 場所（ひろば・へや）は 乗りものの ように 動かす（ひだり・みぎで 向きを 変え、カメラは いつも 後ろ。うえで 進み、したで 下がる）。くだの 場所は 道に そって 進み、ひだり・みぎで 横に 動く。しょくどうは うしろから くる なみが 船を はこぶ（`src/level/peristalsis.gd`、場所の `"waves"`）。数値は `player.gd`・`follow_camera.gd` の 先頭。入力を 決めて 動きを 記録する 道具は `godot/tests/steer_trace.tscn`。
 - Godot 側のコードは「子どもが詰まらない」を最優先：ゲームオーバーなし、はさまったら戻す、ヒントは上書きしない（`Game.hud_busy()`）。よそうの はずれは しからない（ほしにも 入れない）。データが まちがって いても ゴールは 開く（`Level._fit_missions()`。テストは 失敗に なる）。
 - カルテの 流れの 画面（`src/ui/flow_screen.gd` を 継ぐ 4 つ）は、いつも 押せる ボタンに フォーカスが ある こと・時間で 勝手に 進まない こと・1280×720 に 入る こと。
 
@@ -50,6 +52,7 @@ tools/screenshot.sh mouth /tmp/a.png --play=3   # Xvfb + Mesa でスクリーン
 tools/screenshot.sh model:pod /tmp/b.png        # キャラクター 1 体だけ
 tools/screenshot.sh guess:ep03 /tmp/c.png       # カルテの 画面（select／consult:ep03／guess_go:ep01／after:ep03:0／karte:ep03:1／ep03:1 …）
 tools/screenshot.sh hop:ep02:0 /tmp/d.png       # みちの ちず（hop:ep02:-1 は とおりみちを とばす とき。enter:ep02+cleared で とばす ボタン。guide:mouth は そうじゅうの てびき）
+tools/screenshot.sh "chip:stomach:acid,cards:intestine" /tmp/shots/   # カードの ふだ（chip:<場所>:<key>）と「みつけた ものしりカード」（cards:<場所>[:n]）
 tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # 「,」で 何枚も。しるし（+p1 +hit +wrong +hurt +touch）は godot/tests/shot.gd の 先頭
 ```
 
@@ -78,3 +81,10 @@ tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # �
 - 場所の 見た目は `StageDB` の `"look"`（光・きり・面の 色と 画像・あわ・ゆれ。キーの 説明は `src/level/stage_look.gd` の 先頭）。`"look"` が 無い 場所は 前の まま。面の 画像は `godot/assets/textures/stages/tex_<場所>_<floor|wall>.png` を 置くだけ（GLB は 作りなおさない。`.import` は 手で mipmaps を 入れる。口は Codex の 絵で、512 px で 読みこむ。`tools/gen_stage_textures.py` は ある 画像を 上書きしない）。場面の 看板は 板の 絵（`assets/ui/sign_board.png`）に 字を のせる（`level.gd` の `_sign_board()`。幅は 7 m まで）。見た目を 作る ときの 撮影は `godot/tests/stage_view.tscn`（HUD なし・すきな 位置）。
 - この 描画方式（Compatibility）は 色の 計算を 画面の 色の まま する（sRGB と リニアを 変換しない）。頂点の 色で かける 倍率は、見た 目の 色の 比で 書く。自動の LOD は 丸い 形を つぶす ことが ある（pod・stage_mouth は `.import` で 切った）。
 - 同じ サイトに 置いた Godot の ブラウザ版は、どれも 同じ 入れ物（IndexedDB の `/userfs`）に セーブを 書く。版を ならべる ときは 名前を 分ける（`tools/compare/build.sh`）。
+- HUD の 左上（ハートの 下）は カードの ふだ（`hud.gd` の `CHIP_POS`）と しょくどうの「なみに のって N m」が 使う。HUD に 部品を 足したら `hud.hud_rects()` に 入れる（ふだと 重ならない ことを テストが 見る）。
+- 光る 黄色は ゴールだけ（い（胃）で テストが 見る）。ミクロごうの 上の 矢印は 白っぽい 水色。いえきの いけは 光らない 琥珀色。
+- いえきの いけの 水は `hazard_pool.gd` が マーカーの 高さに 出す。水の ふちは モデルの `PoolRims` が 水面を よこぎる ところ（半径 r）。あぶない ところは ミクロごうの まんなかが r より 内がわ。`smoke.gd` の `_check_pools()` が 見る。い（胃）の GLB は LOD を 切る（ふちが くずれると 水の ふちが ずれる）。
+- しょくどうの きかん（気管）は 見た目だけ（`NC_Trachea`）。あなは 当たるだけの 面（`TracheaPlug`）で ふさぐ。くだの 場所に わき道を 作る ときは、入れない ように ふさぐか、入っても 出られる ように する（行きどまりに 入ると 出られない）。
+- はさまった ときの もどし（`player.gd` の `_check_stuck`）は ひろい 場所では 押した 向きの はんたいへ。かべの 手前で とめ、下に ゆかが ない 所へは うごかさない（`_free_step`）。テストは `_check_back_hold()`。
+- ソフトウェア描画の `stage_view.tscn` は 待つ あいだに 物理が 何秒も すすむ。ながれ・なみの ある 場所は `--still`。
+- `XDG_DATA_HOME` を 変えて Godot を 動かすと セーブの 場所が 分かれる（いくつもの 写しで 同時に テストする ときに 使う）。ただし 書き出しの テンプレートも その 下を さがすので、`tools/export_web.sh` は 変えずに 動かす。

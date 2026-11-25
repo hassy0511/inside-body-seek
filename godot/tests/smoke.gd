@@ -14,6 +14,9 @@ extends Node
 ##    はじめての そうじゅうの てびきが 出て、まわる・すすむ を やると 消える（キーボード・タッチ）
 ## ほかに：みちの きまり（とちゅうの 場所を とばした 話は validate で 止まる）、遊びなおしの「とおりみちを とばす」、
 ##   v2 の セーブ（とおりみちを 入れる 前）の 読みかえ、音楽（ゲームが 呼ぶ 曲の ファイルが ある・ループの 設定・フェーズと 場所の 曲）
+## ものしりカード：場面の とちゅうで ゲームが 止まらない・カードが ひらかない（4・6 の あいだ ずっと 見る）。みつけた しらせが HUD の
+##   部品に 重ならない。「みつけた ものしりカード」の 画面は ふつうの 場面で 新しい カードが あった ときだけ 出る。
+##   その 画面の 形・矢印・タイルを 開いて もどる・そこで やめた ときの つづきから・古い セーブ（_check_cards_screen）
 ## --episode= は 4 を その 話だけ、--stage= は 6 を その 場所だけ 回す（5 は 全部 回す ときだけ）。
 ## セーブは user://save_test.json を 使う（本物の セーブを さわらない）。
 
@@ -24,6 +27,8 @@ const MAX_PASS_SECONDS := 40.0
 const MIN_PASS_SECONDS := 5.0
 ## 7. の そうじゅうを 見る 場所（arena と rooms から 1 つずつ）
 const STEER_PLACES := ["mouth", "heart"]
+## ↓ を 押しつづけても へやの 外へ 出ないかを 見る 場所（作りなおした ひろい 場所）
+const BACK_PLACES := ["mouth", "stomach"]
 const MAX_UI_SECONDS := 30.0
 ## 物語の ひとことは 出てから 2 秒 上書きされない（level.gd の say_story）。その 間を フレームで 数える（少し 短めに 見る）
 const HOLD_FRAMES := 110
@@ -38,6 +43,8 @@ const SteerGuide := preload("res://src/ui/steer_guide.gd")
 const HudScreen := preload("res://src/ui/hud.gd")
 const TitleScreen := preload("res://src/ui/title.gd")
 const ZukanScreen := preload("res://src/ui/zukan.gd")
+const CardsScreen := preload("res://src/ui/cards_found.gd")
+const CardPopup := preload("res://src/ui/card.gd")
 const KarteSheet := preload("res://src/ui/karte_sheet.gd")
 const T := preload("res://src/ui/ui_theme.gd")
 
@@ -54,6 +61,13 @@ var _scene_clears := 0
 var _said: Array = []          # いまの 場面で HUD に 出た 文：[物理フレーム, 文]
 var _text_seen: Dictionary = {}
 var _pass_times: Dictionary = {}   # "ep02 scene 0 (mouth)" -> 秒
+var _found_now: Array[String] = []   # いまの 場面で みつけた カード（Game.card_found）
+var _cards_pending := false          # 場面が おわった：つぎは「みつけた ものしりカード」の 画面の はず
+var _cards_want: Array[String] = []  # その 画面に ならぶ はずの カード
+var _cards_screens := 0
+var _card_stop_seen := {}            # 同じ 場面の ゲームが 止まった しらせを 1 回だけ 書く
+var _chips_checked := {}             # 重なりを 見た しらせ（Control の id）
+var _chips_seen := 0
 
 
 func _ready() -> void:
@@ -98,11 +112,17 @@ func _ready() -> void:
 		_ep_done = true
 		_phases_at_end = _phases.duplicate())
 	Game.stage_started.connect(func(_sid): _said.clear())
+	Game.card_found.connect(func(_sid, key): _found_now.append(key))
+	Game.phase_changed.connect(_check_cards_phase)
 	Game.phase_changed.connect(_check_phase_music)
 	Game.said.connect(_on_said)
 	Game.stage_finished.connect(func(sid: String, _stars):
 		_scene_clears += 1
 		_finished = true
+		# ふつうの 場面で 新しい カードを みつけたら、つぎは「みつけた ものしりカード」（とおりみち・新しい カード なしは 出ない）
+		_cards_pending = not Game.episode.is_empty() and not EpisodeDB.is_pass(Game.episode, Game.scene_index) and not _found_now.is_empty()
+		_cards_want = _found_now.duplicate()
+		_found_now.clear()
 		if not Game.episode.is_empty():
 			_info("  scene %d (%s) done" % [Game.scene_index, sid])
 			_check_says())
@@ -124,6 +144,7 @@ func _ready() -> void:
 			await _check_resume()
 			await _check_zukan()
 			await _check_keys()
+			await _check_cards_screen()
 		if _only_ep == "":
 			for id in StageDB.stage_ids():
 				if _only_place == "" or id == _only_place:
@@ -131,9 +152,17 @@ func _ready() -> void:
 			for id in STEER_PLACES:
 				if _only_place == "" or id == _only_place:
 					await _check_steering(id)
+			if _only_place == "" or _only_place == "esophagus":
+				await _check_esophagus()
+			if _only_place == "" or _only_place == "stomach":
+				await _check_pools()
+			for id in BACK_PLACES:
+				if _only_place == "" or id == _only_place:
+					await _check_back_hold(id)
 	_remove_test_saves()
 	for k in _pass_times.keys():
 		_info("pass scene %s: %.1fs (sim)" % [k, _pass_times[k]])
+	_info("card chips checked: %d, cards screens: %d" % [_chips_seen, _cards_screens])
 	print("")
 	print("==================== SMOKE SUMMARY ====================")
 	for l in _log:
@@ -846,13 +875,14 @@ func _check_says() -> void:
 	if sc.has("clear_say"):
 		want.append(sc["clear_say"])
 	for t in want:
-		if not texts.has(t):
+		# clear_say は うしろに ことばが つく ことが ある（しょくどう：「なみに のって ○ m すすんだよ！」）
+		if not texts.has(t) and not (t == sc.get("clear_say", "") and texts.any(func(x: String): return x.begins_with(t))):
 			_fail("%s: HUD に 出なかった：%s" % [where, t])
 	if has_work and sc.has("goal_say"):
 		var i := texts.find(sc["goal_say"])
 		var j := i + 1
 		while i >= 0 and j < _said.size() and _said[j][0] - _said[i][0] < HOLD_FRAMES:
-			if _said[j][1] != sc.get("clear_say", "クリア！"):
+			if not String(_said[j][1]).begins_with(sc.get("clear_say", "クリア！")):
 				_fail("%s: goal_say が すぐ 上書きされた：%s" % [where, _said[j][1]])
 			j += 1
 
@@ -871,6 +901,7 @@ func _run_episode(id: String) -> void:
 	_ep_done = false
 	_phases.clear()
 	_scene_clears = 0
+	_found_now.clear()
 	# id だけを 回す とき（--episode=）は、前の 話を クリアずみに して おく（カルテえらびが id を えらぶ ように）
 	for prev in EpisodeDB.ids():
 		if prev == id:
@@ -916,6 +947,7 @@ func _run_episode(id: String) -> void:
 				pass_t = 0.0
 				if lvl.is_pass():
 					_check_pass_level(lvl, "%s scene %d" % [id, Game.scene_index])
+			_watch_cards(lvl, "%s scene %d" % [id, Game.scene_index])
 			if lvl.started and not lvl.finished:
 				Autopilot.drive(lvl, get_tree())
 				if lvl.is_pass():
@@ -953,6 +985,8 @@ func _run_episode(id: String) -> void:
 		if scr is JourneyScreen and not journeys_seen.has(scr.mode):
 			journeys_seen[scr.mode] = true
 			_check_journey_screen(scr, ep)
+		if scr is CardsScreen and scr.focus_target == scr.button:
+			_check_cards_found(scr, fo, "%s cards%d" % [id, Game.scene_index])
 		if scr is HopScreen and not hops_seen.has("%d" % scr.from):
 			hops_seen.append("%d" % scr.from)
 			_check_hop_screen(scr, ep, false)
@@ -985,8 +1019,10 @@ func _run_episode(id: String) -> void:
 		_fail("%s: みちの ちずが 場面の あいだ ごとに 出ない（%s）" % [id, hops_seen])
 	if _ep_done:
 		_info("cleared %s in %.1fs (sim) / %.1fs (real); scenes=%d stars=%d" % [id, total, (Time.get_ticks_msec() - t0) / 1000.0, _scene_clears, SaveData.stars(id)])
-		if _phases_at_end != expect:
-			_fail("%s: phases %s != %s" % [id, _phases_at_end, expect])
+		# 「みつけた ものしりカード」は セーブ しだい（はじめて みつけた ときだけ）。ここでは のぞいて くらべ、出る・出ないは _check_cards_phase が 見る
+		var got := _phases_at_end.filter(func(p): return p != "cards")
+		if got != expect:
+			_fail("%s: phases %s != %s" % [id, got, expect])
 		if _scene_clears != ep["scenes"].size():
 			_fail("%s: %d scenes cleared, expected %d" % [id, _scene_clears, ep["scenes"].size()])
 		if not SaveData.is_cleared(id) or SaveData.stars(id) < 1 or not SaveData.card_seen(id, "karte") or not SaveData.resume().is_empty():
@@ -1175,6 +1211,259 @@ func _check_no_dup(scr: Control, ep: Dictionary, where: String) -> void:
 		for m in ["enter", "exit"]:
 			if t == ep.get(m, {}).get("say", "—") and not (scr is JourneyScreen and scr.mode == m):
 				_fail("%s: %s の ひとことが ほかの 画面にも 出て いる：%s" % [where, m, t])
+
+
+# ---------------------------------------------------------------- ものしりカード
+## 場面が 動いて いる あいだ：ゲームが 止まって いない（ポーズメニュー いがい）・カードの ポップアップが 無い。
+## みつけた しらせは HUD の 部品（ハート・題・ミッション・ピコ・ポーズ・ポケット・てびき・タッチの ボタン）に 重ならない
+func _watch_cards(lvl, where: String) -> void:
+	if not lvl.started or lvl.finished:
+		return
+	var popup := false
+	for c in Game.overlay_layer.get_children():
+		if c is CardPopup:
+			popup = true
+	var paused := get_tree().paused and Game.overlay_layer.get_node_or_null("PauseMenu") == null
+	if (popup or paused or Game.is_popup_open()) and not _card_stop_seen.has(where):
+		_card_stop_seen[where] = true
+		_fail("%s: 場面の とちゅうで %s" % [where, "カードが ひらいた" if popup or Game.is_popup_open() else "ゲームが 止まった"])
+	var chip: Control = Game.hud.card_chip() if Game.hud != null and is_instance_valid(Game.hud) else null
+	if chip != null and chip.modulate.a > 0.5 and not _chips_checked.has(chip.get_instance_id()):
+		_chips_checked[chip.get_instance_id()] = true
+		_chips_seen += 1
+		_check_chip(chip, where)
+
+
+## しらせ 1 つ：絵と だいめいが あり、本文は 無い。画面の 中で、HUD の 部品に 重ならない
+func _check_chip(chip: Control, where: String) -> void:
+	var r := chip.get_global_rect()
+	var view := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	if not view.encloses(r):
+		_fail("%s: カードの しらせが 画面の 外（%s）" % [where, r])
+	var rects: Dictionary = Game.hud.hud_rects()
+	for k in rects:
+		if r.intersects(rects[k]):
+			_fail("%s: カードの しらせ %s が %s %s に 重なる" % [where, r, k, rects[k]])
+	var labels := chip.find_children("*", "Label", true, false)
+	if labels.size() != 2 or String(labels[1].text) == "":
+		_fail("%s: カードの しらせに だいめいが ない" % where)
+	_check_texts(chip, where + " しらせ")
+
+
+## フェーズが かわった：「みつけた ものしりカード」は 出る はずの ときだけ 出る
+func _check_cards_phase(p: String, _i: int) -> void:
+	if p == "cards":
+		_cards_screens += 1
+		if not _cards_pending:
+			_fail("%s: 「みつけた ものしりカード」が 出ては いけない ときに 出た（とおりみち／新しい カード なし）" % Game.episode.get("id", "?"))
+		# ボタンの 画面：場面（ボス）の 曲の まま に しない（あとの はなしと 同じ 曲）
+		var want_m := Sfx.phase_music("after")
+		if want_m != "" and Sfx._bgm_name != want_m:
+			_fail("%s: 「みつけた ものしりカード」の 曲が %s（%s の はず）" % [Game.episode.get("id", "?"), Sfx._bgm_name, want_m])
+		_cards_pending = false
+	elif _cards_pending and p in ["after", "hop", "exit", "karte", "consult"]:
+		_fail("%s: 新しい カード %s を みつけたのに「みつけた ものしりカード」が 出ない（%s へ）" % [Game.episode.get("id", "?"), _cards_want, p])
+		_cards_pending = false
+
+
+## 「みつけた ものしりカード」の 画面（カルテの 流れの 中）：みつけた カードが ならび、主ボタンに フォーカス
+func _check_cards_found(scr, fo: Control, where: String) -> void:
+	if scr.has_meta("checked"):
+		return
+	scr.set_meta("checked", true)
+	if fo != scr.button:
+		_fail("%s: 主ボタンに フォーカスが ない（%s）" % [where, _ctl_name(fo)])
+	var want := _cards_want.duplicate()
+	if scr.keys != want:
+		_fail("%s: ならんだ カード %s が みつけた カード %s と ちがう" % [where, scr.keys, want])
+	if not scr.keys.has("stage") and not SaveData.card_seen(scr.stage_id, "stage"):
+		_fail("%s: 場所の カード（stage）が ない" % where)
+	for k in scr.keys:
+		if not SaveData.card_seen(scr.stage_id, k):
+			_fail("%s: %s が ずかんに 入って いない" % [where, k])
+	_info("  %s: %d cards %s" % [where, scr.keys.size(), scr.keys])
+
+
+## いちばん 多い 形・矢印・タイルを 開いて もどる・決定で 進む・そこで やめた ときの つづきから・古い セーブ
+func _check_cards_screen() -> void:
+	_info("=== cards screen ===")
+	var keep: Dictionary = SaveData.data.duplicate(true)
+	# 1. どの 場所も、全部の カード ＋ stage を ならべて 入る（場面で みつかる いちばん 多い 数は これ いか）
+	var most := ""
+	var most_n := 0
+	for sid in StageDB.stage_ids():
+		var keys: Array = StageDB.get_stage(sid)["cards"].keys().filter(func(k): return k != "stage")
+		keys.append("stage")
+		var scr = CardsScreen.new()
+		scr.setup(sid, keys)
+		Game._set_screen(scr)
+		await _wait_focus()
+		_check_screen(scr, "cards " + sid)
+		if get_viewport().gui_get_focus_owner() != scr.button:
+			_fail("cards %s: 主ボタンに フォーカスが ない" % sid)
+		if keys.size() > most_n:
+			most_n = keys.size()
+			most = sid
+	_info("cards screen: most %d (%s), max %d" % [most_n, most, CardsScreen.MAX_TILES])
+	# 2. 本物の 入力：上 → さいごの タイル、ひだり → その まえ、決定 → カードが ひらく、決定 → とじて 同じ タイルへ、下 → 主ボタン、決定 → 進む
+	SaveData.reset()
+	var keys2: Array = StageDB.get_stage(most)["cards"].keys().filter(func(k): return k != "stage")
+	keys2.append("stage")
+	for k in keys2:
+		SaveData.find_card(most, k)
+	var scr = CardsScreen.new()
+	scr.setup(most, keys2)
+	var done := [false]
+	scr.finished.connect(func(): done[0] = true)
+	Game._set_screen(scr)
+	await _wait_focus()
+	var n: int = scr.tiles.size()
+	await _tap_expect("ui_up", scr.tiles[n - 1], "みつけた カード 主ボタン")
+	await _tap_expect("ui_up", scr.tiles[n - 1], "みつけた カード タイル")
+	await _tap_expect("ui_left", scr.tiles[n - 2], "みつけた カード タイル")
+	var k2: String = keys2[n - 2]
+	if not SaveData.card_is_new(most, k2):
+		_fail("cards: みつけた カードに まだ 開いて いない しるしが ない")
+	await _tap("ui_accept")
+	var t := 0.0
+	while t < 5.0 and (scr.popup == null or scr.popup.button().disabled):
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	if scr.popup == null:
+		_fail("cards: タイルを 決定で 押しても カードが ひらかない")
+	else:
+		if get_viewport().gui_get_focus_owner() != scr.popup.button():
+			_fail("cards: ひらいた カードの ボタンに フォーカスが ない")
+		_check_texts(scr.popup, "cards popup")
+		_check_layout(scr.popup, "cards popup")
+		# 矢印で 下の 画面へ 出て いかない
+		await _tap_expect("ui_down", scr.popup.button(), "ひらいた カード")
+		await _tap_expect("ui_right", scr.popup.button(), "ひらいた カード")
+		await _tap("ui_accept")
+		t = 0.0
+		while t < 5.0 and (scr.popup != null or scr.locked()):
+			await get_tree().process_frame
+			t += get_process_delta_time()
+		if scr.popup != null or Game.screen() != scr:
+			_fail("cards: カードを とじても もどらない")
+		if get_viewport().gui_get_focus_owner() != scr.tiles[n - 2]:
+			_fail("cards: カードを とじた あと 同じ タイルに フォーカスが もどらない（%s）" % _ctl_name(get_viewport().gui_get_focus_owner()))
+		if SaveData.card_is_new(most, k2) or not SaveData.card_is_new(most, keys2[0]):
+			_fail("cards: 開いた カードだけ しるしが 消える はず")
+	if done[0]:
+		_fail("cards: タイルを 押しただけで 進んだ")
+	await _tap_expect("ui_down", scr.button, "みつけた カード タイル")
+	await _tap("ui_accept")
+	await get_tree().process_frame
+	if not done[0]:
+		_fail("cards: 主ボタンを 決定で 押しても 進まない")
+	# 3. ずかん：開いて いない カードに しるし、開いた カードには ない
+	Game.show_zukan()
+	for i in 5:
+		await get_tree().process_frame
+	var z := Game.screen()
+	if not (z is ZukanScreen) or not z.new_marks.has(SaveData.card_key(most, keys2[0])) or z.new_marks.has(SaveData.card_key(most, k2)):
+		_fail("cards: ずかんの まだ 開いて いない しるしが ちがう（%s）" % (z.new_marks.keys() if z is ZukanScreen else "なし"))
+	# 4. 古い セーブ（cards_new が 無い）：見た カードは 見た まま（しるし なし）。cards_new の まちがいは すてる
+	_write('{"version":3,"cards_seen":["mouth/stage","mouth/mushiba"]}')
+	SaveData.load_data()
+	if not SaveData.card_seen("mouth", "mushiba") or SaveData.card_is_new("mouth", "mushiba") or SaveData.card_is_new("mouth", "stage"):
+		_fail("cards: 古い セーブの 見た カードが 見た ままで ない")
+	_write('{"version":3,"cards_seen":["mouth/stage"],"cards_new":["mouth/stage","mouth/tooth",7]}')
+	SaveData.load_data()
+	if not SaveData.card_is_new("mouth", "stage") or SaveData.card_is_new("mouth", "tooth") or SaveData.data["cards_new"].size() != 1:
+		_fail("cards: cards_new の 読みこみが ちがう（%s）" % [SaveData.data["cards_new"]])
+	# 5. 「みつけた ものしりカード」で やめた：つづきから は その 場面の あとの はなし（→ みちの ちず → つぎの 場面）。カードは ずかんに ある
+	var ep_id := ""
+	var at := -1
+	for e in EpisodeDB.EPISODES:
+		for i in e["scenes"].size() - 1:
+			if ep_id == "" and not EpisodeDB.is_pass(e, i):
+				ep_id = e["id"]
+				at = i
+	if ep_id != "":
+		var ep := EpisodeDB.get_episode(ep_id)
+		SaveData.reset()
+		SaveData.data["opening_seen"] = true
+		for prev in EpisodeDB.ids():   # この 話が 開いて いる ように（カルテえらびの 主ボタンが「つづきから」に なる）
+			if prev == ep_id:
+				break
+			SaveData.record_clear(prev)
+		Game.start_episode(ep_id, "scene", at)
+		if not await _play_until(func(): return Game.phase == "cards" or (Game.phase != "scene" and Game.phase != ""), MAX_SCENE_SECONDS):
+			_fail("cards resume: 場面が おわらない")
+		elif Game.phase != "cards":
+			_fail("cards resume: %s 場面 %d の あとに「みつけた ものしりカード」が 出ない（%s）" % [ep_id, at, Game.phase])
+		else:
+			await _wait_focus()
+			var cs = Game.screen()
+			var found: Array = cs.keys.duplicate()
+			var csid: String = cs.stage_id
+			Game.show_episode_select()   # ここで やめた（アプリを とじて また 開いた ときと 同じ）
+			await _wait_focus()
+			var r := SaveData.resume()
+			if r.get("ep", "") != ep_id or int(r.get("cleared", 0)) != at + 1:
+				_fail("cards resume: つづきが ちがう（%s）" % r)
+			var sel := Game.screen()
+			if not (sel is SelectScreen) or not sel.main_is_resume or _focused_button(sel) != sel.main_btn:
+				_fail("cards resume: カルテえらびの 主ボタンが「つづきから」で ない")
+			for k in found:
+				if not SaveData.card_seen(csid, k) or not SaveData.card_is_new(csid, k):
+					_fail("cards resume: %s が ずかんに 新しい カードとして 入って いない" % k)
+			_phases.clear()
+			if not await _play_until(func(): return Game.phase == "scene" and Game.level != null and Game.level.started, MAX_UI_SECONDS, "cards resume"):
+				_fail("cards resume: つづきから 場面に 入れない（%s）" % Game.phase)
+			var want: Array = (["after%d" % at] if not EpisodeDB.after_lines(ep, at, "").is_empty() else []) + ["hop%d" % at, "scene%d" % EpisodeDB.next_scene(ep, at, false)]
+			if _phases != want:
+				_fail("cards resume: つづきからの 流れが ちがう（%s。%s の はず）" % [_phases, want])
+			else:
+				_info("cards resume %s: quit on cards after scene %d -> %s" % [ep_id, at, _phases])
+			Game.show_episode_select()
+	# 6. 場面の とちゅうで みつけた しらせ（タッチの ボタン あり）：HUD の 部品に 重ならない。ピコの ながい 文が 出て いても
+	# [タッチ, 場所, カード, はじめての そうじゅうの てびき]：ながい だいめい（かぜウイルスだいおう）・てびきの みぎ
+	for cfg in [[true, "lungs", "boss_virus", false], [false, "lungs", "boss_virus", false], [true, "mouth", "stage", true], [false, "mouth", "mushiba", true]]:
+		var touch_on: bool = cfg[0]
+		SaveData.reset()
+		SaveData.set_setting("volume", 0.0)
+		SaveData.set_setting("touch", "on" if touch_on else "off")
+		SaveData.data["steer_guide_seen"] = not cfg[3]
+		Game.start_stage(cfg[1])
+		for i in 30:
+			await get_tree().process_frame
+		var where := "chip %s %s touch=%s guide=%s" % [cfg[1], cfg[2], touch_on, cfg[3]]
+		if cfg[3] and Game.hud.get_node_or_null("SteerGuide") == null:
+			_fail("%s: てびきが 出て いない" % where)
+		# ピコの いちばん ながい ふきだし（4 行）でも 重ならない
+		Game.say("これは とても ながい ひとことの ためしだよ。しらせと かさならないか みるよ。もう すこし ながく して、4 ぎょうに なるかな？ まだ まだ つづくよ。", 5.0)
+		Game.find_card(cfg[1], cfg[2])
+		for i in 10:
+			await get_tree().process_frame
+		var chip: Control = Game.hud.card_chip()
+		if chip == null:
+			_fail("%s: しらせが 出ない" % where)
+		else:
+			_check_chip(chip, where)
+			_info("%s: %s; hud %s" % [where, chip.get_global_rect(), Game.hud.hud_rects()])
+		# てびきの ない ときは、どの カードの だいめいも 字を 小さく せずに 入る（ちいさい 字は 6 さいには 読みにくい）
+		if not cfg[3]:
+			for sid in StageDB.stage_ids():
+				for ck in StageDB.get_stage(sid)["cards"].keys():
+					Game.hud.show_card_chip(StageDB.card(sid, ck), ck, sid)
+					await get_tree().process_frame
+					var c2: Control = Game.hud.card_chip()
+					var tl: Label = c2.find_child("Title", true, false) if c2 != null else null
+					if tl == null:
+						_fail("%s %s/%s: しらせが 出ない" % [where, sid, ck])
+						continue
+					if tl.get_theme_font_size("font_size") < Game.HudScene.CHIP_TITLE_SIZE:
+						_fail("%s %s/%s: だいめいの 字が 小さく なった（%d）" % [where, sid, ck, tl.get_theme_font_size("font_size")])
+					_check_chip(c2, "%s %s/%s" % [where, sid, ck])
+		if get_tree().paused:
+			_fail("%s: しらせで ゲームが 止まった" % where)
+	Game.show_episode_select()
+	SaveData.data = keep
+	SaveData.save()
+	await get_tree().process_frame
 
 
 # ---------------------------------------------------------------- 5. 画面の 行き来
@@ -1716,6 +2005,8 @@ func _run_place(id: String) -> void:
 		await get_tree().physics_frame
 		var dt := get_physics_process_delta_time()
 		t += dt
+		if is_instance_valid(lvl):
+			_watch_cards(lvl, "place " + id)
 		if is_instance_valid(lvl) and not lvl.finished:
 			Autopilot.drive(lvl, get_tree())
 		if _debug and is_instance_valid(lvl) and fmod(t, 2.0) < dt and lvl.player:
@@ -1729,6 +2020,207 @@ func _run_place(id: String) -> void:
 	else:
 		_info("cleared %s in %.1fs (sim) / %.1fs (real)" % [id, t, (Time.get_ticks_msec() - t0) / 1000.0])
 	await get_tree().process_frame
+
+
+# ---------------------------------------------------------------- 6b. しょくどうの なみ
+## しょくどう（peristalsis.gd）：
+## ・GLB に たべものの かたまりが 無い。かたまりの いない 場面（場所だけ・ep03 の とおりみち）には かたまりが 出ない
+## ・きんにくの わ（NC_Ring_*）が なみで しまる。なみに のると なみの はやさで はこばれる
+## ・ep02：かたまりに ぶつかると なみから おちて ゆっくりに なる。ハートは へらない。つぎの なみに また のれる
+## ・↑ を 押す だけで ゴールに つく（場所だけ・ep02）。かかった 時間を ログに 書く
+func _check_esophagus() -> void:
+	# 1. 場所だけ：かたまり なし、わが しまる、↑ だけで つく
+	Game.start_stage("esophagus")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var peri = lvl.peristalsis
+	if peri == null:
+		_fail("esophagus: なみ（peristalsis）が ない")
+		return
+	if lvl.env.find_child("FoodChunks", true, false) != null:
+		_fail("esophagus: GLB に たべものの かたまり（FoodChunks）が のこって いる")
+	if peri.lumps.size() != 0:
+		_fail("esophagus: 場所だけ なのに かたまりが %d こ" % peri.lumps.size())
+	if peri._rings.size() < 30:
+		_fail("esophagus: きんにくの わが %d こ（30 こ いじょうの はず）" % peri._rings.size())
+	var r := await _eso_forward(lvl, 60.0, "place")
+	if not r["done"]:
+		_fail("esophagus: ↑ だけで ゴールに つかない（%.1f 秒）" % r["t"])
+	if r["squeezed"] < 0.05:
+		_fail("esophagus: きんにくの わが しまらない（いちばん %.2f）" % r["squeezed"])
+	if r["max_speed"] < peri.speed - 1.5 or r["rides"] < 1:
+		_fail("esophagus: なみに のって はやく ならない（さいこう %.1f m/s、のった %d 回）" % [r["max_speed"], r["rides"]])
+	# 2. ep03 の とおりみち：かたまり なし
+	Game.start_episode("ep03", "scene", 1)
+	lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	if lvl.peristalsis == null or lvl.peristalsis.lumps.size() != 0 or not lvl.is_pass():
+		_fail("esophagus: ep03 の とおりみちに かたまりが ある（または なみが ない）")
+	var r3 := await _eso_forward(lvl, 60.0, "ep03 pass")
+	if not r3["done"] or r3["t"] > MAX_PASS_SECONDS or r3["t"] < 10.0:
+		_fail("esophagus: ep03 の とおりみちを ↑ だけで %.1f 秒（10〜40 秒の はず）" % r3["t"])
+	# 3. ep02：かたまりに ぶつかる
+	Game.start_episode("ep02", "scene", 1)
+	lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	peri = lvl.peristalsis
+	if peri == null or peri.lumps.size() < 5:
+		_fail("esophagus: ep02 に かたまりが ない")
+		return
+	var p = lvl.player
+	# なみに のるまで ↑
+	Input.action_press("move_up")
+	var t := 0.0
+	while not peri.riding and t < 12.0:
+		Input.action_press("move_up")
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	if not peri.riding:
+		_fail("esophagus: ep02 で 12 秒 たっても なみに のれない")
+	# 船の すぐ 前に かたまりを おく（本物の 当たり判定で ぶつける）
+	var lp = peri.lumps[0]
+	var pp: float = lvl.path.progress_at(p.global_position)
+	var smp: Dictionary = lvl.path.sample(pp)
+	var dflat: Vector3 = smp["direction"]
+	dflat.y = 0.0
+	var right := dflat.normalized().cross(Vector3.UP)
+	lp.prog = pp + 5.0
+	lp.side = (p.global_position - (smp["position"] as Vector3)).dot(right)
+	var hearts0: int = p.hearts
+	var bumps0: int = peri.bumps
+	t = 0.0
+	while peri.bumps == bumps0 and t < 3.0:
+		Input.action_press("move_up")
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	if peri.bumps == bumps0:
+		_fail("esophagus: まえに おいた かたまりに ぶつからない")
+	else:
+		for i in 12:
+			await get_tree().physics_frame
+		var hv := Vector3(p.velocity.x, 0, p.velocity.z).length()
+		_info("esophagus bump: 0.2 秒 あとの はやさ %.1f m/s、なみ %s、ハート %d → %d" % [hv, peri.riding, hearts0, p.hearts])
+		if peri.riding or hv > 8.0:
+			_fail("esophagus: ぶつかっても なみから おちない（はやさ %.1f m/s）" % hv)
+		var t_back := 0.0
+		while not peri.riding and t_back < 8.0:
+			Input.action_press("move_up")
+			await get_tree().physics_frame
+			t_back += get_physics_process_delta_time()
+		_info("esophagus bump: %.1f 秒で つぎの なみに のった" % t_back)
+		if not peri.riding:
+			_fail("esophagus: ぶつかった あと 8 秒 たっても なみに のれない")
+	if p.hearts < hearts0 or lvl.damage_taken:
+		_fail("esophagus: かたまりで ハートが へった")
+	Input.action_release("move_up")
+	# 4. ep02 を はじめから ↑ だけで（ものしりカード「food」も 見つかる：どの かたまりの そばでも）
+	Game.start_episode("ep02", "scene", 1)
+	lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var food_before := SaveData.card_seen("esophagus", "food")
+	var r2 := await _eso_forward(lvl, 120.0, "ep02")
+	if not food_before and not SaveData.card_seen("esophagus", "food"):
+		_fail("esophagus: ep02 を ↑ だけで いっても ものしりカード「food」が 見つからない")
+	if lvl.peristalsis.ride_m > lvl.path.total + 1.0:
+		_fail("esophagus: なみに のった きょり %.0f m が 道の 長さ %.0f m より 長い" % [lvl.peristalsis.ride_m, lvl.path.total])
+	if not r2["done"]:
+		_fail("esophagus: ep02 を ↑ だけで ゴールに つかない（%.1f 秒）" % r2["t"])
+	if r2["hurt"]:
+		_fail("esophagus: ep02 を ↑ だけで いったら ハートが へった")
+	# 5. きかんに 入れない・左の かべに はさまらない（場所だけ と ep03）
+	for which in ["place", "ep03"]:
+		if which == "place":
+			Game.start_stage("esophagus")
+		else:
+			Game.start_episode("ep03", "scene", 1)
+		lvl = Game.level
+		while not lvl.started:
+			await get_tree().physics_frame
+		await _eso_left(lvl, which, ["move_left"], 6.0, [], 10.0)
+		if which == "place":
+			Game.start_stage("esophagus")
+		else:
+			Game.start_episode("ep03", "scene", 1)
+		lvl = Game.level
+		while not lvl.started:
+			await get_tree().physics_frame
+		await _eso_left(lvl, which + " ↑←", ["move_up", "move_left"], 40.0, [], 0.0)
+	Game.unload_level()
+	Game.show_title()
+	await get_tree().process_frame
+
+
+## a を sa 秒、b を sb 秒 押して から ↑ で ゴールまで。船が しょくどうの はば（かたがわ 7.2 m）から 出ない こと、
+## スタートへ もどされない こと、さいごに つく こと
+func _eso_left(lvl, tag: String, a: Array, sa: float, b: Array, sb: float) -> void:
+	var p = lvl.player
+	var t := 0.0
+	var worst := 0.0
+	var best := 0.0
+	var jumped := false
+	var phases := [[a, sa], [b, sb], [["move_up"], 60.0]]
+	for ph in phases:
+		var tt := 0.0
+		while tt < float(ph[1]) and not lvl.finished:
+			for act in ph[0]:
+				Input.action_press(act)
+			await get_tree().physics_frame
+			var dt := get_physics_process_delta_time()
+			tt += dt
+			t += dt
+			var pp: float = lvl.path.progress_at(p.global_position)
+			var smp: Dictionary = lvl.path.sample(pp)
+			var dd: Vector3 = smp["direction"]
+			var right := Vector3(dd.x, 0.0, dd.z).normalized().cross(Vector3.UP)
+			worst = maxf(worst, absf((p.global_position - (smp["position"] as Vector3)).dot(right)))
+			if pp < best - 10.0:
+				jumped = true
+			best = maxf(best, pp)
+		for act in ph[0]:
+			Input.action_release(act)
+	_info("esophagus %s: よこ いちばん %.1f m、%.1f 秒で %s%s" % [tag, worst, t, "ついた" if lvl.finished else "つかない", "（もどされた）" if jumped else ""])
+	if worst > 7.2:
+		_fail("esophagus %s: 船が しょくどうの そとへ（よこ %.1f m。きかんに 入った？）" % [tag, worst])
+	if jumped:
+		_fail("esophagus %s: はさまって うしろへ もどされた" % tag)
+	if not lvl.finished:
+		_fail("esophagus %s: さいごに ゴールに つかない（%.1f 秒）" % [tag, t])
+
+
+## ↑ だけを 押して ゴールまで。{done, t, max_speed, rides, bumps, hurt, squeezed}
+func _eso_forward(lvl, limit: float, tag: String) -> Dictionary:
+	var peri = lvl.peristalsis
+	var p = lvl.player
+	var out := {"done": false, "t": 0.0, "max_speed": 0.0, "rides": 0, "bumps": 0, "hurt": false, "squeezed": 0.0}
+	Input.action_press("move_up")
+	var t := 0.0
+	var next_log := 0.0
+	var trace: Array[String] = []
+	while t < limit and not lvl.finished:
+		Input.action_press("move_up")   # ものしりカードの ポーズで はなされる（touch_controls.gd）ので まいかい 押す
+		await get_tree().physics_frame
+		var dt := get_physics_process_delta_time()
+		t += dt
+		var hv := Vector3(p.velocity.x, 0, p.velocity.z).length()
+		out["max_speed"] = maxf(out["max_speed"], hv)
+		for rr in peri._rings:
+			out["squeezed"] = maxf(out["squeezed"], 1.0 - (rr["node"] as Node3D).global_transform.basis.get_scale().x / (rr["basis"] as Basis).get_scale().x)
+		if t >= next_log:
+			next_log += 1.0
+			trace.append("%.0f:%.1f%s" % [t, hv, "W" if peri.riding else ""])
+	Input.action_release("move_up")
+	out["done"] = lvl.finished
+	out["t"] = t
+	out["rides"] = peri.ride_count
+	out["bumps"] = peri.bumps
+	out["hurt"] = lvl.damage_taken
+	_info("esophagus %s: ↑ だけで %.1f 秒、なみに のった %d 回・%.0f m、かたまりに %d 回、ハート %d、さいこう %.1f m/s" % [tag, t, peri.ride_count, peri.ride_m, peri.bumps, p.hearts, out["max_speed"]])
+	_info("  はやさ（秒:m/s、W ＝ なみに のって いる）%s" % " ".join(PackedStringArray(trace)))
+	return out
 
 
 # ---------------------------------------------------------------- 7. そうじゅう
@@ -1859,3 +2351,131 @@ func _hold(actions: Array, sec: float) -> void:
 		t += get_physics_process_delta_time()
 	for a in actions:
 		Input.action_release(a)
+
+
+# ---------------------------------------------------------------- 8. いえきの いけ
+## いけの 見た目と あぶない ところが 合うか（い（胃）の 3 つの いけ、8 方向ずつ）：
+##   見た目：まんなかから 外へ ゆかを 下向きに しらべ、ゆか（ふち）が 水面より 上に 出る きょり ＝ 水の ふち
+##   あぶない：ミクロごうを 外へ ずらしながら 置き、いけの 当たりに 入って いるか。入らなく なる きょり ＝ あぶない ふち
+## どちらも マーカー名の 半径 r から 0.15 m 以内。ちがえば「水が 見えない 所で ハートが へる」か「水の 中で へらない」
+func _check_pools() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	p.control_enabled = false
+	p.invulnerable = 9999.0
+	# 光る 黄色は ゴールだけ（いけの 水は 光らない。ゴールと まちがえない ように）。
+	# ミクロごうの やじるし（どの 場所でも つぎの 行き先を さす）は 場所の ものでは ないので 数えない
+	var glowing: Array[String] = []
+	for g in lvl.find_children("*", "GeometryInstance3D", true, false):
+		if lvl.goal != null and (g == lvl.goal or lvl.goal.is_ancestor_of(g)):
+			continue
+		if lvl.player != null and lvl.player.is_ancestor_of(g):
+			continue
+		var mats: Array = [g.material_override]
+		if g is MeshInstance3D and g.mesh != null:
+			for i in g.mesh.get_surface_count():
+				mats.append(g.get_surface_override_material(i))
+				mats.append(g.mesh.surface_get_material(i))
+		for m in mats:
+			if m is StandardMaterial3D and m.emission_enabled:
+				var e: Color = m.emission
+				if e.s > 0.4 and e.h > 0.08 and e.h < 0.2 and e.v > 0.5:
+					glowing.append(String(lvl.get_path_to(g)))
+			elif m is ShaderMaterial and m.shader == StageLook.GlowShader:
+				var c: Color = m.get_shader_parameter("tint")
+				if c.s > 0.4 and c.h > 0.08 and c.h < 0.2:
+					glowing.append(String(lvl.get_path_to(g)))
+	if not glowing.is_empty():
+		_fail("pools: ゴールの ほかに 光る 黄色が ある：%s" % ", ".join(PackedStringArray(glowing)))
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	var pools: Array = []
+	for n in lvl.get_children():
+		if n is HazardPool:
+			pools.append(n)
+	if pools.size() != 3:
+		_fail("pools: い（胃）の いけが %d こ（3 この はず）" % pools.size())
+	for h in pools:
+		var c: Vector3 = h.global_position
+		var r: float = h.radius
+		var worst_geo := 0.0
+		var worst_hurt := 0.0
+		for k in 8:
+			var dir := Vector3(cos(TAU * k / 8.0), 0.0, sin(TAU * k / 8.0))
+			# 見た目の ふち
+			var geo := INF
+			var d := r - 0.6
+			while d <= r + 0.6:
+				var at := c + dir * d
+				var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 4.0, at + Vector3.DOWN * 4.0, 1)
+				var hit := space.intersect_ray(q)
+				if not hit.is_empty() and hit["position"].y > c.y:
+					geo = d
+					break
+				d += 0.02
+			# あぶない ふち
+			var hurt_edge := INF
+			d = r - 0.6
+			while d <= r + 0.6:
+				p.global_position = c + dir * d + Vector3.UP * 1.2
+				p.velocity = Vector3.ZERO
+				await get_tree().physics_frame
+				await get_tree().physics_frame
+				if not p.hitbox.get_overlapping_areas().has(h):
+					hurt_edge = d
+					break
+				d += 0.05
+			worst_geo = maxf(worst_geo, absf(geo - r))
+			worst_hurt = maxf(worst_hurt, absf(hurt_edge - r))
+		_info("pool r%.0f at %s: 水の ふち と r の ずれ 最大 %.2f m、あぶない ふち と r の ずれ 最大 %.2f m" % [r, c, worst_geo, worst_hurt])
+		if worst_geo > 0.15:
+			_fail("pool r%.0f: 水の ふちが r から %.2f m ずれる" % [r, worst_geo])
+		if worst_hurt > 0.15:
+			_fail("pool r%.0f: あぶない ふちが r から %.2f m ずれる（水が 見えない 所で へる／水の 中で へらない）" % [r, worst_hurt])
+	await get_tree().process_frame
+
+
+# ---------------------------------------------------------------- 9. はさまった ときの もどし
+## ひろい 場所で ↓ を 12 びょう 押しつづける（うしろの かべに はさまり、もどしが 2 回 はたらく）。
+## 船は へやの 中に いる こと：下に 上向きの ゆかが あり、スタートより 6 m いじょう 下へ おちて いない。
+## （前は もどしが かべの 外へ 3 m うごかし、船が へやの 下へ おちて いた）
+func _check_back_hold(id: String) -> void:
+	Game.start_stage(id)
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	for i in 30:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "back hold %s" % id
+	var y0: float = p.global_position.y
+	var low := 0.0
+	var no_floor := 0
+	var rescues := 0
+	var last: Vector3 = p.global_position
+	var t := 0.0
+	Input.action_press("move_down")
+	while t < 12.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		low = minf(low, p.global_position.y - y0)
+		if p.global_position.distance_to(last) > 0.45:   # 1 フレームで とんだ ＝ もどしが はたらいた
+			rescues += 1
+		last = p.global_position
+		var from: Vector3 = p.global_position + Vector3.UP * 0.5
+		var q := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 12.0, 1)
+		var g: Dictionary = p.get_world_3d().direct_space_state.intersect_ray(q)
+		if g.is_empty() or (g["normal"] as Vector3).y < 0.3:
+			no_floor += 1
+	Input.action_release("move_down")
+	_info("%s: ↓ 12 びょうで もどし %d 回、いちばん 下 %.1f m、ゆかが ない フレーム %d" % [where, rescues, low, no_floor])
+	if rescues == 0:
+		_fail("%s: もどしが 1 回も はたらかなかった（この テストが 何も 見て いない）" % where)
+	if low < -6.0:
+		_fail("%s: 船が スタートより %.1f m 下へ おちた（へやの 外）" % [where, -low])
+	if no_floor > 5:
+		_fail("%s: 船の 下に ゆかが ない フレームが %d（へやの 外）" % [where, no_floor])
+	Game.unload_level()
+	await get_tree().process_frame

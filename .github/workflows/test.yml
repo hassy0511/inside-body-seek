@@ -46,22 +46,27 @@ jobs:
       - name: Export the Web build (play in the browser)
         if: always()
         continue-on-error: true
+        timeout-minutes: 12
         run: GODOT="$PWD/Godot_v4.7-stable_linux.x86_64" tools/export_web.sh _site/play
       # 「おとを きく」の MP3 用（古い iPhone の Safari は OGG Vorbis を 鳴らせない）。入らなくても 先へ 進む（OGG だけに なる）
       - name: Install ffmpeg for the listening page
         if: always()
         continue-on-error: true
+        timeout-minutes: 12
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
       # ダッシュボードの「おとを きく」：ゲームの 音楽を _site/music に 写す（ffmpeg が あれば MP3 も。無くても OGG で 聞ける）
       - name: Copy the music for the listening page
         if: always()
         continue-on-error: true
+        timeout-minutes: 12
         run: tools/music_site.sh _site/music
+      # （どの 手順も 時間を 切る。くらべものの 書き出しが 固まって、ダッシュボードが 出ない まま 40 分で 打ち切られた ことが ある）
       # 作り手の 分担を 決める ための くらべもの（A・B の 2 つを 遊べる 形に する。一時的。決まったら 消す）。
       # 失敗しても ダッシュボードは 出す（その ときは くらべる リンクが 出ない）
       - name: Build the two comparison builds A and B (temporary)
         if: always()
         continue-on-error: true
+        timeout-minutes: 12
         run: GODOT="$PWD/Godot_v4.7-stable_linux.x86_64" tools/compare/build.sh _site/compare
       # テストが落ちても、その結果をダッシュボードに出す
       - name: Publish dashboard page (main only)

@@ -5,8 +5,10 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ##     --stage=mouth --out=/tmp/v/ "--views=start;top:0,0,60>0,0,0@50;back:0,20,0>0,-30,2"
 ## --views= は「;」で ならべる。座標は Blender の 向き（x 右・y おく・z 上）で 書く。
 ##   名前:カメラ x,y,z>見る 先 x,y,z[@画角]     すきな 位置から
-##   名前:@x,y[,向き（度。0 = おく、90 = 右）]      ミクロごうを そこへ 置いて、ゲームの カメラで（「start」だけなら スタート位置）
+##   名前:@x,y[,向き（度。0 = おく、90 = 右）[,高さ z]]   ミクロごうを そこへ 置いて、ゲームの カメラで（「start」だけなら スタート位置）。
+##     高さ z を 書くと そこから 下の ゆかを さがす（下って いく くだ など、ゆかが 高さ 0 から 遠い 場所）
 ## --play=秒 で 自動操縦してから。--hud で HUD を 出した まま。--unlock で ゴールを 開いた 色に。--frames=N（既定 30）。
+## --still で 船を 止める（ながれ・しょくどうの なみで 動かない。ソフトウェア描画は おそいので、待つ あいだに 物理が 何秒も すすむ）。
 
 var _frames := 30
 
@@ -18,6 +20,7 @@ func _ready() -> void:
 	var play := 0.0
 	var hud := false
 	var unlock := false
+	var still := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--stage="):
 			stage = a.substr(8)
@@ -33,6 +36,8 @@ func _ready() -> void:
 			hud = true
 		elif a == "--unlock":
 			unlock = true
+		elif a == "--still":
+			still = true
 	Game.testing = true
 	var main = load("res://src/main.tscn").instantiate()
 	add_child(main)
@@ -58,6 +63,10 @@ func _ready() -> void:
 	if not hud:
 		Game.hud.visible = false
 		lvl.player.arrow.scale = Vector3.ZERO
+	if still:
+		lvl.flow_speed = 0.0
+		if lvl.get("peristalsis") != null:
+			lvl.peristalsis.process_mode = Node.PROCESS_MODE_DISABLED
 	if unlock and lvl.goal:
 		lvl.goal.set_locked(false)
 	var free_cam := Camera3D.new()
@@ -70,7 +79,7 @@ func _ready() -> void:
 		if spec == "" or spec.begins_with("@"):
 			if spec != "":
 				var n := spec.substr(1).split_floats(",")
-				var p := Vector3(n[0], 0.0, -n[1])
+				var p := Vector3(n[0], n[3] if n.size() > 3 else 0.0, -n[1])
 				var q := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 12.0, p + Vector3.DOWN * 60.0, 1)
 				var hit: Dictionary = lvl.get_world_3d().direct_space_state.intersect_ray(q)
 				lvl.player.global_position = (hit["position"] if not hit.is_empty() else p) + Vector3.UP * 1.1
