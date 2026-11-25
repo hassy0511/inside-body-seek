@@ -6,7 +6,8 @@ extends Node3D
 ##   なみの 先頭（w）では かべの きんにくの わ（GLB の NC_Ring_NNN）が じゅんばんに きゅっと しまる（見た目だけ。当たり判定は 動かない）。
 ## ・しまる わの すぐ 前（w − ZONE_BACK 〜 w ＋ ZONE_FRONT）に いる ミクロごうは なみに のる：
 ##   前へは なみの はやさより おそく ならない（player.carry_*）。よこは じぶんで うごける。
-##   のった しゅんかんに 音、カメラが 少し ひろがり、左上の「なみに のって ○ m」が のびる。
+##   のった しゅんかんに 音、カメラが 少し ひろがり、左上の「なみに のって ○ センチ」が のびる。
+##   出す 数は 本物の からだの 長さ（"waves" の "body_cm"。しょくどうは やく 25 cm）に なおす（ゲームの 道は 400 m より 長い）。
 ## ・場面の "lumps"（かず）が あれば、のみこんだ ばかりの たべものの かたまりを 出す（カルテ 2）。かたまりは ゆっくり くだり、
 ##   わが しまる ときに ぐっと おされる。い（胃）の 入口まで いくと スタートの うしろから また 来る（つぎの ひとくち）。
 ##   ミクロごうが ぶつかると はねかえって なみから おち、少しの あいだ ゆっくり（ハートは へらない）。つぎの なみが また のせて くれる。
@@ -37,6 +38,7 @@ const LUMP_END := 6.0        # かたまりは 道の おわりの この m 手�
 var level: Node = null
 var every := 3.0
 var speed := 20.0
+var body_cm := 25.0                   # 本物の からだでの 長さ（cm）。出す 数は ride_m を この 長さに なおす
 var waves: Array[float] = []          # なみの 先頭の 位置（道の m）
 var _wave_ids: Array[int] = []        # waves と 同じ ならびの 番号
 var _lost := {}                       # ぶつかって おちた なみの 番号（その なみには もう のれない。つぎの なみは のせて くれる）
@@ -73,6 +75,7 @@ func setup(lvl: Node) -> void:
 	var cfg: Dictionary = lvl.stage.get("waves", {})
 	every = float(cfg.get("every", every))
 	speed = float(cfg.get("speed", speed))
+	body_cm = float(cfg.get("body_cm", body_cm))
 
 
 func _ready() -> void:
@@ -323,12 +326,20 @@ func on_lump_touched(lp: FoodLump, player: Node) -> void:
 
 ## クリアの ひとこと：なみに のった きょりを 足す（のって いなければ そのまま）
 func clear_text(base: String) -> String:
-	if ride_m < 1.0:
+	if ride_m < 1.0 or ride_cm() < 1:
 		return base
-	return "%s なみに のって %d m すすんだよ！" % [base, int(round(ride_m))]
+	return "%s なみに のって %d センチ すすんだよ！" % [base, ride_cm()]
 
 
-# ---------------------------------------------------------------- 左上の「なみに のって ○ m」
+## なみに のって すすんだ 長さを 本物の からだの センチに なおした 数（カードの「やく 25 cm」と 合う）
+func ride_cm() -> int:
+	var total: float = level.path.total if level != null and level.path != null else 0.0
+	if total <= 0.0:
+		return 0
+	return int(round(clampf(ride_m / total, 0.0, 1.0) * body_cm))
+
+
+# ---------------------------------------------------------------- 左上の「なみに のって ○ センチ」
 func _make_readout() -> void:
 	if Game.hud == null or not is_instance_valid(Game.hud):
 		return
@@ -368,10 +379,10 @@ func _update_readout(delta: float) -> void:
 	if _readout == null or not is_instance_valid(_readout):
 		return
 	_pulse = maxf(_pulse - delta * 2.0, 0.0)
-	_readout_label.text = ("なみに のってる！ %d m" if riding else "なみに のって %d m") % int(round(ride_m))
+	_readout_label.text = ("なみに のってる！ %d センチ" if riding else "なみに のって %d センチ") % ride_cm()
 	_readout.add_theme_stylebox_override("panel", _box_on if riding else _box_off)
 	_readout.pivot_offset = _readout.size * 0.5
-	_readout.scale = Vector2.ONE * (1.0 + 0.12 * _pulse)
+	_readout.scale = Vector2.ONE * (1.0 + Game.HudScene.READOUT_PULSE * _pulse)
 	for c in _readout.get_child(0).get_children():
 		if not (c is Label):
 			c.queue_redraw()

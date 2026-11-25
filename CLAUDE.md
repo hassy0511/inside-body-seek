@@ -81,10 +81,12 @@ tools/screenshot.sh "select,consult:ep01+p1,karte:ep02:3+hurt" /tmp/shots/   # �
 - 場所の 見た目は `StageDB` の `"look"`（光・きり・面の 色と 画像・あわ・ゆれ。キーの 説明は `src/level/stage_look.gd` の 先頭）。`"look"` が 無い 場所は 前の まま。面の 画像は `godot/assets/textures/stages/tex_<場所>_<floor|wall>.png` を 置くだけ（GLB は 作りなおさない。`.import` は 手で mipmaps を 入れる。口は Codex の 絵で、512 px で 読みこむ。`tools/gen_stage_textures.py` は ある 画像を 上書きしない）。場面の 看板は 板の 絵（`assets/ui/sign_board.png`）に 字を のせる（`level.gd` の `_sign_board()`。幅は 7 m まで）。見た目を 作る ときの 撮影は `godot/tests/stage_view.tscn`（HUD なし・すきな 位置）。
 - この 描画方式（Compatibility）は 色の 計算を 画面の 色の まま する（sRGB と リニアを 変換しない）。頂点の 色で かける 倍率は、見た 目の 色の 比で 書く。自動の LOD は 丸い 形を つぶす ことが ある（pod・stage_mouth は `.import` で 切った）。
 - 同じ サイトに 置いた Godot の ブラウザ版は、どれも 同じ 入れ物（IndexedDB の `/userfs`）に セーブを 書く。版を ならべる ときは 名前を 分ける（`tools/compare/build.sh`）。
-- HUD の 左上（ハートの 下）は カードの ふだ（`hud.gd` の `CHIP_POS`）と しょくどうの「なみに のって N m」が 使う。HUD に 部品を 足したら `hud.hud_rects()` に 入れる（ふだと 重ならない ことを テストが 見る）。
+- HUD の 左上（ハートの 下）は カードの ふだ（`hud.gd` の `CHIP_POS`）と しょくどうの「なみに のって N センチ」（`RideReadout`。ふだは その 下に 出る）が 使う。HUD に 部品を 足したら `hud.hud_rects()` に 入れる（ふだと 重ならない ことを テストが 見る）。出す 数は 本物の からだの 長さ（場所の `"waves"` の `body_cm`。カードの 数と 食いちがわせない）。
 - 光る 黄色は ゴールだけ（い（胃）で テストが 見る）。ミクロごうの 上の 矢印は 白っぽい 水色。いえきの いけは 光らない 琥珀色。
 - いえきの いけの 水は `hazard_pool.gd` が マーカーの 高さに 出す。水の ふちは モデルの `PoolRims` が 水面を よこぎる ところ（半径 r）。あぶない ところは ミクロごうの まんなかが r より 内がわ。`smoke.gd` の `_check_pools()` が 見る。い（胃）の GLB は LOD を 切る（ふちが くずれると 水の ふちが ずれる）。
 - しょくどうの きかん（気管）は 見た目だけ（`NC_Trachea`）。あなは 当たるだけの 面（`TracheaPlug`）で ふさぐ。くだの 場所に わき道を 作る ときは、入れない ように ふさぐか、入っても 出られる ように する（行きどまりに 入ると 出られない）。
 - はさまった ときの もどし（`player.gd` の `_check_stuck`）は ひろい 場所では 押した 向きの はんたいへ。かべの 手前で とめ、下に ゆかが ない 所へは うごかさない（`_free_step`）。テストは `_check_back_hold()`。
 - ソフトウェア描画の `stage_view.tscn` は 待つ あいだに 物理が 何秒も すすむ。ながれ・なみの ある 場所は `--still`。
+- 書き出した 版（ブラウザ版）の 行の 折りかたは、`project.godot` の `internationalization/locale/include_text_server_data=true` が ある ときだけ テスト（エディタ）と 同じに なる。無いと 空白でしか 折れず、はかった 箱から 文が はみ出す・ことばの 中で 折れる（テストが 設定を 見る。消さない）。行を きっちり 決めたい せまい 箱（「みつけた ものしりカード」の タイルの だいめい）は、折りかえしに まかせず 自分で「\n」を 入れる。
+- くだの 場所の はじめ 2.5 m では うしろへ 進めない（`player.gd` の `_tube_start_guard`。はじめが ひらいた くだから 船が 出て おちる）。もどしの テスト（`BACK_PLACES`・`_check_free_step`）は 口・胃・小腸・血管・鼻を 見る。
 - `XDG_DATA_HOME` を 変えて Godot を 動かすと セーブの 場所が 分かれる（いくつもの 写しで 同時に テストする ときに 使う）。ただし 書き出しの テンプレートも その 下を さがすので、`tools/export_web.sh` は 変えずに 動かす。

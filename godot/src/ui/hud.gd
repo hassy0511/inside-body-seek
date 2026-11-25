@@ -15,6 +15,7 @@ const CHIP_MAX_W_GUIDE := 440.0
 const CHIP_TITLE_SIZE := 26
 const CHIP_PIC := 64.0
 const CHIP_SECONDS := 2.5
+const READOUT_PULSE := 0.12   # しょくどうの のった きょりの わくが なみに のった とき ふくらむ 分（peristalsis.gd と 同じ）
 ## 上の 題（だれの からだの どこか）：26 px、幅 TITLE_WIDTH まで（テストが 全部の 話と 場所で はかる）
 const TITLE_SIZE := 26
 const TITLE_WIDTH := 650.0
@@ -251,6 +252,10 @@ func show_card_chip(card: Dictionary, key: String, stage_id: String) -> void:
 	var g := get_node_or_null("SteerGuide")
 	var by_guide: bool = g != null and g.visible and not g.is_queued_for_deletion()
 	chip.position = CHIP_POS_GUIDE if by_guide else CHIP_POS
+	# しょくどうの「なみに のって ○ センチ」（peristalsis.gd が HUD に 足す）が あれば その 下へ（ふくらむ 1.12 ばいも よける）
+	var ro := ride_readout()
+	if ro != null:
+		chip.position.y = maxf(chip.position.y, ro.position.y + ro.size.y * (1.0 + READOUT_PULSE * 0.5) + 8.0)
 	var max_w := CHIP_MAX_W_GUIDE if by_guide else CHIP_MAX_W
 	chip.add_theme_stylebox_override("panel", T.rounded(Color(T.CREAM, 0.94), 18, 4, T.YELLOW))
 	var m := MarginContainer.new()
@@ -293,6 +298,12 @@ func card_chip() -> Control:
 	return _chip if _chip != null and is_instance_valid(_chip) and not _chip.is_queued_for_deletion() else null
 
 
+## しょくどうの「なみに のって ○ センチ」の わく（無ければ null）
+func ride_readout() -> Control:
+	var ro := get_node_or_null("RideReadout") as Control
+	return ro if ro != null and ro.visible and not ro.is_queued_for_deletion() else null
+
+
 ## しらせが 重なっては いけない HUD の 部品の 画面の 上の 四角（見えている ものだけ）。テストが 使う
 func hud_rects() -> Dictionary:
 	var out := {"hearts": _heart_box.get_global_rect(), "title": _top.get_global_rect(), "pause": _pause_btn.get_global_rect()}
@@ -302,6 +313,11 @@ func hud_rects() -> Dictionary:
 		out["pocket"] = _pocket.get_global_rect()
 	if _msg_panel.visible:
 		out["pico"] = _msg_panel.get_global_rect()
+	var ro := ride_readout()
+	if ro != null:
+		# いちばん ふくらんだ ときの 大きさ（まんなかを 中心に ふくらむ）
+		var r := Rect2(ro.global_position, ro.size)
+		out["readout"] = r.grow_individual(r.size.x * READOUT_PULSE * 0.5, r.size.y * READOUT_PULSE * 0.5, r.size.x * READOUT_PULSE * 0.5, r.size.y * READOUT_PULSE * 0.5)
 	var g := get_node_or_null("SteerGuide")
 	if g != null and g.visible:
 		out["guide"] = (g as Control).get_global_rect()

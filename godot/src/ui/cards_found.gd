@@ -74,8 +74,8 @@ func _ready() -> void:
 		pic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		vb.add_child(pic)
 		var tt := String(card.get("title", ""))
-		var title := T.label(breakable(tt), title_size(tt), T.INK)
-		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var title := T.label(laid_out(tt), title_size(tt), T.INK)
+		title.autowrap_mode = TextServer.AUTOWRAP_OFF   # 行は laid_out() が 決める（ブラウザ版の 折りかえしは WJ を 守らない ことが ある）
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		title.custom_minimum_size = Vector2(TILE.x - 20, 0)
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -145,12 +145,30 @@ static func _script(ch: String) -> int:
 	return 0
 
 
-## 画面に 出す 形：かたまりの 中は T.nobreak（折れない）、かたまりの あいだは 折れて よい
-static func breakable(title: String) -> String:
-	var out := ""
+## 画面に 出す 形：かたまりを 行に つめて「\n」で つなぐ（折る ところを じぶんで 決める）。
+## 折りかえしを ラベルに まかせると、ブラウザ版では WJ が 守られず「しょくどう（食 / 道）」と 漢字の 中で 折れた
+static func laid_out(title: String) -> String:
+	return "\n".join(title_lines(title, title_size(title)))
+
+
+## だいめいの 行：かたまりを 前から じゅんに、タイルの 幅に 入る だけ 1 行に つめる
+static func title_lines(title: String, size: int) -> PackedStringArray:
+	var out := PackedStringArray()
+	var cur := ""
 	for seg in segments(title):
-		out += T.nobreak(seg)
+		var trial := cur + seg
+		if cur != "" and _width(trial.strip_edges(), size) > TILE.x - 20.0:
+			out.append(cur.strip_edges())
+			cur = seg
+		else:
+			cur = trial
+	if cur.strip_edges() != "":
+		out.append(cur.strip_edges())
 	return out
+
+
+static func _width(text: String, size: int) -> float:
+	return Game.font_bold.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 
 
 ## だいめいの 字の 大きさ：どの かたまりも 1 行に 入る 大きさ（TITLE_SIZE から TITLE_MIN まで）
@@ -205,8 +223,19 @@ func overflow() -> String:
 			return "タイル %s の だいめいが %d 行" % [keys[i], l.get_line_count()]
 		var tt := String(StageDB.card(stage_id, keys[i]).get("title", ""))
 		for p in segments(tt):
-			if Game.font_bold.get_string_size(p.strip_edges(), HORIZONTAL_ALIGNMENT_LEFT, -1, title_size(tt)).x > TILE.x - 20.0:
+			if _width(p.strip_edges(), title_size(tt)) > TILE.x - 20.0:
 				return "タイル %s の だいめいが ことばの とちゅうで 折れる（%s）" % [keys[i], p]
+		# 行は じぶんで 決めた もの だけ（ラベルの 折りかえしに まかせない）：どの 行も 幅に 入り、ことばの さかいで 切れて いる
+		if l.autowrap_mode != TextServer.AUTOWRAP_OFF:
+			return "タイル %s の だいめいを ラベルが 折りかえす（ブラウザ版では ことばの とちゅうで 折れる）" % keys[i]
+		var lines := String(l.text).split("\n")
+		if "".join(lines).replace(" ", "").replace("　", "") != tt.replace(" ", "").replace("　", ""):
+			return "タイル %s の だいめいの 行 %s が だいめいと ちがう" % [keys[i], lines]
+		for ln in lines:
+			if _width(ln, title_size(tt)) > TILE.x - 20.0:
+				return "タイル %s の だいめいの 行「%s」が タイルに 入らない" % [keys[i], ln]
+			if not _on_border(tt, ln):
+				return "タイル %s の だいめいの 行「%s」が ことばの とちゅうで 切れて いる" % [keys[i], ln]
 	if _bubble.get_combined_minimum_size().y > ROW_Y - 56.0 - 8.0:
 		return "ふきだしが 高い"
 	return ""
@@ -214,3 +243,15 @@ func overflow() -> String:
 
 func fits() -> bool:
 	return overflow() == ""
+
+
+## 行が かたまりの さかいで はじまり、さかいで おわって いるか
+static func _on_border(title: String, line: String) -> bool:
+	var segs := segments(title)
+	for a in segs.size():
+		var joined := ""
+		for b in range(a, segs.size()):
+			joined += segs[b]
+			if joined.strip_edges() == line:
+				return true
+	return false

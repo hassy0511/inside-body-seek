@@ -27,8 +27,9 @@ const MAX_PASS_SECONDS := 40.0
 const MIN_PASS_SECONDS := 5.0
 ## 7. の そうじゅうを 見る 場所（arena と rooms から 1 つずつ）
 const STEER_PLACES := ["mouth", "heart"]
-## ↓ を 押しつづけても へやの 外へ 出ないかを 見る 場所（作りなおした ひろい 場所）
-const BACK_PLACES := ["mouth", "stomach"]
+## ↓ を 押しつづけても へやの 外へ 出ないかを 見る 場所（作りなおした ひろい 場所と、くだの 場所。
+## ちの くだ・はなは はじめが ひらいて いる：player.gd の TUBE_START_GUARD が おちない ように する）
+const BACK_PLACES := ["mouth", "stomach", "intestine", "vessel", "nose"]
 const MAX_UI_SECONDS := 30.0
 ## 物語の ひとことは 出てから 2 秒 上書きされない（level.gd の say_story）。その 間を フレームで 数える（少し 短めに 見る）
 const HOLD_FRAMES := 110
@@ -95,6 +96,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 	if get_viewport().get_visible_rect().size != Vector2(1280, 720):
 		_fail("テストの 画面が 1280×720 で ない（%s）" % get_viewport().get_visible_rect().size)
+	# 書き出した 版（ブラウザ版）は、この 設定が 無いと 行の 折りかたの データを 持たない：空白でしか 折れず、
+	# テスト（エディタは データ入り）と ちがう 行で 折れて、はかった 箱から 文が はみ出す
+	if not bool(ProjectSettings.get_setting("internationalization/locale/include_text_server_data", false)):
+		_fail("project.godot の internationalization/locale/include_text_server_data が true で ない（ブラウザ版の 折りかえしが テストと ちがって しまう）")
 	_check_scripts()
 	_check_data()
 	_check_spawn_rules()
@@ -521,6 +526,12 @@ func _check_route_rules() -> void:
 	msgs = EpisodeDB.validate_episode(swapped, 3)
 	if not msgs.any(func(m: String): return m.contains("「esophagus」の じゅんばんが ちがう")) or msgs.any(func(m: String): return m.contains("scenes に ない")):
 		_fail("route rules: じゅんばんちがいを「じゅんばんが ちがう」と 言わない：%s" % [msgs])
+	# かたまり（lumps）を なみの ない 場所（い（胃））に 書いた：まちがいと 言う
+	var lumps_sto: Dictionary = ep2.duplicate(true)
+	lumps_sto["scenes"][2]["lumps"] = 3
+	msgs = EpisodeDB.validate_episode(lumps_sto, 2)
+	if not msgs.any(func(m: String): return m.contains("lumps は なみ")):
+		_fail("route rules: なみの ない 場所の lumps を 言わない：%s" % [msgs])
 	# pass が bool で ない：型の エラーに ならず、きまりの 文だけ（ふつうの 場面と みなす）
 	var str_pass: Dictionary = ep2.duplicate(true)
 	str_pass["scenes"][0]["pass"] = "yes"
@@ -875,7 +886,7 @@ func _check_says() -> void:
 	if sc.has("clear_say"):
 		want.append(sc["clear_say"])
 	for t in want:
-		# clear_say は うしろに ことばが つく ことが ある（しょくどう：「なみに のって ○ m すすんだよ！」）
+		# clear_say は うしろに ことばが つく ことが ある（しょくどう：「なみに のって ○ センチ すすんだよ！」）
 		if not texts.has(t) and not (t == sc.get("clear_say", "") and texts.any(func(x: String): return x.begins_with(t))):
 			_fail("%s: HUD に 出なかった：%s" % [where, t])
 	if has_work and sc.has("goal_say"):
@@ -2127,6 +2138,17 @@ func _check_esophagus() -> void:
 		_fail("esophagus: ep02 を ↑ だけで いっても ものしりカード「food」が 見つからない")
 	if lvl.peristalsis.ride_m > lvl.path.total + 1.0:
 		_fail("esophagus: なみに のった きょり %.0f m が 道の 長さ %.0f m より 長い" % [lvl.peristalsis.ride_m, lvl.path.total])
+	# 子どもに 見せる 数は 本物の しょくどうの 長さ（カードの「やく 25 cm」）に なおした センチ。ゲームの m は 出さない
+	var peri2 = lvl.peristalsis
+	var cm: int = peri2.ride_cm()
+	var ct: String = peri2.clear_text("い（胃）の いりぐちに ついた！")
+	_info("esophagus ep02: なみに のった %.0f m → 見せる 数 %d センチ（%s）、のった あとで 出さなかった ヒント %d" % [peri2.ride_m, cm, ct, lvl.hints_skipped])
+	if cm < 1 or cm > int(peri2.body_cm):
+		_fail("esophagus: 見せる きょり %d センチが 0 か しょくどうの 長さ %d センチより 長い" % [cm, int(peri2.body_cm)])
+	if not ct.ends_with("%d センチ すすんだよ！" % cm):
+		_fail("esophagus: クリアの ひとことが センチで ない：%s" % ct)
+	if is_instance_valid(peri2._readout_label) and not String(peri2._readout_label.text).ends_with(" センチ"):
+		_fail("esophagus: 左上の きょりが センチで ない：%s" % peri2._readout_label.text)
 	if not r2["done"]:
 		_fail("esophagus: ep02 を ↑ だけで ゴールに つかない（%.1f 秒）" % r2["t"])
 	if r2["hurt"]:
@@ -2441,6 +2463,29 @@ func _check_pools() -> void:
 ## ひろい 場所で ↓ を 12 びょう 押しつづける（うしろの かべに はさまり、もどしが 2 回 はたらく）。
 ## 船は へやの 中に いる こと：下に 上向きの ゆかが あり、スタートより 6 m いじょう 下へ おちて いない。
 ## （前は もどしが かべの 外へ 3 m うごかし、船が へやの 下へ おちて いた）
+## はさまった ときの もどし（player._free_step）：どの むきへ 40 m たのんでも、かべを こえず、行き先の 下に ゆかが ある
+func _check_free_step(p, where: String) -> void:
+	var space: PhysicsDirectSpaceState3D = p.get_world_3d().direct_space_state
+	var from: Vector3 = p.global_position + Vector3.UP * 0.5
+	var moved := 0
+	for i in 16:
+		var d := Vector3(cos(TAU * i / 16.0), 0.0, sin(TAU * i / 16.0))
+		var step: float = p._free_step(d, 40.0)
+		if step <= 0.0:
+			continue
+		moved += 1
+		var to: Vector3 = from + d * step
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, 1))
+		if not hit.is_empty():
+			_fail("%s: もどし %.1f m が かべを こえる（むき %d）" % [where, step, i])
+			continue
+		var g: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(to, to + Vector3.DOWN * 12.0, 1))
+		if g.is_empty() or (g["normal"] as Vector3).y < 0.3:
+			_fail("%s: もどし %.1f m の 行き先に ゆかが ない（むき %d）" % [where, step, i])
+	if moved == 0:
+		_fail("%s: もどしが どの むきにも うごかない" % where)
+
+
 func _check_back_hold(id: String) -> void:
 	Game.start_stage(id)
 	var lvl = Game.level
@@ -2450,6 +2495,8 @@ func _check_back_hold(id: String) -> void:
 		await get_tree().physics_frame
 	var p = lvl.player
 	var where := "back hold %s" % id
+	var tube: bool = String(lvl.stage.get("kind", "arena")) == "tube"
+	_check_free_step(p, where)
 	var y0: float = p.global_position.y
 	var low := 0.0
 	var no_floor := 0
@@ -2471,7 +2518,8 @@ func _check_back_hold(id: String) -> void:
 			no_floor += 1
 	Input.action_release("move_down")
 	_info("%s: ↓ 12 びょうで もどし %d 回、いちばん 下 %.1f m、ゆかが ない フレーム %d" % [where, rescues, low, no_floor])
-	if rescues == 0:
+	# ひろい 場所では かべに おしつけて もどしが はたらく。くだでは はじめで とまる（もどしは なくて よい）
+	if rescues == 0 and not tube:
 		_fail("%s: もどしが 1 回も はたらかなかった（この テストが 何も 見て いない）" % where)
 	if low < -6.0:
 		_fail("%s: 船が スタートより %.1f m 下へ おちた（へやの 外）" % [where, -low])

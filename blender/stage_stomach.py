@@ -207,9 +207,14 @@ def _exit_frame():
     return c, n
 
 
+# ゴールは 出口の 輪から 6 m 手前（3.6 m では、かべがわから 輪へ むかう とき カメラが 船に もぐりこみ、輪が 見えなかった。
+# ブラウザ版の 見なおし）
+GOAL_FROM_EXIT = 6.0
+
+
 def goal_xy():
     c, n = _exit_frame_cached()
-    p = c - n * 3.6
+    p = c - n * GOAL_FROM_EXIT
     return float(p[0]), float(p[1])
 
 

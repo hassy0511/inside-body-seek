@@ -81,6 +81,7 @@ var card_points: Array[Dictionary] = []   # {key, position, node}
 var neurons: Array[Neuron] = []
 var gates: Array[ValveGate] = []
 var _hints: Array = []
+var hints_skipped := 0          # "until_ride" で 出さなかった ヒントの 数（テストが 見る）
 var _card_cd := 0.0
 var _card_check := 0.0
 var peristalsis: Peristalsis = null   # しょくどうの なみ（場所の "waves" が ある とき）
@@ -912,10 +913,14 @@ func _physics_process(delta: float) -> void:
 		_hints.clear()   # やる ことが 全部 おわったら、もう ヒントは 出さない（「さわってね」と 言われて もどって しまう）
 	if _hints.size() > 0 and elapsed >= float(_hints[0]["at"]) and not Game.hud_busy():
 		var h: Dictionary = _hints[0]
-		var on_touch: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
-		var ht := String(h.get("text_touch", h["text"])) if on_touch else String(h["text"])
-		Game.say(ht, read_time(ht, 5.0))
 		_hints.remove_at(0)
+		# "until_ride"：なみに のる ことを すすめる ヒントは、もう のった あとなら 出さない（しょくどう）
+		if h.get("until_ride", false) and peristalsis != null and peristalsis.ride_count > 0:
+			hints_skipped += 1
+		else:
+			var on_touch: bool = Game.touch_controls != null and is_instance_valid(Game.touch_controls) and Game.touch_controls.visible
+			var ht := String(h.get("text_touch", h["text"])) if on_touch else String(h["text"])
+			Game.say(ht, read_time(ht, 5.0))
 	# カード
 	_card_cd = maxf(_card_cd - delta, 0.0)
 	_card_check -= delta

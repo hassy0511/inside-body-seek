@@ -36,6 +36,7 @@ var carry_speed := 0.0
 ## やわらかい ものに ぶつかって ゆっくりに なって いる のこりの 秒（ハートは へらない）
 var slow_time := 0.0
 const SLOW_MULT := 0.45
+const TUBE_START_GUARD := 2.5   # くだの 場所：道の はじめから この m までは うしろへ すすめない（はじめが ひらいた くだ（ちの くだ・はな）から おちない）
 ## いまの まわる はやさ（rad/s。ひだりまわりが ＋）
 var turn_rate := 0.0
 var invulnerable := 0.0
@@ -171,6 +172,7 @@ func _physics_process(delta: float) -> void:
 		speed_mult *= SLOW_MULT
 	var target_speed := (DASH_SPEED if dash else SPEED) * speed_mult
 	var target_vel := dir * target_speed + external_push
+	target_vel = _tube_start_guard(target_vel)
 	if carry_speed > 0.0 and hit_stun <= 0.0:
 		# なみに のって いる：前へは なみの はやさまで おされる（よこは じぶんで うごける）
 		var along := target_vel.dot(carry_dir)
@@ -232,6 +234,9 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 		if _stuck_count <= 2 and level.has_method("path_direction_at"):
 			# まず 3 m 後ろへ（くだなら道にそって）
 			var back: Vector3 = -level.path_direction_at(global_position) if level.path.is_valid() else -heading
+			if not is_steering() and level.path.is_valid() and dir.dot(-back) < 0.0:
+				# くだで うしろへ おして はさまった（はじめの ふた など）：まえへ もどす
+				back = -back
 			if is_steering():
 				# ひろい 場所：すすもうと した むきの はんたいへ（うしろへ さがって かべに はさまったら まえへ）。
 				# 道（MK_path）の ある 場所でも 道の むきは つかわない（スタートの うしろの かべへ おしこむ ことに なる）
@@ -251,6 +256,20 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 			velocity = Vector3.ZERO
 			Game.say("あれ？ ぬけられない。チェックポイントから やりなおそう。", 3.0)
 		_stuck_from = global_position
+
+
+## くだの 場所の はじめ（TUBE_START_GUARD m まで）では、道を うしろへ むかう 速さを けす。
+## ひらいた はじめから 船が 外へ 出て おちる ことが ない ように（ひろい 場所と 自動操縦は そのまま）
+func _tube_start_guard(v: Vector3) -> Vector3:
+	if level == null or camera == null or not camera.get("tube_mode") or not level.has_method("path_direction_at"):
+		return v
+	if level.path == null or not level.path.is_valid() or level.path.progress_at(global_position) > TUBE_START_GUARD:
+		return v
+	var pd: Vector3 = level.path_direction_at(global_position)
+	var along := v.dot(pd)
+	if along < 0.0:
+		v -= pd * along
+	return v
 
 
 ## はさまった ときに もどす きょり：かべ（world）の 手前で とまり、行き先の 下に ゆかが ある こと。

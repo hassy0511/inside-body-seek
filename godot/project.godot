@@ -40,6 +40,10 @@ window/handheld/orientation=4
 
 pointing/emulate_touch_from_mouse=false
 
+[internationalization]
+
+locale/include_text_server_data=true
+
 [layer_names]
 
 3d_physics/layer_1="world"

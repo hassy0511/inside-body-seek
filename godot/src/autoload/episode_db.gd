@@ -166,8 +166,8 @@ const EPISODES: Array[Dictionary] = [
 				"intro": "かまずに のみこんだ かたまりが ごろごろ！ よけながら なみに のって くだろう。",
 				"lumps": 9,
 				"hints": [
-					{"at": 1.0, "text": "うしろから くる なみに のると はやく すすめるよ。"},
-					{"at": 9.0, "text": "かたまりに ぶつかると なみから おちちゃう。← → で よけてね。", "text_touch": "かたまりに ぶつかると なみから おちちゃう。ひだりの まるを よこに ひいて よけてね。"},
+					{"at": 1.0, "text": "うしろから くる なみに のると はやく すすめるよ。", "until_ride": true},
+					{"at": 9.0, "text": "← → キーで かたまりを よけよう。ぶつかると なみから おちちゃう。", "text_touch": "ひだりの まるを よこに ひいて かたまりを よけよう。ぶつかると なみから おちちゃう。"},
 				],
 				"missions": [
 					{"type": "reach", "text": "かたまりを よけて い（胃）へ いこう"},
@@ -176,7 +176,7 @@ const EPISODES: Array[Dictionary] = [
 				"after": {"banner": "てがかり はっけん！", "lines": [
 					{"who": "pico", "text": "しょくどうの きんにくは なみの ように じゅんばんに しまって、たべものを い（胃）へ おくるんだ。\nこれを「ぜんどううんどう」と いうよ。"},
 					{"who": "pico", "text": "でも おおきな かたまりが いっぱい だったね。\nよく かまないと、い（胃）は たくさん はたらかないと いけないんだ。"},
-					{"who": "pico", "text": "つぎは い（胃）の なかを しらべよう！"},
+					{"who": "pico", "text": "たべものは しょくどうに のこらないよ。のみこんで から 10びょう くらいで い（胃）に つくんだ。\nつぎは い（胃）の なかを しらべよう！"},
 				]},
 			},
 			{
@@ -746,6 +746,9 @@ func validate_episode(ep: Dictionary, no: int) -> Array[String]:
 				_check_text(bad, where + " hints", h["text_touch"], MAX["hint"])
 			if not h.has("at"):
 				bad.append("%s: hints に at が ない" % where)
+		# かたまり（lumps）は なみ（"waves"）の ある 場所（しょくどう）だけ。ほかでは 出ない ので まちがい
+		if sc.has("lumps") and not StageDB.get_stage(sc["place"]).has("waves"):
+			bad.append("%s: lumps は なみ（waves）の ある 場所だけ（%s には ない）" % [where, sc["place"]])
 		if sc.has("arrow") and sc["arrow"] != "nearest":
 			bad.append("%s: arrow は \"nearest\" だけ" % where)
 		var ms: Array = sc.get("missions", [])
