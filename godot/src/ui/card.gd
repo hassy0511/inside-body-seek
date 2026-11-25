@@ -8,6 +8,21 @@ signal closed
 const T := preload("res://src/ui/ui_theme.gd")
 const Sheet := preload("res://src/ui/karte_sheet.gd")
 
+## 3D の 絵：止まった 絵（タイル）は ななめ前（顔が 見える 3/4）。カードと しらせは ±SWAY_DEG の あいだを ゆっくり ゆれる
+## （0 ＝ 顔が まっすぐ こちら。＋ は 顔が 絵の 右へ むく）。SWAY_SEC で 1 往復
+const STILL_DEG := 35.0
+const SWAY_DEG := 50.0
+const SWAY_SEC := 8.0
+const PIC_CAM := Vector3(0, 0.75, -4.2)
+const PIC_FOV := 40.0
+## 形の はこの かどが わくの はし から この わりあい（まん中 0、はし 1）より 内がわ
+const PIC_MARGIN := 0.94
+## 3D の 絵の 光の 強さ（add_picture_light）
+const PIC_SUN := 0.36
+const PIC_SUN_DEG := Vector3(-40, 145, 0)
+const PIC_AMBIENT := 0.73
+const PIC_AMBIENT_COLOR := Color(1, 1, 1)
+
 var _panel: PanelContainer
 var _btn: Button
 var _done := false
@@ -128,7 +143,7 @@ func setup(card: Dictionary, image_kind := "", stage_id := "") -> void:
 
 
 ## カードの 絵：納品された 挿絵（res://assets/ui/cards/card_<stage_id>_<kind>.png）が あれば それ、
-## 無ければ キャラクターの 3D（まわる）。カード・ゲーム中の 小さい しらせ・みつけた カードの 画面で 使う
+## 無ければ キャラクターの 3D（spin：顔を こちらに むけた まま ゆれる。false は ななめ前で 止まる）。カード・ゲーム中の 小さい しらせ・みつけた カードの 画面で 使う
 static func picture(kind: String, stage_id: String, size: Vector2, spin := true) -> Control:
 	var art: Control = T.art_rect("cards/card_%s_%s" % [stage_id, kind], size) if stage_id != "" else null
 	if art != null:
@@ -167,40 +182,78 @@ static func _model_picture(kind: String, size: Vector2, spin: bool) -> Control:
 	sv.own_world_3d = true
 	svc.add_child(sv)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0.8, -4.0)
-	cam.look_at_from_position(cam.position, Vector3(0, 0.3, 0), Vector3.UP)
-	cam.fov = 40
+	cam.position = PIC_CAM
+	cam.look_at_from_position(cam.position, Vector3.ZERO, Vector3.UP)
+	cam.fov = PIC_FOV
 	sv.add_child(cam)
+	add_picture_light(sv)
+	var pivot := Node3D.new()
+	pivot.name = "Pivot"
+	ModelLib.fit(model, 0.95)
+	# 形の まん中（はこの 中心）を まわる 軸に おく（原点が ゆかの 近くに ある かべの さいぼうや、
+	# 片がわだけ 出る むしばきんの ドリルでも、ゆれる あいだ わくの まん中に いる）
+	var bb := ModelLib._aabb(model)
+	model.position = -bb.get_center() * model.scale
+	# ゆれの はしから はしまで どの 角度でも、形の はこの 8 つの かど が わくの 内がわに 入る 大きさに する
+	model.scale *= picture_fit(bb.size * model.scale, size)
+	model.position = -bb.get_center() * model.scale
+	pivot.add_child(model)
+	pivot.rotation.y = deg_to_rad(STILL_DEG)
+	sv.add_child(pivot)
+	box.add_child(svc)
+	if spin:
+		# ぐるっと まわすと うしろ（顔の ない がわ）が 出る。顔を こちらに むけた まま、ななめ前の 左右へ ゆっくり ゆらす
+		box.ready.connect(func():
+			var tw := box.create_tween().set_loops()
+			tw.tween_property(pivot, "rotation:y", deg_to_rad(SWAY_DEG), SWAY_SEC * (SWAY_DEG - STILL_DEG) / (4.0 * SWAY_DEG)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw.tween_property(pivot, "rotation:y", deg_to_rad(-SWAY_DEG), SWAY_SEC * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			tw.tween_property(pivot, "rotation:y", deg_to_rad(STILL_DEG), SWAY_SEC * (SWAY_DEG + STILL_DEG) / (4.0 * SWAY_DEG)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN))
+	return box
+
+
+## 3D の 絵の 光（カード・しらせ・タイル・ずかんで 共通。どの モデルも これ 1 つ）。
+## 光の 当たる がわで 色が その ものの 色（albedo）の 約 1.0 倍に なる ように 合わせて ある
+## （前は 0.85 倍で、かべの さいぼうが 絵より 暗い カラメル色に 見えた。はかりかたは docs/art_orders/W2_02_wallcell_3D化の結果.md）
+static func add_picture_light(sv: Node) -> void:
 	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-40, 35, 0)
+	light.rotation_degrees = PIC_SUN_DEG
+	light.light_energy = PIC_SUN
 	sv.add_child(light)
 	var env := WorldEnvironment.new()
 	var e := Environment.new()
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.9, 0.9, 0.95)
-	e.ambient_light_energy = 1.0
+	e.ambient_light_color = PIC_AMBIENT_COLOR
+	e.ambient_light_energy = PIC_AMBIENT
 	env.environment = e
 	sv.add_child(env)
-	var pivot := Node3D.new()
-	ModelLib.fit(model, 0.95)
-	# 回る 軸（原点）から いちばん 遠い 所で 合わせなおす（むしばきんの ドリルのように 片がわだけ 出る 形が、
-	# 回った ときに わくから はみ出ない ように）。左右前後が そろった 形は 変わらない
-	var bb := ModelLib._aabb(model)
-	var reach := maxf(maxf(-bb.position.x, bb.end.x), maxf(-bb.position.z, bb.end.z))
-	var half := maxf(bb.size.x, maxf(bb.size.y, bb.size.z)) * 0.5
-	if reach > half:
-		model.scale *= half / reach
-	# 上下は 形の まん中を わくの まん中に（原点が ゆかの 近くや 上に ある モデル（かべの さいぼう）でも 切れない）
-	model.position.y = -(bb.position.y + bb.size.y * 0.5) * model.scale.y
-	pivot.add_child(model)
-	pivot.rotation.y = -0.5
-	sv.add_child(pivot)
-	box.add_child(svc)
-	if spin:
-		box.ready.connect(func():
-			var tw := box.create_tween().set_loops()
-			tw.tween_property(pivot, "rotation:y", TAU, 6.0).from(0.0))
-	return box
+
+
+## 形の はこ（大きさ box_size、中心が まわる 軸の 上）を ゆれの どの 角度でも わくに 入れる ための 倍率
+## （1.15 より 大きく は しない。小さい ものを むやみに 大きく しない）。カメラは PIC_CAM から 原点を 見る
+static func picture_fit(box_size: Vector3, size: Vector2) -> float:
+	var cam := Transform3D.IDENTITY.looking_at(-PIC_CAM, Vector3.UP)
+	cam.origin = PIC_CAM
+	var inv := cam.affine_inverse()
+	var ty := tan(deg_to_rad(PIC_FOV) * 0.5)
+	var tx := ty * size.x / maxf(size.y, 1.0)
+	var k := 1.15
+	for it in 6:
+		var worst := 0.0
+		var deg := -SWAY_DEG
+		while deg <= SWAY_DEG + 0.01:
+			var rot := Basis(Vector3.UP, deg_to_rad(deg))
+			for i in 8:
+				var c := Vector3(box_size.x * (0.5 if i & 1 else -0.5), box_size.y * (0.5 if i & 2 else -0.5), box_size.z * (0.5 if i & 4 else -0.5))
+				var v := inv * (rot * (c * k))
+				var depth := maxf(-v.z, 0.05)
+				worst = maxf(worst, maxf(absf(v.x) / (depth * tx), absf(v.y) / (depth * ty)))
+			deg += 5.0
+		if worst <= PIC_MARGIN + 0.001:
+			if it == 0:
+				return k
+			break
+		k *= PIC_MARGIN / worst * 0.995
+	return k
 
 
 func _unhandled_input(event: InputEvent) -> void:

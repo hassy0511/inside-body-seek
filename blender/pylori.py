@@ -9,8 +9,10 @@
 ・体は 太い 豆形：前の 頭の 球と うしろの 球（ほぼ 同じ 大きさ）を なめらかに つつんだ 形（round cone）を、
   頭の 中心より うしろを 円弧に そって 上へ 曲げた もの（断面も いっしょに 回るので、うしろは まるい ドームの まま 上がる）。
   絵は 頭が 下がった すがただが、頭は 水平に 作る（取り込みの 決め）。曲げで うしろの ドームが 頭の 上に 見える。
-・らせんの 帯 1 本（明るい 色、少し 盛り上がる）。1 周半 巻く（5 章 10 の おすすめ）。
-・べん毛 3 本（上 1 本＋左右 2 本の 三角。先が 丸く ふくらむ）。別の 部品 Flagella（原点は 根もとの まん中）。
+・らせんの 帯：ななめに 1 周 する とじた 輪 1 本（明るい 色、ほぼ 平らで ふちは 丸い）。2 回目で 1 周半の らせんから 変えた（記録 11 章）。
+・べん毛 3 本（まん中 1 本は 上へ 立って 先が うしろへ、左右 2 本は うしろ上へ 出て 先が 外と 下へ そる。
+  根もとが 太く 先へ 細く なる 曲がった しょく手、先は くきに なじんだ やわらかい ふくらみ）。
+  別の 部品 Flagella（原点は 根もとの まん中）。
   いまの ゲームは 動かして いない（ゆらす ときは この ノードを 回す）。
 ・顔（白目・黒目・光・まゆ・あいた 口と 舌）は 頭の 面に はった うすい ふくらみ。正面の 絵の 位置で 置く。
 ・色は 部品ごとに 1 色（絵から 測った hex）。形が まじわる 所の うすい 影は 頂点カラー（Col）に 焼いて ある。
@@ -47,22 +49,32 @@ WAIST = 0.012 * S   # 帯の あたりの くびれ
 WAIST_AT = -0.06 * S
 REAR_FLAT = 0.0     # うしろの 断面：横に これだけ 広く、たてに これだけ 低く（1 回目は 0.15。低い うしろが いもむしに 見えたので 0）
 
-# 帯（らせん）
-BAND_W = 0.15 * S           # 帯の 幅
-BAND_H = 0.030 * S          # 盛り上がり
-BAND_FROM = (RC + 0.05 * S, 0.0)     # うしろの はし（前後, まわりの 角度。90 ＝ 上、0 ＝ 本人の 右）。うしろの 球の いちばん 太い 輪より 前から
-#   （1 回目は RC - 0.07 S。うしろから 見て 帯の 最後の 1 周が 丸い ふちどりの 輪に 見えた）
-BAND_TO = (HC + 0.0 * S, 540.0)     # 前の はし（頭の よこ）。はしは 両方 よこに 来る（上からは 見えにくい）
-BAND_TURNS = (BAND_TO[1] - BAND_FROM[1]) / 360.0   # 1 周半（5 章 10 の おすすめ）
+# 帯（ななめの 輪 1 本。2 回目で 1 周半の らせんから 変えた。記録 11 章）
+#   帯の まん中の 線：前後の 位置 h(φ) ＝ RING_A ＋ RING_TOP·sin φ ＋ RING_SAG·sin² φ ＋ RING_SIDE·cos φ
+#   （φ は まわりの 角度。0 ＝ 本人の 右、90 ＝ 上）。上は 頭の すぐ うしろ、よこは 体の うしろ半分、下は うしろの 球の 下。
+#   本人の 右が 少し 前・左が 少し うしろ（真上の 絵と 背面の 絵の ななめ）。とじた 輪なので はしが 無い。
+RING_A = -0.100 * S         # よこ（φ ＝ 0, 180）の 平均
+RING_TOP = 0.100 * S        # 上は 前、下は うしろ（真横・45° の 絵：頭の うしろの 上から うしろの 下へ）
+RING_SAG = 0.000 * S        # 上と 下を いっしょに 前へ（よこが いちばん うしろ寄りに なる）
+RING_SIDE = 0.180 * S       # 本人の 右が 前、左が うしろ
+BAND_W = 0.19 * S           # 帯の 幅（絵は 体の 長さの 約 0.17〜0.22）
+BAND_H = 0.010 * S          # 盛り上がり（ほぼ 平ら。ふちは 丸く 体へ おりる）
 
-# べん毛（根もとの 向きは うしろの 球の 中心から。道は 根もとからの ずれ）
-FLAG_R = 0.050 * S          # 太さの 半分（取り込み：太さ 約 0.1）
-FLAG_TIP = 1.40             # 先の ふくらみ（根もとの 太さの 倍）
+# べん毛（根もとの 向きは うしろの 球の 中心から。道は 根もとからの ずれ ×S）
+# 4 回目：絵の しょく手は「根もとが ほそく、先へ 向かって 太く なって まるく とじる」こん棒の 形（正面の 絵で 根もとの 太さは 体の 幅の
+# 約 0.16、先の ふくらみは 約 0.30）。3 回目は 逆（根もとが 太く 先が 細い）で、つのに 見えた。うしろへ ながれる 向きも 絵に 合わせた。
+FLAG_R = 0.042 * S          # 根もとの 太さの 半分（直径 約 0.13 m）
+FLAG_BULB = 0.084 * S       # 先の ふくらみの 半径（直径 約 0.25 m）
+FLAG_GROW = 0.45            # 長さの この 割合から 先へ、だんだん 太く なる
+FLAG_NECK = 0.94            # ふくらみの 手前で くきが とどく 太さ（ふくらみの 半径の 倍。くびれを 作らない）
 FLAGELLA = [
-    # 根もとの 向き, 道の 点（根もとから の ずれ。3 次ベジェの 残り 3 点）
-    ((0.0, -0.45, 0.89), ((0.0, -0.02, 0.22), (0.0, -0.12, 0.42), (0.0, -0.27, 0.48))),
-    ((0.45, -0.60, 0.66), ((0.06, -0.06, 0.22), (0.10, -0.12, 0.36), (0.18, -0.18, 0.30))),
-    ((-0.45, -0.60, 0.66), ((-0.06, -0.06, 0.22), (-0.10, -0.12, 0.36), (-0.18, -0.18, 0.30))),
+    # 根もとの 向き, 道の 点（根もとからの ずれ。3 次ベジェの 残り 3 点）
+    # まん中：上へ 立って うしろへ そり、先は 前へ まるく もどる（正面の 絵では まっすぐ 上、真横の 絵では「？」の 形）
+    ((0.0, -0.45, 0.89), ((0.0, -0.07, 0.15), (0.0, -0.24, 0.32), (0.0, -0.11, 0.44))),
+    # 左右：うしろへ ながれて 外へ ひろがり、先は 外がわへ まがる（正面・背面の 絵の 外へ そる 2 本、真横の 絵の うしろへ ながれる 2 本）。
+    # 高さを 少し ずらす（真横から 3 本とも 見える。絵も 3 本を ずらして 描いて いる）
+    ((0.30, -0.66, 0.68), ((0.03, -0.13, 0.11), (0.13, -0.30, 0.27), (0.27, -0.35, 0.17))),
+    ((-0.30, -0.66, 0.68), ((-0.03, -0.11, 0.13), (-0.13, -0.25, 0.31), (-0.27, -0.29, 0.23))),
 ]
 
 # 顔（正面の 絵の 座標。頭の 半径 ＝ 1、右 ＝ 絵の 右、上 ＝ 上。頭の 中心 (976, 1327) px、半径 272 px）
@@ -91,8 +103,8 @@ SINK = 0.006
 
 # ------------------------------------------------------------------ 色（絵から 測った sRGB）
 COL = {
-    "body": "#8D7993",      # 体（spec。絵の 平らな 所の 中央値は #957D94。い（胃）の 明るい 光で 帯と 見分けが つく ように spec の 色）
-    "band": "#BB9DB5",      # 帯・べん毛（取り込みの 測定値）
+    "body": "#957D94",      # 体（絵の 平らな 所の 中央値。2 回目で い（胃）の 光を 弱めたので 絵の 色に もどした。1 回目は spec の #8D7993）
+    "band": "#C0A3BD",      # 帯・べん毛（2 回目に 測りなおした 絵の 帯の 中央値。べん毛は #C4A6C1〜#AE91A8。1 回目は #BB9DB5）
     "white": "#FCF4F1",
     "pupil": "#3C2A32",
     "brow": "#4C3A43",
@@ -183,46 +195,46 @@ def build_body(m_body, nu=48, nv=44):
     return P.mesh_obj("pylori_body", verts, faces, m_body, inside=(0.0, 0.0, 0.0))
 
 
-# ------------------------------------------------------------------ 帯（らせん）
+# ------------------------------------------------------------------ 帯（ななめの 輪）
 def bump(s):
     s = np.clip(np.asarray(s, dtype=float), 0.0, 1.0)
     return (1.0 - s ** 4) ** 0.25
 
 
-def build_band(m_band, n=160):
-    h0, a0 = BAND_FROM
-    h1, a1 = BAND_TO
-    t = np.linspace(0.0, 1.0, n)
-    hc = h0 + (h1 - h0) * t
-    ac = a0 + (a1 - a0) * t
-    # 帯に そった 向き（h, 面に そった 長さ）→ その 直角を 帯の 幅の 向きに
+def band_lift(s):
+    """帯の 横の 断面：まん中は ほぼ 平ら、ふちへ 丸く おりて 0。"""
+    s = np.clip(np.asarray(s, dtype=float), 0.0, 1.0)
+    return (1.0 - s ** 2.5) ** 0.8
+
+
+def ring_h(phi):
+    a = np.radians(phi)
+    return RING_A + RING_TOP * np.sin(a) + RING_SAG * np.sin(a) ** 2 + RING_SIDE * np.cos(a)
+
+
+def build_band(m_band, n=192):
+    ac = np.linspace(0.0, 360.0, n + 1)          # さいごは さいしょと 同じ 点（あとで つなぐ）
+    hc = ring_h(ac)
     r = radius(hc)
-    dh = np.gradient(hc)
-    darc = np.gradient(np.radians(ac)) * r
+    a = np.radians(ac)
+    dh = RING_TOP * np.cos(a) + 2.0 * RING_SAG * np.sin(a) * np.cos(a) - RING_SIDE * np.sin(a)    # dh/dφ（φ は ラジアン）
+    darc = r
     ln = np.hypot(dh, darc)
-    ph, pa = -darc / ln, dh / ln
-    # はしは 丸く（幅を 半円で 0 へ）
-    L = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(hc), np.diff(np.radians(ac)) * r[1:]))])
-    # はし：幅は 丸い 先へ 細く なり、盛り上がりも 低く なって 体に そう（リボンの はし）
-    cap = BAND_W * 1.8      # はしを 長く 細く（短いと 真横で ひれの ような こぶに 見えた）
-    dist = np.minimum(L, L[-1] - L)
-    wf = np.sin(np.clip(dist / cap, 0.0, 1.0) * math.pi * 0.5) ** 0.6
-    wf[0] = wf[-1] = 0.0
-    hf = 0.35 + 0.65 * wf
-    rings_s = (0.0, 0.5, 0.78, 0.9, 0.96, 1.0)
+    ph, pa = darc / ln, -dh / ln          # 帯に 直角な 向き（前後, まわりの 長さ）
+    rings_s = (0.0, 0.3, 0.55, 0.75, 0.88, 0.96, 1.0)
     rows = []
     for side in (-1.0, 1.0):
         order = rings_s if side > 0 else rings_s[::-1]
-        for s in order:
-            if side < 0 and s == 0.0:
+        for s_ in order:
+            if side < 0 and s_ == 0.0:
                 continue
-            k = side * s * BAND_W * 0.5 * wf
+            k = side * s_ * BAND_W * 0.5
             hh = hc + ph * k
             aa = ac + np.degrees(pa * k / np.maximum(radius(hh), 1e-3))
-            lift = BAND_H * bump(s) * hf
+            lift = np.full_like(hh, BAND_H * float(band_lift(s_)))
             rows.append(surf(hh, aa) + surf_normal(hh, aa) * lift[:, None])
         # ふちを 体の 中へ
-        k = side * 1.0 * BAND_W * 0.5 * wf
+        k = side * BAND_W * 0.5
         hh = hc + ph * k
         aa = ac + np.degrees(pa * k / np.maximum(radius(hh), 1e-3))
         sunk = surf(hh, aa) - surf_normal(hh, aa) * SINK
@@ -231,6 +243,7 @@ def build_band(m_band, n=160):
         else:
             rows.append(sunk)
     grid = np.array(rows)            # (across, along, 3)
+    grid[:, -1] = grid[:, 0]         # 輪を とじる
     na, nl, _ = grid.shape
     verts = [tuple(p) for p in grid.reshape(-1, 3)]
     faces = []
@@ -267,47 +280,64 @@ def flagellum_root(d):
     return c + d * r * 0.92, d
 
 
-def build_flagellum(name, m_stem, m_tip, d, offs, n=26, nu=16):
+def flag_radius(l, L):
+    """べん毛の 太さ（根もとからの 長さ l、全長 L）：根もとは ほそく、FLAG_GROW から 先へ だんだん 太く なって、
+    先の まるい ふくらみ（半径 FLAG_BULB）に そのまま つながる（こん棒の 形。くびれも ピンの 頭も 作らない）。"""
+    l = np.asarray(l, dtype=float)
+    c = L - FLAG_BULB
+    t = np.clip(l / c, 0.0, 1.0)
+    g = np.clip((t - FLAG_GROW) / (1.0 - FLAG_GROW), 0.0, 1.0)
+    g = g * g * (3.0 - 2.0 * g)
+    stem = FLAG_R + (FLAG_BULB * FLAG_NECK - FLAG_R) * g
+    stem = stem + 0.35 * FLAG_R * np.exp(-l / (0.05 * S))     # 根もとは 体へ なじむ ように 少し ひろがる
+    bulb = np.sqrt(np.maximum(FLAG_BULB ** 2 - (l - c) ** 2, 0.0))
+    k = 0.020 * S                                # くきと ふくらみの つなぎの まるみ
+    return _smax(np.where(l < c, stem, 0.0), bulb, k)     # ふくらみの 中では くきを 消す（先が とじる）
+
+
+def _smax(a, b, k):
+    h = np.clip(0.5 + 0.5 * (a - b) / k, 0.0, 1.0)
+    return b + (a - b) * h + k * h * (1.0 - h)
+
+
+def build_flagellum(name, m_stem, m_tip, d, offs, nu=18):
     root, d = flagellum_root(d)
     p1, p2, p3 = (root + np.asarray(o) * S for o in offs)
-    path = _bezier3(root, p1, p2, p3, n)
+    dense = _bezier3(root, p1, p2, p3, 400)
     # 根もとは 体の 中から（少し もどる）
-    path = np.concatenate([[root - d * 0.06 * S], path])
-    n = len(path)
-    t = np.linspace(0.0, 1.0, n)
-    # 太さ：根もと 1.0 → まん中 0.82 → 先で ふくらむ
-    sc = 1.0 - 0.18 * np.sin(np.clip(t / 0.75, 0, 1) * math.pi * 0.5) + (FLAG_TIP - 0.82) * np.clip((t - 0.72) / 0.28, 0, 1) ** 1.6
-    tan = np.gradient(path, axis=0)
+    dense = np.concatenate([[root - d * 0.07 * S], dense])
+    seg = np.linalg.norm(np.diff(dense, axis=0), axis=1)
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    L = cum[-1]
+    # 輪の 位置：くきは 等間かく、玉は 細かく（先の はしへ 向けて つまる）
+    c = L - FLAG_BULB
+    l_stem = np.linspace(0.0, c, 26, endpoint=False)
+    l_bulb = c + FLAG_BULB * np.sin(np.linspace(0.0, 1.0, 14) * math.pi * 0.5 * 0.97)
+    ls = np.concatenate([l_stem, l_bulb])
+    path = np.stack([np.interp(ls, cum, dense[:, j]) for j in range(3)], axis=-1)
+    tan = np.stack([np.interp(ls, cum, np.gradient(dense[:, j]) / np.maximum(np.gradient(cum), 1e-9)) for j in range(3)], axis=-1)
     tan /= np.linalg.norm(tan, axis=-1, keepdims=True)
     up = np.array([0.0, 0.0, 1.0]) if abs(tan[0][2]) < 0.9 else np.array([1.0, 0.0, 0.0])
     # 平行移動の 枠（ねじれない）
     nrm = []
     cur = up - tan[0] * np.dot(up, tan[0])
     cur /= np.linalg.norm(cur)
-    for i in range(n):
+    for i in range(len(ls)):
         cur = cur - tan[i] * np.dot(cur, tan[i])
         cur /= np.linalg.norm(cur)
         nrm.append(cur.copy())
     nrm = np.array(nrm)
     bi = np.cross(tan, nrm)
+    rr = flag_radius(ls, L)
     u = np.linspace(0.0, 2.0 * np.pi, nu, endpoint=False)
-    rings = []
-    for i in range(n):
-        rr = FLAG_R * sc[i]
-        rings.append(path[i] + rr * (np.cos(u)[:, None] * nrm[i] + np.sin(u)[:, None] * bi[i]))
-    # 先：半球
-    rt = FLAG_R * sc[-1]
-    for a in (20.0, 40.0, 58.0, 74.0, 86.0):
-        k = math.radians(a)
-        c = path[-1] + tan[-1] * rt * math.sin(k)
-        rings.append(c + rt * math.cos(k) * (np.cos(u)[:, None] * nrm[-1] + np.sin(u)[:, None] * bi[-1]))
-    tip = path[-1] + tan[-1] * rt
-    verts, faces = P.skin(np.array(rings), path[0], tip)
-    ob = P.mesh_obj(name, verts, faces, m_stem, inside=path[n // 2])
-    # 先の 部分（t > 0.6）は 別の マテリアル（同じ 色。Godot の 1 つ目の マテリアルの 件。下の 注）
+    rings = path[:, None, :] + rr[:, None, None] * (np.cos(u)[None, :, None] * nrm[:, None, :] + np.sin(u)[None, :, None] * bi[:, None, :])
+    end = np.array([np.interp(L, cum, dense[:, j]) for j in range(3)])
+    verts, faces = P.skin(rings, path[0], end)
+    ob = P.mesh_obj(name, verts, faces, m_stem, inside=path[len(ls) // 3])
+    # 先の 部分は 別の マテリアル（同じ 色。Godot の 1 つ目の マテリアルの 件。下の 注）
     me = ob.data
     me.materials.append(m_tip)
-    vt = np.concatenate([np.repeat(t, nu), np.ones(5 * nu), [0.0, 1.0]])
+    vt = np.concatenate([np.repeat(ls / L, nu), [0.0, 1.0]])
     for p in me.polygons:
         if min(vt[i] for i in p.vertices) > 0.6:
             p.material_index = 1
@@ -453,9 +483,9 @@ def build_face(m_white, m_pupil, m_spark, m_brow, m_mouth, m_tongue):
 # ------------------------------------------------------------------ 組み立て
 def build_pylori():
     m_body = P.mat("PyloriBody", COL["body"], 0.9)
-    m_band = P.mat("PyloriBand", COL["band"], 0.85)
-    m_flag = P.mat("PyloriFlagellum", COL["band"], 0.85)
-    m_ftip = P.mat("PyloriFlagellumTip", COL["band"], 0.85)   # 同じ 色。Flagella の 1 つ目の マテリアル（下の 注）
+    m_band = P.mat("PyloriBand", COL["band"], 1.0)
+    m_flag = P.mat("PyloriFlagellum", COL["band"], 1.0)   # つやなし（船の 明かりで 白く 光らない ように）
+    m_ftip = P.mat("PyloriFlagellumTip", COL["band"], 1.0)   # 同じ 色。Flagella の 1 つ目の マテリアル（下の 注）
     m_white = P.mat("PyloriWhite", COL["white"], 0.9)
     m_spark = P.mat("PyloriSpark", COL["white"], 0.5)
     m_pupil = P.mat("PyloriPupil", COL["pupil"], 0.45)
@@ -474,7 +504,8 @@ def build_pylori():
     face = build_face(m_white, m_pupil, m_spark, m_brow, m_mouth, m_tongue)
 
     solid = [body, band] + flags
-    P.bake_soft_shadow(solid, solid, dist=0.22 * S, floor=0.45, dark=(0.60, 0.52, 0.60), soften=3)
+    # 帯は ほぼ 平らなので 影を 落とす ものに 入れない（ふちが 黒く 縁どられて テープに 見えない ように）
+    P.bake_soft_shadow(solid, [body] + flags, dist=0.22 * S, floor=0.45, dark=(0.60, 0.52, 0.60), soften=3)
 
     # Godot の glTF 読みこみは、メッシュの 1 つ目の マテリアルに 頂点カラーを 使わない（pod.py と 同じ）。
     # 本体は 影の 要らない 光の 点を 1 つ目に、Flagella は 先の ふくらみ（PyloriFlagellumTip）を 1 つ目に する

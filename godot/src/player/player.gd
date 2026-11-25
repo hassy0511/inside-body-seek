@@ -59,6 +59,8 @@ var _stuck_time := 0.0
 var _stuck_from := Vector3.ZERO
 var hit_stun := 0.0
 var _stuck_count := 0
+## うごかない なかまに まっすぐ ぶつかった とき、よこへ すべらせる はやさ（つぎの フレームの 目標に 足す）
+var _slip := Vector3.ZERO
 
 ## テスト用：ここに座標を入れると その方向へ自動で動く
 var autopilot_target: Vector3 = Vector3.INF
@@ -69,7 +71,7 @@ func _ready() -> void:
 	super._ready()
 	hover_height = 1.1
 	collision_layer = 2
-	collision_mask = 1 | 4  # world + enemy bodies(3rd bit = 4)
+	collision_mask = 1 | 4 | Friend.SOLID_LAYER  # world + enemy bodies(3rd bit = 4) + うごかない なかまの 中の 当たり
 	var shape := CollisionShape3D.new()
 	var s := SphereShape3D.new()
 	s.radius = 0.55
@@ -194,7 +196,8 @@ func _physics_process(delta: float) -> void:
 		slow_time -= delta
 		speed_mult *= SLOW_MULT
 	var target_speed := (DASH_SPEED if dash else SPEED) * speed_mult
-	var target_vel := dir * target_speed + external_push
+	var target_vel := dir * target_speed + external_push + _slip
+	_slip = Vector3.ZERO
 	target_vel = _tube_start_guard(target_vel)
 	if carry_speed > 0.0 and hit_stun <= 0.0:
 		# なみに のって いる：前へは なみの はやさまで おされる（よこは じぶんで うごける）
@@ -208,6 +211,7 @@ func _physics_process(delta: float) -> void:
 		var h := heading.lerp(dir, minf(1.0, 10.0 * delta))
 		heading = h.normalized() if h.length() > 0.05 else dir
 	move_and_slide()
+	_slip_around_friends(dir)
 
 	# 見た目
 	var yaw := HoverBody.yaw_for(heading)
@@ -240,10 +244,42 @@ func _physics_process(delta: float) -> void:
 	_update_arrow(delta)
 
 
+## うごかない なかま（friend.gd の FriendSolid。まるい 柱）に まっすぐ ぶつかると、柱の まわりを すべれずに 止まる。
+## そのときは よこへ すこし おして、まわりを すべって 先へ 行ける ように する（子どもが ↑ を おしつづけても 止まらない）
+func _slip_around_friends(dir: Vector3) -> void:
+	if dir.length() < 0.1:
+		return
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as Node
+		if body == null or not body.is_in_group("friend_solid"):
+			continue
+		var n := c.get_normal()
+		n.y = 0.0
+		if n.length() < 0.01:
+			continue
+		n = n.normalized()
+		if dir.dot(-n) < 0.5:
+			continue
+		var side := Vector3(-n.z, 0.0, n.x)
+		if dir.dot(side) < -0.05:   # まっすぐ（ほぼ 0）の ときは いつも 同じ がわへ（ゆれて 止まらない ように）
+			side = -side
+		_slip = side * SPEED * 0.6
+
+
+## 船が ぶつかって いるのが うごかない なかまの 当たり だけ か（はさまった ことには しない。よこへ すべるので 止まらない）
+func _only_friend_contact() -> bool:
+	for i in get_slide_collision_count():
+		var body := get_slide_collision(i).get_collider() as Node
+		if body == null or not body.is_in_group("friend_solid"):
+			return false
+	return true
+
+
 ## うごこうとしているのに 5 秒以上 その場から動けないときは、少し後ろへ押し戻す。
 ## それでもだめなら チェックポイントへ戻す。
 func _check_stuck(delta: float, dir: Vector3) -> void:
-	if dir.length() < 0.1 or _respawning or get_slide_collision_count() == 0:
+	if dir.length() < 0.1 or _respawning or get_slide_collision_count() == 0 or _only_friend_contact():
 		_stuck_time = 0.0
 		_stuck_from = global_position
 		return

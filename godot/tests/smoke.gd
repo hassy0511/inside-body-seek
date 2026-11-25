@@ -162,6 +162,10 @@ func _ready() -> void:
 			if _only_place == "" or _only_place == "stomach":
 				await _check_pools()
 				await _check_arrow()
+				await _check_static_friends()
+				await _check_friend_solid()
+				await _check_orbit_spacing()
+				await _check_card_pictures()
 			for id in BACK_PLACES:
 				if _only_place == "" or id == _only_place:
 					await _check_back_hold(id)
@@ -1751,6 +1755,30 @@ func _check_zukan() -> void:
 			_fail("zukan: カードを 閉じた あと フォーカスが もどらない（%s）" % id)
 	if first:
 		_fail("zukan: 見た カルテが 1 つも ない")
+		return
+	# カードを 開いた まま「もどる」（Esc）：カードが とじる だけで、ずかんに のこる（タイトルの 上に カードが のこらない）
+	for id in EpisodeDB.ids():
+		if not SaveData.card_seen(id, "karte"):
+			continue
+		var b2: Button = scr.karte_buttons[id]
+		b2.grab_focus()
+		b2.pressed.emit()
+		var t2 := 0.0
+		while t2 < 5.0 and scr.popup == null:
+			await get_tree().process_frame
+			t2 += get_process_delta_time()
+		await _tap("ui_cancel")
+		t2 = 0.0
+		while t2 < 5.0 and is_instance_valid(scr) and scr.popup != null:
+			await get_tree().process_frame
+			t2 += get_process_delta_time()
+		if not is_instance_valid(scr) or Game.screen() != scr:
+			_fail("zukan: カードを 開いた まま もどるで ずかんから 出た（カードが のこる）")
+		elif scr.popup != null:
+			_fail("zukan: カードを 開いた まま もどるで カードが とじない")
+		elif get_viewport().gui_get_focus_owner() != b2:
+			_fail("zukan: もどるで カードを とじた あと フォーカスが もどらない")
+		break
 
 
 ## アクションを 1 回 押して はなす（キーボード・ゲームパッドと 同じ 道：Input → Viewport → フォーカス中の Control）
@@ -2602,6 +2630,405 @@ func _check_pools() -> void:
 			_fail("pool r%.0f: 水の ふちが r から %.2f m ずれる" % [r, worst_geo])
 		if worst_hurt > 0.15:
 			_fail("pool r%.0f: あぶない ふちが r から %.2f m ずれる（水が 見えない 所で へる／水の 中で へらない）" % [r, worst_hurt])
+	await get_tree().process_frame
+
+
+# ---------------------------------------------------------------- 8b. うごかない なかま（い（胃）の かべの さいぼう）
+## friend.gd の move "static"：
+## ・できた しゅんかん（_ready の すぐ あと）に、もう ミクロごうの スタートを むいて いる（25° いない）
+## ・モデルの いちばん 下が まん中の ゆかから ±0.15 m（SINK 0.05 m 下が ねらい）。3 びょう 見て 上下に うごかない（0.02 m いない）
+## ・船を さいぼうの まわりの 3 か所へ うつすと、2.5 びょうで 船の ほうを むく（25° いない）
+## ・MouthHappy（GLB に 無ければ 代わりの ノードを 足す）は おうえん まで かくれて いて、おうえんで 出る
+## ・おうえんの ふくらみと その あとの はずみでも、いちばん 下は ゆかから ±0.15 m（ゆかに めりこまない・浮かない）
+## ・おうえんの あと、ときどき はずむ（てっぺんが 0.1 m いじょう 上下する。前は いきだけ で 0.06 m より 小さい）
+func _check_static_friends() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var where := "static friend stomach"
+	var p = lvl.player
+	p.invulnerable = 9999.0
+	p.control_enabled = false
+	var cells: Array = []
+	for f in get_tree().get_nodes_in_group("friend"):
+		if f.move_kind == "static" and lvl.is_ancestor_of(f):   # 前の Level の のこり（queue_free 待ち）は 数えない
+			cells.append(f)
+	if cells.is_empty():
+		_fail("%s: うごかない なかまが いない" % where)
+		return
+	# できた しゅんかんの むき（スタートを むく）。べつの 1 つを 作って すぐ 見て、すぐ 消す
+	var probe = Friend.create("wallcell")
+	probe.level = lvl
+	var start: Vector3 = lvl.player_start()
+	var side0 := Vector3(start.x - 9.0, start.y, start.z + 5.0)
+	probe.position = side0
+	lvl.add_child(probe)
+	var a0 := _facing_error(probe, start)
+	probe.queue_free()
+	if a0 > 25.0:
+		_fail("%s: できた ときに スタートを むいて いない（%.0f°）" % [where, a0])
+	await get_tree().physics_frame
+	# ゆかに 立つ・上下に うごかない
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	var lo := {}
+	var hi := {}
+	var t := 0.0
+	while t < 3.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		if t < 0.5:
+			continue
+		for f in cells:
+			var y := _lowest(f.model)
+			lo[f] = minf(lo.get(f, INF), y)
+			hi[f] = maxf(hi.get(f, -INF), y)
+	var worst_gap := 0.0
+	var worst_move := 0.0
+	for f in cells:
+		var fl := _floor_under(space, f.global_position)
+		var gap: float = lo[f] - fl
+		worst_gap = maxf(worst_gap, maxf(absf(gap), absf(hi[f] - fl)))
+		worst_move = maxf(worst_move, hi[f] - lo[f])
+		if absf(lo[f] - fl) > 0.15 or absf(hi[f] - fl) > 0.15:
+			_fail("%s: %s の いちばん 下が ゆかから %.2f〜%.2f m（±0.15 m の はず）" % [where, f.global_position, lo[f] - fl, hi[f] - fl])
+		if hi[f] - lo[f] > 0.02:
+			_fail("%s: %s が 上下に %.2f m うごく（うごかない はず）" % [where, f.global_position, hi[f] - lo[f]])
+	# 船の ほうを むく
+	var cell = cells[0]
+	var c: Vector3 = cell.global_position
+	var base := Vector2(p.global_position.x - c.x, p.global_position.z - c.z).angle()
+	var sides := 0
+	var worst_face := 0.0
+	for k: int in [1, 2, 3, 4, 5]:
+		var a := base + TAU * k / 6.0 + 0.5
+		var at := c + Vector3(cos(a), 0.0, sin(a)) * 6.0
+		var fl := _floor_under(space, at)
+		if is_nan(fl):
+			continue
+		p.global_position = Vector3(at.x, fl + 1.1, at.z)
+		p.velocity = Vector3.ZERO
+		t = 0.0
+		while t < 2.5:
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+			p.velocity = Vector3.ZERO
+		var err := _facing_error(cell, p.global_position)
+		worst_face = maxf(worst_face, err)
+		sides += 1
+		if err > 25.0:
+			_fail("%s: 船が %.0f° の ほうへ うつって 2.5 びょう たっても むかない（%.0f° ずれ）" % [where, rad_to_deg(wrapf(a - base, 0.0, TAU)), err])
+		if sides >= 3:
+			break
+	if sides < 3:
+		_fail("%s: 船を おける ところが %d か所 しか ない" % [where, sides])
+	# ひらいた 口：おうえん まで かくれて いる
+	var stand_in := false
+	if cell.model.find_child("MouthHappy", true, false) == null:
+		stand_in = true
+		var mh := MeshInstance3D.new()
+		mh.name = "MouthHappy"
+		var sm := SphereMesh.new()
+		sm.radius = 0.08
+		sm.height = 0.16
+		mh.mesh = sm
+		mh.position = Vector3(0.0, -_box(cell.model).size.y * 0.3, -0.3)
+		cell.model.add_child(mh)
+		cell.find_happy_mouth()
+	var happy: Node3D = cell.model.find_child("MouthHappy", true, false)
+	if happy.is_visible_in_tree():
+		_fail("%s: MouthHappy が おうえんの 前から 見えて いる" % where)
+	var top_lo := INF
+	var top_hi := -INF
+	t = 0.0
+	while t < 2.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		var top := _box(cell.model).end.y
+		top_lo = minf(top_lo, top)
+		top_hi = maxf(top_hi, top)
+	var calm := top_hi - top_lo
+	var fc := _floor_under(space, c)
+	var dir := Vector3(c.x - p.global_position.x, 0.0, c.z - p.global_position.z).normalized()
+	p.global_position = c - dir * 1.6
+	p.velocity = Vector3.ZERO
+	t = 0.0
+	var dip_lo := INF
+	var dip_hi := -INF
+	top_lo = INF
+	top_hi = -INF
+	while t < 5.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		if t > 0.3:
+			p.global_position = c - dir * 6.0 + Vector3.UP * 1.1
+			p.velocity = Vector3.ZERO
+		if not cell.is_cheered:
+			continue
+		var y := _lowest(cell.model) - fc
+		dip_lo = minf(dip_lo, y)
+		dip_hi = maxf(dip_hi, y)
+		if t > 1.0:
+			var top := _box(cell.model).end.y
+			top_lo = minf(top_lo, top)
+			top_hi = maxf(top_hi, top)
+	if not cell.is_cheered:
+		_fail("%s: 船が ふれても おうえん に ならない" % where)
+	else:
+		if not happy.is_visible_in_tree():
+			_fail("%s: おうえんの あと MouthHappy が 見えない" % where)
+		if dip_lo < -0.15 or dip_hi > 0.15:
+			_fail("%s: おうえんの あいだ いちばん 下が ゆかから %.2f〜%.2f m（めりこむ／浮く）" % [where, dip_lo, dip_hi])
+		if top_hi - top_lo < 0.1 or calm > 0.06:
+			_fail("%s: おうえんの あとの はずみが 見えない（てっぺんの 上下 %.2f m、前は %.2f m）" % [where, top_hi - top_lo, calm])
+	for f in cells:
+		var hm: Node = f.model.find_child("MouthHappy", true, false)
+		if f != cell and hm != null and hm.is_visible_in_tree():
+			_fail("%s: おうえん して いない %s の MouthHappy が 見えて いる" % [where, f.global_position])
+	_info("static friends stomach: %d こ、いちばん 下と ゆかの ずれ 最大 %.2f m、上下の うごき 最大 %.3f m、むきの ずれ 最大 %.0f°（%d か所）、できた ときの むき %.0f°、MouthHappy %s、はずみ %.2f m（前 %.2f m）、おうえんの あいだの いちばん 下 %.2f〜%.2f m" % [cells.size(), worst_gap, worst_move, worst_face, sides, a0, "代わりの ノード" if stand_in else "GLB", top_hi - top_lo, calm, dip_lo, dip_hi])
+	await get_tree().process_frame
+
+
+## なかまの モデルの 前（-Z）と target への むきの ちがい（度。よこの 回転だけ）
+func _facing_error(f: Node3D, target: Vector3) -> float:
+	var fw: Vector3 = -(f.get("model") as Node3D).global_transform.basis.z
+	var to := target - f.global_position
+	return absf(rad_to_deg(Vector2(fw.x, fw.z).angle_to(Vector2(to.x, to.z))))
+
+
+## モデルの ぜんぶの メッシュの はこ（ワールド）
+func _box(n: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		if not (mi as MeshInstance3D).is_visible_in_tree() or (mi as MeshInstance3D).mesh == null:
+			continue
+		var b: AABB = (mi as MeshInstance3D).global_transform * (mi as MeshInstance3D).get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box
+
+
+func _lowest(n: Node3D) -> float:
+	return _box(n).position.y
+
+
+func _floor_under(space: PhysicsDirectSpaceState3D, at: Vector3) -> float:
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 4.0, at + Vector3.DOWN * 16.0, 1))
+	if hit.is_empty() or (hit["normal"] as Vector3).y < 0.35:
+		return NAN
+	return hit["position"].y
+
+
+## うごかない なかまの 中の 当たり：船は つきぬけない。まっすぐ ↑ を 6 びょう おしても、はさまった ときの もどしも
+## けがも ない（さいぼうの 4 m いない で）。当たりは ゆかの レイ（1）にも てき（ピロリきん）にも 当たらない 層
+func _check_friend_solid() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var where := "friend solid stomach"
+	var p = lvl.player
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	for f in get_tree().get_nodes_in_group("friend"):
+		if f.move_kind != "static" or not lvl.is_ancestor_of(f):
+			continue
+		if f.solid == null:
+			_fail("%s: %s に 中の 当たりが ない" % [where, f.global_position])
+			continue
+		if f.solid.collision_layer & 1:
+			_fail("%s: 中の 当たりが ゆかの 層（1）に いる" % where)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e) and e.collision_mask & Friend.SOLID_LAYER:
+			_fail("%s: てき（%s）が なかまの 当たりに ぶつかる" % [where, e.kind])
+	var cell = null
+	for f in get_tree().get_nodes_in_group("friend"):
+		if f.move_kind == "static" and f.solid != null and lvl.is_ancestor_of(f):
+			cell = f
+	if cell == null:
+		return
+	await get_tree().physics_frame
+	var c: Vector3 = cell.global_position
+	var r: float = cell.solid_radius()
+	if r <= 0.0 or r + 0.55 > cell.radius + 0.5 + 0.7 - 0.3:
+		_fail("%s: 中の 当たりの 半径 %.2f m が 大きすぎる（おうえんの 当たり より 先に ぶつかる）" % [where, r])
+	# 船を おける むき（5 m 手前に ゆかが あり、いけに かからない）
+	var dir := Vector3.ZERO
+	for k in 16:
+		var a := TAU * k / 16.0
+		var d := Vector3(cos(a), 0.0, sin(a))
+		var ok := true
+		for m in [2.0, 3.5, 5.0]:
+			var at: Vector3 = c - d * m
+			if is_nan(_floor_under(space, at)):
+				ok = false
+			for h in lvl.get_children():
+				if h is HazardPool and Vector2(h.global_position.x - at.x, h.global_position.z - at.z).length() < h.radius + 1.5:
+					ok = false
+		if ok:
+			dir = d
+			break
+	if dir == Vector3.ZERO:
+		_fail("%s: 船を おける むきが ない" % where)
+		return
+	# まわりの ピロリきんは 消す（ぶつかって けがを しても さいぼうの せいでは ない。けがは さいぼうだけ を 見る）
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			e.queue_free()
+	await get_tree().physics_frame
+	var fl := _floor_under(space, c - dir * 5.0)
+	p.global_position = Vector3(c.x - dir.x * 5.0, fl + 1.1, c.z - dir.z * 5.0)
+	p.velocity = Vector3.ZERO
+	p.heading = dir
+	p.control_enabled = true
+	p.invulnerable = 0.0
+	p.autopilot_target = Vector3.INF
+	lvl.camera.snap_to_target()
+	var hearts0: int = p.hearts
+	var stuck_prev: int = p._stuck_count
+	var rescued := false
+	var hurt_near := [0]
+	var on_hurt := func():
+		if Vector2(p.global_position.x - c.x, p.global_position.z - c.z).length() < 4.0:
+			hurt_near[0] += 1
+	p.hurt_happened.connect(on_hurt)
+	var min_d := INF
+	var passed := false
+	Input.action_press("move_up")
+	var t := 0.0
+	while t < 6.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		var hd := Vector2(p.global_position.x - c.x, p.global_position.z - c.z)
+		min_d = minf(min_d, hd.length())
+		if (p.global_position - c).dot(dir) > 1.5:
+			passed = true
+		# さいぼうの そば（4 m）で もどしが はたらいたか（はなれた 先の かべで はたらくのは ほかの テストの はなし）
+		if p._stuck_count != stuck_prev and hd.length() < 4.0:
+			rescued = true
+		stuck_prev = p._stuck_count
+	Input.action_release("move_up")
+	p.hurt_happened.disconnect(on_hurt)
+	if rescued:
+		_fail("%s: さいぼうに むかって ↑ を おしつづけたら はさまった ときの もどしが はたらいた" % where)
+	if hurt_near[0] > 0:
+		_fail("%s: さいぼうの そばで けがを した（%d 回）" % [where, hurt_near[0]])
+	if min_d < r + 0.55 - 0.08:
+		_fail("%s: 船が さいぼうの 中を とおった（まん中から %.2f m まで。当たりの 半径 %.2f m）" % [where, min_d, r])
+	if not cell.is_cheered:
+		_fail("%s: ぶつかる 前に おうえん に ならなかった" % where)
+	_info("friend solid stomach: 当たりの 半径 %.2f m、船の まん中との きょり 最小 %.2f m、%s、ハート %d → %d" % [r, min_d, "まわりを すべって 先へ 出た" if passed else "手前で 止まった", hearts0, p.hearts])
+	p.control_enabled = false
+	await get_tree().process_frame
+
+
+## 同じ なかまを まわる ピロリきんが かさならない：10 びょう あと、同じ まん中を まわる 生きた ピロリきんは 2 m いじょう はなれて いる
+func _check_orbit_spacing() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	p.invulnerable = 9999.0
+	p.control_enabled = false
+	var t := 0.0
+	while t < 10.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		p.velocity = Vector3.ZERO
+	var orb: Array = []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e) and e.alive and e.behavior == "orbit" and e._orbit_center != Vector3.INF:
+			orb.append(e)
+	var pairs := 0
+	var closest := INF
+	for i in orb.size():
+		for j in range(i + 1, orb.size()):
+			if orb[i]._orbit_center.distance_to(orb[j]._orbit_center) > 0.5:
+				continue
+			pairs += 1
+			var d: float = orb[i].global_position.distance_to(orb[j].global_position)
+			closest = minf(closest, d)
+			if d < 2.0:
+				_fail("orbit spacing stomach: 同じ なかまを まわる ピロリきんが %.2f m まで ちかい（%s と %s）" % [d, orb[i].global_position, orb[j].global_position])
+	if pairs == 0:
+		_fail("orbit spacing stomach: 同じ なかまを まわる 2 ひきが いない（たしかめられない）")
+	_info("orbit spacing stomach: まわる ピロリきん %d ひき、同じ なかまを まわる 組 %d、いちばん 近い %.2f m" % [orb.size(), pairs, closest])
+
+
+## ものしりカードの 3D の 絵（card.gd）：キャラクターの GLB ぜんぶ、カード・「みつけた ものしりカード」の タイル・HUD の ふだ の
+## 大きさで、ゆれの 両はし と まん中 と 止まった 絵の 角度に して、モデルの はこの 8 つの かど（メッシュごと）を 絵の
+## カメラで 画面に うつし、ぜんぶ 絵の 中に 入るか。ゆれる 絵は 1 往復の あいだ ±SWAY_DEG を こえない（うしろを 見せない）
+func _check_card_pictures() -> void:
+	var holder := Control.new()
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(holder)
+	var kinds: Array[String] = []
+	for f in DirAccess.get_files_at("res://assets/models/characters/"):
+		if f.ends_with(".glb"):
+			kinds.append(f.get_basename())
+	var sizes: Array[Vector2] = [Vector2(260, 300), CardsScreen.PIC, Vector2(HudScreen.CHIP_PIC, HudScreen.CHIP_PIC)]
+	var angles: Array[float] = [-CardPopup.SWAY_DEG, 0.0, CardPopup.SWAY_DEG, CardPopup.STILL_DEG]
+	var bad := 0
+	var checked := 0
+	var worst := 0.0
+	for kind in kinds:
+		for size in sizes:
+			var pic: Control = CardPopup._model_picture(kind, size, false)
+			holder.add_child(pic)
+			await get_tree().process_frame
+			var sv := pic.find_children("*", "SubViewport", true, false)[0] as SubViewport
+			var cam := sv.get_camera_3d()
+			var pivot := sv.get_node_or_null("Pivot") as Node3D
+			if pivot == null or cam == null:
+				_fail("card picture %s: 絵の 台（Pivot）か カメラが ない" % kind)
+				pic.queue_free()
+				continue
+			if Vector2(sv.size) != size:
+				_fail("card picture %s: 絵の 大きさが %s（%s の はず）" % [kind, sv.size, size])
+			if absf(rad_to_deg(pivot.rotation.y) - CardPopup.STILL_DEG) > 0.5:
+				_fail("card picture %s: 止まった 絵の 角度が %.0f°（%.0f° の はず）" % [kind, rad_to_deg(pivot.rotation.y), CardPopup.STILL_DEG])
+			for deg in angles:
+				pivot.rotation.y = deg_to_rad(deg)
+				var out_px := 0.0
+				for mi in pivot.find_children("*", "MeshInstance3D", true, false):
+					var m := mi as MeshInstance3D
+					if m.mesh == null or not m.is_visible_in_tree():
+						continue
+					var b := m.get_aabb()
+					for i in 8:
+						var corner: Vector3 = m.global_transform * (b.position + b.size * Vector3(i & 1, (i >> 1) & 1, (i >> 2) & 1))
+						if cam.is_position_behind(corner):
+							out_px = INF
+							continue
+						var sp := cam.unproject_position(corner)
+						out_px = maxf(out_px, maxf(maxf(-sp.x, sp.x - size.x), maxf(-sp.y, sp.y - size.y)))
+				checked += 1
+				worst = maxf(worst, out_px)
+				if out_px > 0.0:
+					bad += 1
+					_fail("card picture %s（%dx%d、%.0f°）: モデルが 絵の わくから %.1f px 出る（切れる）" % [kind, size.x, size.y, deg, out_px])
+			pic.queue_free()
+	# ゆれる 絵：1 往復 見て、±SWAY_DEG を こえず、両がわへ ゆれる
+	var sway: Control = CardPopup._model_picture("pylori", Vector2(260, 300), true)
+	holder.add_child(sway)
+	await get_tree().process_frame
+	var pv := (sway.find_children("*", "SubViewport", true, false)[0] as SubViewport).get_node("Pivot") as Node3D
+	var lo := INF
+	var hi := -INF
+	var t := 0.0
+	while t < CardPopup.SWAY_SEC + 1.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		var d := rad_to_deg(pv.rotation.y)
+		lo = minf(lo, d)
+		hi = maxf(hi, d)
+	if lo < -CardPopup.SWAY_DEG - 1.0 or hi > CardPopup.SWAY_DEG + 1.0:
+		_fail("card picture: ゆれが %.0f°〜%.0f°（±%.0f° を こえて うしろが 見える）" % [lo, hi, CardPopup.SWAY_DEG])
+	if lo > -CardPopup.SWAY_DEG + 5.0 or hi < CardPopup.SWAY_DEG - 5.0:
+		_fail("card picture: ゆれが %.0f°〜%.0f°（両がわへ ゆれて いない）" % [lo, hi])
+	holder.queue_free()
+	_info("card pictures: %d 体 × %d 大きさ × %d 角度、わくから 出た %d（いちばん 外 %.1f px）、ゆれ %.0f°〜%.0f°" % [kinds.size(), sizes.size(), angles.size(), bad, worst, lo, hi])
 	await get_tree().process_frame
 
 

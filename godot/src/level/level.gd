@@ -895,6 +895,12 @@ func path_is_end(pos: Vector3) -> bool:
 	return path.is_valid() and path.progress_at(pos) >= path.total - 4.0
 
 
+## ミクロごうの スタート（MK_player。なかまが はじめに むく ところ。スポーンの とちゅうでも 使える）
+func player_start() -> Vector3:
+	var ps := _markers_of("player")
+	return ps[0]["position"] if ps.size() > 0 else spawn_point
+
+
 func path_start_position() -> Vector3:
 	return path.start() if path.is_valid() else spawn_point
 

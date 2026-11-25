@@ -94,15 +94,21 @@ const STAGES: Array[Dictionary] = [
 	{
 		"id": "stomach", "order": 3, "name": "い", "kanji": "胃", "title": "ぐるぐる いのなか",
 		"difficulty": 1, "env": "stage_stomach", "kind": "arena", "bgm": "bgm_tummy",
-		"fog": Color("#9E4B49"), "ambient": Color("#FFE8D5"), "fog_density": 0.012,
+		"fog": Color("#9E4B49"), "ambient": Color(0.97, 1.0, 1.06), "fog_density": 0.012,
 		"flow_speed": 0.0,
 		# 見た目：納品の 雰囲気画 mood_stomach.png に 合わせた（docs/art_orders/W3_01_胃_取り込みの結果.md）。
 		# "juice" は いえきの いけの 水面（hazard_pool.gd が 使う。光らない 琥珀色）
+		# キャラクターの 光：たいようを 弱く（0.035）、まわりの 光を ほぼ 白（"ambient"、0.54）に して、ゲームの カメラで
+		# キャラクターが 自分の 色に 近く 見える ように した（光の 当たる がわ 0.95〜1.1 倍、かげ 0.75〜0.85 倍。前は 1.3〜1.45 倍で
+		# 色が うすく とんだ）。面は たいようを light_gain で うけるので、たいようの 強さ × light_gain ＝ 0.45 を たもつ。
+		# ミクロごうの ライト（lamp_gain）と "fill" の 光も 面の シェーダーで light_gain が かかるので、どちらも 0.24 / light_gain に して
+		# 面の 見た目は 前と 同じ（docs/art_orders/W2_02_wallcell_3D化の結果.md 9 章）。
 		"look": {
 			"background": Color("#8E2E36"), "fog_color": Color("#A5313A"), "fog_depth": [22.0, 95.0], "fog_curve": 1.0,
 			"tonemap": "linear", "exposure": 1.0,
-			"sun": Vector3(-32, 10, 0), "sun_color": Color("#FFE8D5"), "light_gain": 0.6, "light_wrap": 0.7, "lamp_gain": 0.4,
-			"fill": Vector3(-12, 0, 0), "fill_energy": 0.4, "fill_color": Color("#FFE8D5"),
+			"ambient_energy": 0.54, "sun": Vector3(-32, 10, 0), "sun_energy": 0.035, "sun_color": Color("#FFE8D5"),
+			"light_gain": 0.45 / 0.035, "light_wrap": 0.7, "lamp_gain": 0.24 * 0.035 / 0.45,
+			"fill": Vector3(-12, 0, 0), "fill_energy": 0.24 * 0.035 / 0.45, "fill_color": Color("#FFE8D5"),
 			"shadows": true, "shadow_opacity": 0.5, "shadow_blur": 3.0, "shadow_distance": 70.0, "shadow_size": 1024,
 			"glow": 0.5, "glow_bloom": 0.03,
 			"hemi_up": Color(0.5, 0.48, 0.48), "hemi_down": Color(0.66, 0.58, 0.6),

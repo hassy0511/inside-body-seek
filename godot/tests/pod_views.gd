@@ -8,6 +8,7 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ##   game        ゲームの カメラ（うしろ上。follow_camera.gd と 同じ 位置・画角）の 画面 そのまま
 ##   game_zoom   同じ 向きから 大きく
 ##   game_left / game_right / game_front   ゲームの カメラの まま、船が 左・右・こちらを 向いた とき
+## 正投影の 向きは 原点を 写す。形（メッシュの 頂点）が わくから 出る 向き（原点が まん中に ない かべの さいぼうの たて など）だけ、形の はこの まん中を 写す。
 ## 光：絵と くらべる 向きは、カメラの 左上から 当たる やわらかい 白い 光（--light=studio）。game_* は level.gd の いまの 光と 同じ。
 ## --light=dark で 暗い ステージを まねた 光、--light=flat で 光なし（色と 焼いた 影だけ）、
 ## --light=shadow で ゲームの 光に 太陽の 影を 足した もの（ステージが 影を 使う ように なった ときの 見え方）に する。
@@ -171,8 +172,38 @@ func _set_view(v: String, light: String) -> void:
 		_cam.size = VIEWS[v][2] if VIEWS[v].size() > 2 else _ortho
 		_cam.position = at + d * 6.0
 		_cam.look_at(at, VIEWS[v][1])
+		if VIEWS[v].size() <= 3:
+			# 原点を ねらって 形が わくから 出る 向き（原点が まん中に ない かべの さいぼうの 下など）だけ、
+			# その 向きの 形の はこの まん中を ねらう。入る ものは 原点の まま（絵との 見くらべの 位置を かえない）
+			at += _fit_shift(_cam.global_transform.basis)
+			_cam.position = at + d * 6.0
+			_cam.look_at(at, VIEWS[v][1])
 	if mode == "studio":
 		_sun.global_transform = Transform3D(_cam.global_transform.basis * Basis.from_euler(Vector3(deg_to_rad(-38), deg_to_rad(28), 0)), Vector3.ZERO)
+
+
+## 正投影で 原点を ねらった ときに 形（メッシュの 頂点）が わくから 出る 向き（画面の よこ・たて）だけ、
+## その 向きの 形の はばの まん中への ずれを かえす（入る 向きは 0）
+func _fit_shift(b: Basis) -> Vector3:
+	var half := Vector2(_cam.size * 0.5 * 16.0 / 9.0, _cam.size * 0.5)
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for mi in _model.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.mesh == null or not m.is_visible_in_tree():
+			continue
+		var xf := _model.global_transform.affine_inverse() * m.global_transform
+		for si in m.mesh.get_surface_count():
+			for v in m.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+				var w: Vector3 = xf * v
+				var q := Vector2(w.dot(b.x), w.dot(b.y))
+				lo = Vector2(minf(lo.x, q.x), minf(lo.y, q.y))
+				hi = Vector2(maxf(hi.x, q.x), maxf(hi.y, q.y))
+	var shift := Vector3.ZERO
+	for k in 2:
+		if lo[k] < -half[k] or hi[k] > half[k]:
+			shift += (b.x if k == 0 else b.y) * (lo[k] + hi[k]) * 0.5
+	return shift
 
 
 ## 本物の 場所で 撮る。セーブは user://save_pod_views.json（本物の セーブを さわらない）

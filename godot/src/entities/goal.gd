@@ -58,8 +58,9 @@ func set_locked(v: bool) -> void:
 
 func _apply_look() -> void:
 	if locked:
-		_ring.material_override = ModelLib.flat_material(Color(0.6, 0.6, 0.65), Color.BLACK, 0.9)
-		_beam.material_override = ModelLib.flat_material(Color(0.7, 0.7, 0.75), Color.BLACK, 0.12)
+		# まだ あかない：光らない うすい 白（光を 自分の 色の まま うける 場所（い（胃））で、くすんだ 灰色の かたまりに 見えない ように 明るめ）
+		_ring.material_override = ModelLib.flat_material(Color(0.82, 0.82, 0.88), Color.BLACK, 0.9)
+		_beam.material_override = ModelLib.flat_material(Color(0.85, 0.85, 0.9), Color.BLACK, 0.12)
 	else:
 		_ring.material_override = ModelLib.flat_material(Color(1.0, 0.9, 0.3), Color(1.0, 0.8, 0.2))
 		_beam.material_override = ModelLib.flat_material(Color(1.0, 0.95, 0.5), Color(1.0, 0.9, 0.3), 0.25)

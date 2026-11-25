@@ -19,12 +19,13 @@ func _ready() -> void:
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collision_mask = 1  # world
 	_ray_query.exclude = [get_rid()]
-	_shadow = _make_shadow(0.7)
+	_shadow = make_shadow(0.7)
 	add_child(_shadow)
 
 
-## ゆかに落ちる丸いかげ（見やすさのため）。ふちは ぼかす（まんなかが こく、外へ うすく）
-func _make_shadow(radius: float) -> MeshInstance3D:
+## ゆかに落ちる丸いかげ（見やすさのため）。ふちは ぼかす（まんなかが こく、外へ うすく）。
+## top_level なので 置くのは place_shadow()。なかま（friend.gd の 立って いる もの）も 使う
+static func make_shadow(radius: float) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2.ONE * radius * 3.0
@@ -66,13 +67,18 @@ func hover_step(delta: float) -> void:
 		if _shadow:
 			_shadow.visible = true
 			var h := clampf(global_position.y - floor_point.y, 0.0, 4.0)
-			# ゆかの かたむきに 合わせて ねかせる（ぼかした かげが 坂に めりこまない）
-			_shadow.global_transform = Transform3D(Basis(Quaternion(Vector3.UP, floor_normal)).scaled(Vector3.ONE * (1.0 - h * 0.12)), floor_point + floor_normal * 0.06)
+			place_shadow(_shadow, floor_point, floor_normal, 1.0 - h * 0.12)
 	else:
 		floor_found = false
 		velocity.y = move_toward(velocity.y, -5.0, 12.0 * delta)
 		if _shadow:
 			_shadow.visible = false
+
+
+## かげを ゆかの 点に 置く。ゆかの かたむきに 合わせて ねかせる（ぼかした かげが 坂に めりこまない）。
+## lift：ゆかから 浮かせる 高さ（ゆかと ちらつかない ように）
+static func place_shadow(shadow: MeshInstance3D, point: Vector3, normal: Vector3, k := 1.0, lift := 0.06) -> void:
+	shadow.global_transform = Transform3D(Basis(Quaternion(Vector3.UP, normal)).scaled(Vector3.ONE * k), point + normal * lift)
 
 
 func steer(target_vel: Vector3, accel: float, delta: float) -> void:

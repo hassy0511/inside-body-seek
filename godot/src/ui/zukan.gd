@@ -148,6 +148,11 @@ func _open(card: Dictionary, key: String, sid := "") -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		# カードを 開いて いる ときは カードを とじる だけ（タイトルへ 行くと カードが タイトルの 上に のこる）
+		if popup != null and is_instance_valid(popup):
+			popup.close()
+			get_viewport().set_input_as_handled()
+			return
 		Sfx.play("click")
 		Game.show_title()
 		get_viewport().set_input_as_handled()

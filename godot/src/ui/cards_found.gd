@@ -70,7 +70,7 @@ func _ready() -> void:
 		vb.size = Vector2(TILE.x - 20, TILE.y - 20)
 		vb.add_theme_constant_override("separation", 6)
 		b.add_child(vb)
-		var pic := CardPopup.picture(key, stage_id, PIC)
+		var pic := CardPopup.picture(key, stage_id, PIC, false)   # タイルは 止まった 絵（ななめ前）
 		pic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		vb.add_child(pic)
 		var tt := String(card.get("title", ""))

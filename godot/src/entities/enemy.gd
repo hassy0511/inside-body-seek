@@ -118,9 +118,10 @@ func _physics_process(delta: float) -> void:
 		"orbit":
 			if _orbit_center == Vector3.INF:
 				_orbit_center = _nearest_friend_position()
+				_start_orbit()
 			var center := _orbit_center if _orbit_center != Vector3.INF else home
 			_orbit_angle += delta * 0.9
-			var want := center + Vector3(cos(_orbit_angle) * 3.5, 0, sin(_orbit_angle) * 3.5)
+			var want := center + Vector3(cos(_orbit_angle) * ORBIT_R, 0, sin(_orbit_angle) * ORBIT_R)
 			var to := want - global_position
 			to.y = 0.0
 			if to.length() > 0.3:
@@ -150,6 +151,40 @@ func _physics_process(delta: float) -> void:
 		model.scale = Vector3.ONE * (1.0 + _flash * 0.6)
 	else:
 		model.scale = Vector3.ONE
+
+
+const ORBIT_R := 3.5
+## まわりはじめ：いまの 場所の 角度から（みんな 0 から だと 同じ なかまを まわる 2 ひきが 1 つに かさなる）。
+## 同じ なかまを もう まわって いる なかまと 1/3 周より 近ければ、いちばん ひろい すきまの まん中へ ずらす
+func _start_orbit() -> void:
+	var center := _orbit_center if _orbit_center != Vector3.INF else home
+	var to := global_position - center
+	_orbit_angle = atan2(to.z, to.x) if Vector2(to.x, to.z).length() > 0.01 else 0.0
+	var taken: Array[float] = []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e == self or not (e is Enemy) or not e.alive or e.behavior != "orbit":
+			continue
+		if e._orbit_center == Vector3.INF or e._orbit_center.distance_to(center) > 0.5:
+			continue
+		taken.append(wrapf(e._orbit_angle, 0.0, TAU))
+	if taken.is_empty():
+		return
+	var close := false
+	for a in taken:
+		if absf(angle_difference(a, _orbit_angle)) < TAU / 3.0:
+			close = true
+	if not close:
+		return
+	taken.sort()
+	var best_gap := -1.0
+	var best_mid := _orbit_angle
+	for i in taken.size():
+		var a: float = taken[i]
+		var b: float = taken[(i + 1) % taken.size()] + (TAU if i == taken.size() - 1 else 0.0)
+		if b - a > best_gap:
+			best_gap = b - a
+			best_mid = a + (b - a) * 0.5
+	_orbit_angle = wrapf(best_mid, 0.0, TAU)
 
 
 func _player() -> Node3D:
