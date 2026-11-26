@@ -24,6 +24,7 @@ const RISE_STEP := 0.1
 const RISE_RATE := 2.0         # 角が 目あてに 近づく はやさ（1/秒）
 const RISE_SPEED := 0.6        # 角が かわる いちばん はやい はやさ（rad/秒 ＝ 34 ど/秒）：ぐらっと しない
 const RISE_HOLD := 0.8         # 上がった あと この 秒は 下がらない（下がる ときは 半分の はやさ）
+const SETTLE_OVER := 1.5       # うでが ふつうの この 倍より 長い あいだ（俯瞰から もどる とちゅう）は すぐ 合わせる
 const SHORTEN_RATE := 12.0     # かべで ちぢむ はやさ（1/秒）。おそいと カメラが かべの 外に 出て、外の 色が 画面の はしに 見える
 const STRETCH_RATE := 2.0      # かべから はなれて のびる はやさ（1/秒）
 const ARM_SPEED := 3.0         # のびる ときの いちばん はやい はやさ（m/秒）
@@ -50,7 +51,7 @@ var _arm: SpringArm3D
 var _rise := 0.0       # かべの ために ふやした 見おろす 角（rad）
 var _short := 0.0      # かべの ために ちぢめた 長さ（m）
 var _rise_hold := 0.0
-var _probe: PhysicsShapeQueryParameters3D
+var _arm_ray: PhysicsRayQueryParameters3D
 var _cam: Camera3D
 var _ray: PhysicsRayQueryParameters3D
 var _void_ray: PhysicsRayQueryParameters3D
@@ -160,9 +161,14 @@ func _physics_process(delta: float) -> void:
 	# かべで きょりが たりない ときは まず 上がる。なめらかに（めあてが かわっても ぐらっと しない）
 	_arm.collision_mask = 0
 	var want_rise := _want_rise(_cur_distance)
+	# 俯瞰から もどる とちゅう（うでが まだ ふつうより ずっと 長い）は、なめらかに せず すぐ 合わせる。なめらかに よると、
+	# 36 m 先（場所の 外）から SNAP_SPEED で もどる 1〜2 秒、外が 見えて 船が 見えなかった（のうの しんけいの 見本の あと）
+	var settling := _cur_distance > distance * SETTLE_OVER
 	# 上がった あと すぐには 下がらない（RISE_HOLD 秒 まって、半分の はやさで）：かべぞいで 上下に ゆれない
 	_rise_hold = RISE_HOLD if want_rise > _rise else maxf(_rise_hold - delta, 0.0)
-	if want_rise > _rise or _rise_hold <= 0.0:
+	if settling:
+		_rise = want_rise
+	elif want_rise > _rise or _rise_hold <= 0.0:
 		var down := RISE_SPEED * (1.0 if want_rise > _rise else 0.5) * delta
 		_rise += clampf((want_rise - _rise) * (1.0 - exp(-RISE_RATE * delta)), -down, down)
 	rotation.x = _cur_pitch - _rise
@@ -172,12 +178,15 @@ func _physics_process(delta: float) -> void:
 	if keep > clear + 0.05 and _sees_void(keep):
 		keep = maxf(clear, hard)
 	var want_short := _cur_distance - keep
-	var k := 1.0 - exp(-(SHORTEN_RATE if want_short > _short else STRETCH_RATE) * delta)
-	_short += clampf((want_short - _short) * k, -ARM_SPEED * delta, SHORTEN_SPEED * delta)
+	if settling:
+		_short = want_short
+	else:
+		var k := 1.0 - exp(-(SHORTEN_RATE if want_short > _short else STRETCH_RATE) * delta)
+		_short += clampf((want_short - _short) * k, -ARM_SPEED * delta, SHORTEN_SPEED * delta)
 	var arm := maxf(_cur_distance - _short, hard)
 	# なめらかに よる とちゅうでも 外が 見える 長さには しない（かべの 手前まで。ただし 1 フレームで とばず SNAP_SPEED で よる）。
 	# よった ぶんは _short に のこす（外が 見えなく なっても もとの 長さへ ぱっと もどらず、ARM_SPEED で のびる）
-	if arm > clear + 0.05 and _sees_void(arm):
+	if not settling and arm > clear + 0.05 and _sees_void(arm):
 		arm = maxf(maxf(clear, hard), _arm.spring_length - SNAP_SPEED * delta)
 		_short = _cur_distance - arm
 	_arm.spring_length = arm
@@ -190,20 +199,32 @@ func _keeps_distance() -> bool:
 	return not tube_mode and overview_center == Vector3.INF and is_inside_tree()
 
 
-## うでの 向き（カメラの 位置への 向き）を 角 rise ぶん 上げた ときに、かべに あたらない 長さ
+## うでの 向き（カメラの 位置への 向き）を 角 rise ぶん 上げた ときに、かべに あたらない 長さ。
+## 線 3 本（まんなかと、よこへ CAM_RADIUS ずらした 2 本）で はかる。球を うごかして はかる（cast_motion）と、口の こまかい 面では
+## 1 回 1.5 ミリ秒 かかり、角を さがす 7 回で 1 フレーム 10 ミリ秒を こえた（線は 1 本 0.005 ミリ秒）。
+## よこへ ずらす とちゅうに かべが ある ときは 0（球が はじめから かべに ふれて いる のと 同じ）
 func _clear_length(rise: float, length: float) -> float:
 	var b := Basis.from_euler(Vector3(_cur_pitch - rise, yaw, 0))
 	var dir := b.z
-	if _probe == null:
-		_probe = PhysicsShapeQueryParameters3D.new()
-		var sh := SphereShape3D.new()
-		sh.radius = CAM_RADIUS
-		_probe.shape = sh
-		_probe.collision_mask = 1
-	_probe.transform = Transform3D(Basis(), global_position)
-	_probe.motion = dir * length
-	var r := get_world_3d().direct_space_state.cast_motion(_probe)
-	return length * r[0]
+	var space := get_world_3d().direct_space_state
+	if _arm_ray == null:
+		_arm_ray = PhysicsRayQueryParameters3D.new()
+		_arm_ray.collision_mask = 1
+	var best := length
+	for s in [0.0, 1.0, -1.0]:
+		var from := global_position
+		if s != 0.0:
+			_arm_ray.from = global_position
+			_arm_ray.to = global_position + b.x * (s * CAM_RADIUS)
+			if not space.intersect_ray(_arm_ray).is_empty():
+				return 0.0
+			from = _arm_ray.to
+		_arm_ray.from = from
+		_arm_ray.to = from + dir * (length + CAM_RADIUS)
+		var h := space.intersect_ray(_arm_ray)
+		if not h.is_empty():
+			best = minf(best, maxf(from.distance_to(h["position"]) - CAM_RADIUS, 0.0))
+	return best
 
 
 ## かべで きょりが たりない とき、どれだけ 上がるか：うでが KEEP_LEN（ふつうより みじかい ときは その 長さ）とれる いちばん ひくい 角。

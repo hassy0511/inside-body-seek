@@ -15,6 +15,9 @@ func _physics_process(_delta: float) -> void:
 	set_physics_process(false)
 
 
+const FLAG_HIDE_NEAR := 3.0
+
+
 func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0
@@ -32,6 +35,8 @@ func _ready() -> void:
 	pole.mesh = pm
 	pole.position = Vector3(0, 1.5, 0)
 	pole.material_override = ModelLib.flat_material(Color(0.9, 0.9, 0.95))
+	# カメラの すぐ そば（FLAG_HIDE_NEAR m いない）では 描かない：道の わきの 旗を カメラが かすめると、旗が 画面を よこぎった
+	pole.visibility_range_begin = FLAG_HIDE_NEAR
 	add_child(pole)
 	_flag = MeshInstance3D.new()
 	var bm := BoxMesh.new()
@@ -39,6 +44,7 @@ func _ready() -> void:
 	_flag.mesh = bm
 	_flag.position = Vector3(0.7, 2.5, 0)
 	_flag.material_override = ModelLib.flat_material(Color(0.7, 0.7, 0.75))
+	_flag.visibility_range_begin = FLAG_HIDE_NEAR
 	add_child(_flag)
 	add_to_group("checkpoint")
 

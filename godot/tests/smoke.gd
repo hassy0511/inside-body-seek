@@ -175,6 +175,8 @@ func _ready() -> void:
 				await _check_friend_solid()
 				await _check_orbit_spacing()
 				await _check_card_pictures()
+			if _only_place == "" or _only_place == "brain":
+				await _check_overview_back()
 			for id in BACK_PLACES:
 				if _only_place == "" or id == _only_place:
 					await _check_back_hold(id)
@@ -3011,6 +3013,7 @@ func _check_no_floor_back() -> void:
 		p.global_position = spot
 		p.velocity = Vector3.ZERO
 		p._no_floor_time = 0.0
+		p.heading = -(lvl.respawn_heading(lvl.respawn_position()) as Vector3)
 		var home: Vector3 = lvl.respawn_position()
 		var t := 0.0
 		var back := -1.0
@@ -3022,6 +3025,15 @@ func _check_no_floor_back() -> void:
 		_info("%s: (%.1f, %.1f) で ゆかが なく、%.2f びょうで チェックポイントへ もどった" % [where, spot.x, spot.z, back])
 		if back < 0.0 or back > 1.0:
 			_fail("%s: ゆかの ない ところから 1 びょう いないに もどらない（%.2f びょう。−1 ＝ 3 びょう まっても もどらない）" % [where, back])
+		else:
+			# もどった とき 行き先を むき、カメラも うしろ（きゅうけいの あとと 同じ）
+			var want: Vector3 = lvl.respawn_heading(p.global_position)
+			var off := absf(rad_to_deg((p.heading as Vector3).signed_angle_to(want, Vector3.UP)))
+			var cf: Vector3 = -get_viewport().get_camera_3d().global_transform.basis.z
+			cf.y = 0.0
+			var cam_off := absf(rad_to_deg((p.heading as Vector3).signed_angle_to(cf.normalized(), Vector3.UP)))
+			if off > 10.0 or cam_off > 20.0:
+				_fail("%s: もどった あとの 向きが 行き先と %.0f°、カメラが 船の 向きと %.0f° ずれて いる" % [where, off, cam_off])
 	Game.unload_level()
 	await get_tree().process_frame
 
@@ -3073,6 +3085,73 @@ func _check_lip_stay() -> void:
 	_info("%s: %d 回 ↑ だけで くちびるへ（じどうで まがった %d 回）" % [where, runs, touched])
 	if runs < 12 or touched < 6:
 		_fail("%s: しらべた 回数 %d・じどうで まがった 回数 %d（この テストが 何も 見て いない）" % [where, runs, touched])
+	Game.unload_level()
+	await get_tree().process_frame
+
+
+## のうの しんけいの 見本（上から 見る カメラ）が おわった あと、カメラは すぐ 船の うしろへ もどる。船が かべを せに して いても
+## 場所の 外が 見えない（前は 36 m 先から ゆっくり もどり、1〜2 秒 外が 見えて 船が 見えなかった。follow_camera.gd の SETTLE_OVER）
+func _check_overview_back() -> void:
+	Game.start_stage("brain")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "overview back brain"
+	p.invulnerable = 9999.0
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	var seen := 0
+	if lvl.neurons.is_empty():
+		_fail("%s: しんけいが ない" % where)
+	else:
+		# 上から 見る まんなか（level._show_sequence と 同じ）
+		var center := Vector3.ZERO
+		for nn in lvl.neurons:
+			center += nn.global_position
+		center /= lvl.neurons.size()
+		var start: Vector3 = p.global_position
+		for a in [0.0, 60.0, 120.0, 180.0, 240.0, 300.0]:
+			var d := Vector3(cos(deg_to_rad(a)), 0.0, sin(deg_to_rad(a)))
+			var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(start, start + d * 80.0, 1))
+			if hit.is_empty():
+				continue
+			var n: Vector3 = hit["normal"]
+			n.y = 0.0
+			if n.length() < 0.2:
+				continue
+			n = n.normalized()
+			var at: Vector3 = hit["position"] + n * 2.2
+			var fl: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 20.0, 1))
+			if fl.is_empty() or (fl["normal"] as Vector3).y < 0.5:
+				continue
+			# ばめんの 見本が うごいて いる あいだは またない（その おわりが カメラを もどして しまう）
+			var guard := 0
+			while lvl._seq_showing and guard < 900:
+				await get_tree().physics_frame
+				guard += 1
+			# かべを せに して とまる
+			await _glide_put(p, lvl, fl["position"] + Vector3.UP * 1.1, n)
+			await _sim_wait(0.4, p)
+			lvl.camera.set_overview(center)
+			await _sim_wait(1.5, p)
+			lvl.camera.clear_overview()
+			var vmax := 0.0
+			var t := 0.0
+			var f := 0
+			while t < 2.0:
+				await get_tree().physics_frame
+				t += get_physics_process_delta_time()
+				p.velocity.x = 0.0
+				p.velocity.z = 0.0
+				f += 1
+				if f > 3 and f % 4 == 0:
+					vmax = maxf(vmax, _void_share(get_viewport().get_camera_3d(), space))
+			seen += 1
+			_info("%s %.0f°: 上から 見る カメラが おわった あと 2 びょう、外が 見える わりあい いちばん %.1f %%" % [where, a, vmax * 100.0])
+			if vmax > 0.05:
+				_fail("%s %.0f°: 上から 見る カメラが おわった あと、場所の 外が 画面の %.0f %% に 見えた（5 %% まで）" % [where, a, vmax * 100.0])
+	if seen < 3:
+		_fail("%s: しらべた かべが %d（この テストが 何も 見て いない）" % [where, seen])
 	Game.unload_level()
 	await get_tree().process_frame
 
@@ -3154,57 +3233,85 @@ func _check_glide_along(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
 		_fail("%s: しらべた ところが %d" % [where, seen])
 
 
-## タッチの スティックを すこし（0.3）たおして かべに おしつけた とき、まわる はやさは ひろい ゆかと ほぼ 同じ
-## （前は じどうの まがりの はやさまで 上げて、たのんだ 3〜4 ばい まわった）。はんたいへは まわらない
+## スティックを すこし（0.3・0.1）たおして かべに おしつけた とき、まわる はやさは ひろい ゆかと ほぼ 同じ
+## （前は じどうの まがりの はやさまで 上げて、たのんだ 3〜4 ばい まわった）。はんたいへは まわらない。
+## ほんの すこし（0.03。ゲームパッドの あそびの すぐ 外）の ときは じどうで まがるが、子どもの がわへ（はんたいへは まがらない）
 func _check_glide_touch(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
 	var where := "wall glide touch"
-	var free_turn := 0.0
 	var fl: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 10, 6), Vector3(0, -10, 6), 1))
-	await _glide_put(p, lvl, Vector3(0.0, (fl["position"].y if not fl.is_empty() else 0.0) + 1.1, 6.0), Vector3.FORWARD)
-	for key in ["move_right", "move_left"]:
-		var h0: Vector3 = p.heading
-		Input.action_press("move_up")
-		Input.action_press(key, 0.3)
-		await _sim_wait(1.0)
-		Input.action_release(key)
-		Input.action_release("move_up")
-		free_turn = maxf(free_turn, absf(rad_to_deg(h0.signed_angle_to(p.heading, Vector3.UP))))
-		await _glide_put(p, lvl, p.global_position, p.heading)
+	var open_at := Vector3(0.0, (fl["position"].y if not fl.is_empty() else 0.0) + 1.1, 6.0)
 	var seen := 0
-	for a in [0.0, 90.0, 180.0, 270.0]:
+	for tilt in [0.3, 0.1]:
+		var free_turn := 0.0
+		await _glide_put(p, lvl, open_at, Vector3.FORWARD)
+		for key in ["move_right", "move_left"]:
+			var h0: Vector3 = p.heading
+			Input.action_press("move_up")
+			Input.action_press(key, tilt)
+			await _sim_wait(1.0)
+			Input.action_release(key)
+			Input.action_release("move_up")
+			free_turn = maxf(free_turn, absf(rad_to_deg(h0.signed_angle_to(p.heading, Vector3.UP))))
+			await _glide_put(p, lvl, open_at, Vector3.FORWARD)
+		var n_here := 0
+		for a in [0.0, 90.0, 180.0, 270.0]:
+			var w := _stomach_wall(space, a)
+			if w.is_empty():
+				continue
+			var n: Vector3 = w["n"]
+			for off in [45.0, -45.0]:
+				for key in ["move_right", "move_left"]:
+					var h: Vector3 = (-n).rotated(Vector3.UP, deg_to_rad(off))
+					await _glide_put(p, lvl, w["wall"] + n * 4.0, h)
+					Input.action_press("move_up")
+					await _sim_wait(1.0)
+					var h0: Vector3 = p.heading
+					Input.action_press(key, tilt)
+					var t := 0.0
+					var wrong := 0.0
+					var prev: Vector3 = h0
+					while t < 1.0:
+						await get_tree().physics_frame
+						t += get_physics_process_delta_time()
+						var dh: float = rad_to_deg(prev.signed_angle_to(p.heading, Vector3.UP))
+						prev = p.heading
+						if (key == "move_right" and dh > 0.0) or (key == "move_left" and dh < 0.0):
+							wrong += absf(dh)
+					Input.action_release(key)
+					Input.action_release("move_up")
+					var turned := absf(rad_to_deg(h0.signed_angle_to(p.heading, Vector3.UP)))
+					seen += 1
+					n_here += 1
+					if turned > free_turn * 1.5 + 2.0:
+						_fail("%s %.0f° %+.0f° %s: %.1f の たおしで %.0f° まわった（ひろい ゆかでは %.0f°。1.5 ばいより 多い）" % [where, a, off, key, tilt, turned, free_turn])
+					if wrong > 0.5:
+						_fail("%s %.0f° %+.0f° %s: %.1f の たおしで 子どもの 向きと はんたいに %.1f° まわった" % [where, a, off, key, tilt, wrong])
+		_info("%s: ひろい ゆかで %.1f の たおし 1 びょう %.0f°、かべで %d 回 しらべた" % [where, tilt, free_turn, n_here])
+		if free_turn < 1.0:
+			_fail("%s: %.1f の たおしで ひろい ゆかの まわり %.1f°（この テストが 何も 見て いない）" % [where, tilt, free_turn])
+	# ほんの すこしの たおし：かべに まっすぐ ↑ ＋ 0.03。じどうで まがるが、たおした がわへ
+	var tiny := 0
+	for a in [0.0, 180.0]:
 		var w := _stomach_wall(space, a)
 		if w.is_empty():
 			continue
 		var n: Vector3 = w["n"]
-		for off in [45.0, -45.0]:
-			for key in ["move_right", "move_left"]:
-				var h: Vector3 = (-n).rotated(Vector3.UP, deg_to_rad(off))
-				await _glide_put(p, lvl, w["wall"] + n * 4.0, h)
-				Input.action_press("move_up")
-				await _sim_wait(1.0)
-				var h0: Vector3 = p.heading
-				Input.action_press(key, 0.3)
-				var t := 0.0
-				var wrong := 0.0
-				var prev: Vector3 = h0
-				while t < 1.0:
-					await get_tree().physics_frame
-					t += get_physics_process_delta_time()
-					var dh: float = rad_to_deg(prev.signed_angle_to(p.heading, Vector3.UP))
-					prev = p.heading
-					if (key == "move_right" and dh > 0.0) or (key == "move_left" and dh < 0.0):
-						wrong += absf(dh)
-				Input.action_release(key)
-				Input.action_release("move_up")
-				var turned := absf(rad_to_deg(h0.signed_angle_to(p.heading, Vector3.UP)))
-				seen += 1
-				if turned > free_turn * 1.5 + 2.0:
-					_fail("%s %.0f° %+.0f° %s: 0.3 の たおしで %.0f° まわった（ひろい ゆかでは %.0f°。1.5 ばいより 多い）" % [where, a, off, key, turned, free_turn])
-				if wrong > 0.5:
-					_fail("%s %.0f° %+.0f° %s: 子どもの 向きと はんたいに %.1f° まわった" % [where, a, off, key, wrong])
-	_info("%s: ひろい ゆかで 0.3 の たおし 1 びょう %.0f°、かべで %d 回 しらべた" % [where, free_turn, seen])
-	if seen < 8 or free_turn < 5.0:
-		_fail("%s: しらべた 回数 %d・ひろい ゆかの まわり %.0f°（この テストが 何も 見て いない）" % [where, seen, free_turn])
+		for key in ["move_right", "move_left"]:
+			await _glide_put(p, lvl, w["wall"] + n * 2.5, -n)
+			Input.action_press("move_up")
+			Input.action_press(key, 0.03)
+			await _sim_wait(1.2)
+			Input.action_release(key)
+			Input.action_release("move_up")
+			var turned: float = rad_to_deg((-n).signed_angle_to(p.heading, Vector3.UP))
+			tiny += 1
+			# ← は ＋（ひだりまわり）、→ は －
+			var want_sign := 1.0 if key == "move_left" else -1.0
+			if absf(turned) < 10.0 or signf(turned) != want_sign:
+				_fail("%s %.0f° %s: 0.03 の たおしで %+.0f° まわった（たおした がわへ 10° いじょう まがる はず）" % [where, a, key, turned])
+	_info("%s: ほんの すこしの たおし（0.03）を %d 回 しらべた" % [where, tiny])
+	if seen < 16 or tiny < 4:
+		_fail("%s: しらべた 回数 %d・%d（この テストが 何も 見て いない）" % [where, seen, tiny])
 
 
 ## かべに まっすぐ ↑ で ぶつかった とき、まがった 先の 道の そばに てき（ピロリきん）が いれば、はんたいの がわへ まがる
@@ -3245,9 +3352,24 @@ func _check_glide_enemy(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
 		Input.action_release("move_up")
 		res.append(rad_to_deg((-n).signed_angle_to(p.heading, Vector3.UP)))
 	foe.global_position = far
+	# いえきの いけも 同じ：さっき まがった がわの、まがりおわった 船が すすむ 道（45° はなれる 向きの 8 m 先）に いけを おく
+	if not pools.is_empty():
+		var start2: Vector3 = w["wall"] + n * 2.5
+		var along2: Vector3 = (-n).rotated(Vector3.UP, PI / 2.0) * signf(res[0])
+		var pc0: Node3D = pools[0][0]
+		pc0.global_position = Vector3(start2.x, pools[0][1].y, start2.z) + (along2 + n).normalized() * 8.0
+		await _glide_put(p, lvl, start2, -n)
+		Input.action_press("move_up")
+		await _sim_wait(1.0)
+		Input.action_release("move_up")
+		res.append(rad_to_deg((-n).signed_angle_to(p.heading, Vector3.UP)))
 	for pc in pools:
 		pc[0].global_position = pc[1]
-	_info("%s: てき なしで %+.0f°、その がわの 先に てきが いて %+.0f°" % [where, res[0], res[1]])
+	_info("%s: てき なしで %+.0f°、その がわの 先に てきが いて %+.0f°、いけが あって %+.0f°" % [where, res[0], res[1], res[2] if res.size() > 2 else NAN])
+	if res.size() < 3:
+		_fail("%s: いえきの いけが ない（この テストが いけの がわを 見て いない）" % where)
+	elif absf(res[0]) >= 10.0 and (absf(res[2]) < 10.0 or signf(res[2]) == signf(res[0])):
+		_fail("%s: いけの ある がわへ まがった・まがらない（いけ なし %+.0f°、いけ あり %+.0f°）" % [where, res[0], res[2]])
 	if absf(res[0]) < 10.0:
 		_fail("%s: てきが いなくても まがらない（%.0f°。この テストが 何も 見て いない）" % [where, res[0]])
 	elif absf(res[1]) < 10.0 or signf(res[1]) == signf(res[0]):
@@ -4161,6 +4283,12 @@ func _check_arrow_edge(lvl, p, place: Callable) -> void:
 		_info("%s %d: よせない 位置は 画面の 外（y %.0f px）、矢印の まんなか (%.0f, %.0f)、大きさ %.0f px" % [where, k, raw.y, c.x, c.y, px])
 		if px < 0.0:
 			_fail("%s %d: 矢印が 画面の はしで 切れた（まんなか (%.0f, %.0f)）" % [where, k, c.x, c.y])
+		# 上へ よせた 矢印は 場所の 名前の 帯（はんとうめい）に かさならない
+		var bar: Rect2 = Game.hud.hud_rects().get("title", Rect2())
+		if bar.size.y <= 0.0:
+			_fail("%s %d: 場所の 名前の 帯が ない（この テストが 何も 見て いない）" % [where, k])
+		elif px > 0.0 and Rect2(c - Vector2(px, px) * 0.5, Vector2(px, px)).intersects(bar):
+			_fail("%s %d: 矢印が 場所の 名前の 帯に かさなった（矢印の まんなか (%.0f, %.0f)、帯の 下 %.0f px）" % [where, k, c.x, c.y, bar.end.y])
 	rig.process_mode = Node.PROCESS_MODE_INHERIT
 	rig.snap_to_target()
 	if tried == 0:

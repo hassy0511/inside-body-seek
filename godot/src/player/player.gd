@@ -51,6 +51,7 @@ const ARROW_Y := 1.6
 const ARROW_NEAR := 7.0          # この m より 近くて
 const ARROW_NEAR_ANGLE := 0.45   # まえ ±26° に ある 行き先には 矢印を 出さない
 const ARROW_REF_DEPTH := 4.8     # ふつうの カメラ（うしろ 5.2 m）から 矢印までの ふかさ（約 4.9 m）より 少し 小さく：ひろい ところでは 大きさ そのまま
+const ARROW_HALF := 0.06         # 矢じるしの 大きさの 半分（画面の 高さの わり。ひろい ところで 約 80 px ÷ 2 ÷ 720）
 const ARROW_EDGE := 0.09         # 矢印の まんなかを 画面の はしから 高さの この わり 内がわに たもつ（矢じるしの 半分より 大きく）
 var hitbox: Area3D
 var _blink := 0.0
@@ -480,7 +481,10 @@ func _wall_glide(input: Vector2, delta: float) -> float:
 	_glide_slow = false
 	if not _glide_on or _glide_turned > GLIDE_MAX:
 		return 0.0
-	if _glide_side == 0.0:
+	if input.x != 0.0:
+		# ←→ が ほんの すこし（GLIDE_STEER より 小さい。ゲームパッドの あそびの すぐ 外）：子どもの がわへ まがる（はんたいへは まがらない）
+		_glide_side = -signf(input.x)
+	elif _glide_side == 0.0:
 		_glide_side = _glide_pick_side(n)
 	_glide_turned += absf(turn_rate) * delta
 	_glide_slow = _glide_side != 0.0 and into > 0.0
@@ -782,7 +786,13 @@ func _update_arrow(delta: float) -> void:
 		var vs := get_viewport().get_visible_rect().size
 		var sp := cam.unproject_position(at)
 		var m := ARROW_EDGE * vs.y
-		var inside := Vector2(clampf(sp.x, m, vs.x - m), clampf(sp.y, m, vs.y - m))
+		# 上は 場所の 名前の 帯の 下まで（上の はしへ よせると、はんとうめいの 帯の 下に もぐって 見えにくかった）
+		var top := m
+		if Game.hud != null and is_instance_valid(Game.hud) and Game.hud.has_method("hud_rects"):
+			var bar: Rect2 = Game.hud.hud_rects().get("title", Rect2())
+			if bar.size.y > 0.0:
+				top = maxf(m, bar.end.y + ARROW_HALF * vs.y + 8.0)
+		var inside := Vector2(clampf(sp.x, m, vs.x - m), clampf(sp.y, top, vs.y - m))
 		if inside != sp:
 			at = cam.project_position(inside, depth)
 	arrow.global_transform = Transform3D(cb.scaled(sc), at)
