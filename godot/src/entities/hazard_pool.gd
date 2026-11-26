@@ -1,6 +1,6 @@
 class_name HazardPool
 extends Area3D
-## いえきの いけ。入ると おそくなって、1.2 秒ごとに ハートが へる。
+## いえきの いけ。入ると おそくなって、ハートが 1 つ へる（いけを 出て 1 びょう たつまで もう へらない。player.gd の pool_hurt）。
 ##
 ## 見た目：マーカーの 高さに 平らな 水面（光らない 琥珀色。ゴールの 黄色と まぎれない）。
 ## ゆかの くぼみ と ふちは 場所の モデルに ある（blender/stage_stomach.py の POOL_*）。くぼみの 坂が 水面を
@@ -19,7 +19,6 @@ const AMBER := Color("#F5981F")
 var radius := 5.0
 var level: Node = null
 var kind := "acid"
-var _tick := 0.0
 var _warn_cd := 0.0
 var _mesh: MeshInstance3D
 
@@ -89,12 +88,10 @@ static func _disc(r: float) -> ArrayMesh:
 	return st.commit()
 
 
-func on_player_stay(player: Node, delta: float) -> void:
+func on_player_stay(player: Node, _delta: float) -> void:
 	player.speed_mult = minf(player.speed_mult, 0.55)
 	if _warn_cd <= 0.0:
 		_warn_cd = 6.0
 		Game.say("いえきだ！ はやく いけから でよう！", 2.5)
-	_tick -= delta
-	if _tick <= 0.0:
-		_tick = 1.2
-		player.hurt(global_position)
+	if player.has_method("pool_hurt"):
+		player.pool_hurt(global_position)

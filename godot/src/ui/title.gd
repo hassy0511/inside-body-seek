@@ -7,6 +7,10 @@ var ending_mode := false
 var _bubbles: Array = []
 var _t := 0.0
 var _keyvisual: Texture2D = null
+## 「きろくを けす」の ボタンと、その かくにん画面（開いて いない ときは null。テストも 見る）
+var reset_button: Button = null
+var reset_dialog: Control = null
+var _reset_prev: Control = null
 
 
 func _ready() -> void:
@@ -99,6 +103,7 @@ func _ready() -> void:
 	var reset := T.button("きろくを けす", 20)
 	T.colored_button(reset, Color(0.92, 0.9, 0.9), Color(0.7, 0.65, 0.68))
 	reset.pressed.connect(_confirm_reset)
+	reset_button = reset
 	hb.add_child(reset)
 	vb.add_child(hb)
 	var stars := T.label("あつめた ほし： %d / %d" % [SaveData.total_stars(), EpisodeDB.EPISODES.size() * 3], 22, Color(0.75, 0.55, 0.2), HORIZONTAL_ALIGNMENT_CENTER)
@@ -161,7 +166,7 @@ func _add_pod_preview() -> void:
 
 func _confirm_reset() -> void:
 	# ゲームと同じ見た目の かくにん画面（「やめる」が最初に選ばれている）
-	var prev := get_viewport().gui_get_focus_owner()
+	_reset_prev = get_viewport().gui_get_focus_owner()
 	var ov := Control.new()
 	ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
@@ -192,16 +197,30 @@ func _confirm_reset() -> void:
 	var no := T.button("やめる", 28, 200)
 	var yes := T.button("けす", 28, 200)
 	T.colored_button(yes, Color(0.92, 0.9, 0.9), Color(0.7, 0.65, 0.68))
-	no.pressed.connect(func():
-		ov.queue_free()
-		if is_instance_valid(prev):
-			prev.grab_focus())
+	no.pressed.connect(_close_reset)
 	yes.pressed.connect(func(): SaveData.reset(); Game.show_title())
 	hb.add_child(no)
 	hb.add_child(yes)
 	vb.add_child(hb)
 	Game.add_overlay(ov)
+	reset_dialog = ov
 	no.grab_focus()
+
+
+## かくにん画面を とじる（「やめる」と もどる（Esc）。なにも けさない）。フォーカスは 開いた ボタンへ
+func _close_reset() -> void:
+	if reset_dialog != null and is_instance_valid(reset_dialog):
+		reset_dialog.queue_free()
+	reset_dialog = null
+	if is_instance_valid(_reset_prev):
+		_reset_prev.grab_focus()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# かくにん画面が 開いて いる ときだけ。とじて いる ときの もどる（Esc）は 前と 同じ（なにも しない）
+	if reset_dialog != null and event.is_action_pressed("ui_cancel"):
+		_close_reset()
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:

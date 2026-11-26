@@ -50,17 +50,46 @@ var arrow_angle := 0.0
 const ARROW_Y := 1.6
 const ARROW_NEAR := 7.0          # この m より 近くて
 const ARROW_NEAR_ANGLE := 0.45   # まえ ±26° に ある 行き先には 矢印を 出さない
+const ARROW_REF_DEPTH := 4.8     # ふつうの カメラ（うしろ 5.2 m）から 矢印までの ふかさ（約 4.9 m）より 少し 小さく：ひろい ところでは 大きさ そのまま
+const ARROW_EDGE := 0.09         # 矢印の まんなかを 画面の はしから 高さの この わり 内がわに たもつ（矢じるしの 半分より 大きく）
 var hitbox: Area3D
 var _blink := 0.0
 var _propeller: Node3D
 var _respawning := false
 var _no_floor_time := 0.0
+## ゆかが ない まま この 秒 たったら チェックポイントへ もどす。前は 2.5 びょう：口の はしで くちびるを ななめに こえた 船が、
+## その あいだ 場所の 外を おちて いた。ふつうに こえる すきま（のう・はい）は 長くて 0.25 びょう
+const NO_FLOOR_BACK := 0.8
 var _stuck_time := 0.0
 var _stuck_from := Vector3.ZERO
 var hit_stun := 0.0
 var _stuck_count := 0
 ## うごかない なかまに まっすぐ ぶつかった とき、よこへ すべらせる はやさ（つぎの フレームの 目標に 足す）
 var _slip := Vector3.ZERO
+## かべで はねかえる（ひろい 場所で ↑ だけ おして かべに ぶつかった とき、じぶんで かべから はなれる 向きへ まがる）。
+## 前は かべに まっすぐ ぶつかると 船が とまり、画面が かべで いっぱいの まま 5 びょう（もどしまで）まって いた
+const GLIDE_ON := 0.42        # かべへ むかう 度あい（cos。1 ＝ まっすぐ）が これより 大きいと まがりはじめる（かべと 25° より ふかい）。あさい ときは 前と 同じ（かべに そって すべる）
+const GLIDE_AWAY := 0.707     # かべから はなれる 向きに この 度あい（sin。45°）まで まがったら やめる。30° だと まるい かべの 近く（2 m いない）を まわり つづけた
+const GLIDE_RATE := 1.6       # まがる はやさ（rad/s。子どもが ←→ で まわす はやさ 2.0 より ゆっくり）
+const GLIDE_SPEED := 0.35     # かべへ むいて いる あいだ（まがりきる まで）の すすむ はやさの 倍率。はやい ままだと まがりながら かべを ななめに
+                              # のぼり、口の くちびるを こえて 外へ 出た（16 本の うち 2 本）
+const GLIDE_MAX := 3.5        # ひとつづきで じどうで まがって よい 角（rad。200°。ふくろの ような ところから 出る ぶん）
+const GLIDE_KEEP := 0.6       # かべから はなれても この 秒は まがる がわと かべの 向きを おぼえて おく（まがりきる。がわが いったり きたり しない）
+const GLIDE_STEER := 0.05     # ←→ が これより 大きいと 子どもが まわして いる：じどうでは まがらない（タッチの すこしの かたむきも 子どもの はやさの まま）
+const GLIDE_POOL_LOOK := 40.0 # まがった 先の 道を この m まで 見て、いえきの いけを とおる がわへは まがらない
+const GLIDE_HEAD_ON := 0.8    # かべに これより まっすぐ（cos。約 37° いない）ぶつかった ときだけ 行き先の がわへ まがる。ななめなら かたむいて いる がわ
+var _glide_side := 0.0        # ＋ ＝ ひだりまわり、－ ＝ みぎまわり、0 ＝ まがって いない
+var _glide_on := false
+var _glide_turning := false   # いまの turn_rate が じどうの まがりから きて いる
+var _glide_free := 0.0        # かべに ふれて いない 秒
+var _glide_n := Vector3.ZERO  # さいごに ふれた かべの 向き（かべから 船へ。水平）
+var _glide_turned := 0.0      # ひとつづきで じどうで まがった 角（rad）
+var _glide_slow := false      # じどうで まがって いて、まだ かべへ むいて いる（ゆっくり すすむ）
+## いえきの いけ：1 かい いけで へったら、どの いけからも 1 びょう 出て いるまで もう へらない（いけを よこぎっても 1 つ）
+const POOL_REST := 1.0
+var _pool_hurt_lock := false
+var _pool_out := 0.0
+var _in_pool_now := false
 
 ## テスト用：ここに座標を入れると その方向へ自動で動く
 var autopilot_target: Vector3 = Vector3.INF
@@ -160,10 +189,11 @@ func _physics_process(delta: float) -> void:
 		_no_floor_time = 0.0
 	else:
 		_no_floor_time += delta
-		if _no_floor_time > 2.5 and level and level.has_method("respawn_position") and not _respawning:
+		if _no_floor_time > NO_FLOOR_BACK and level and level.has_method("respawn_position") and not _respawning:
 			_no_floor_time = 0.0
 			global_position = level.respawn_position()
 			velocity = Vector3.ZERO
+			_face_restart()
 	# なみ・いえき などの「乗っている間の効果」は、速度を決める前に集める
 	_check_overlaps()
 	var input := Vector2.ZERO
@@ -314,6 +344,7 @@ func _check_stuck(delta: float, dir: Vector3) -> void:
 			_stuck_count = 0
 			global_position = level.respawn_position()
 			velocity = Vector3.ZERO
+			_face_restart()
 			Game.say("あれ？ ぬけられない。チェックポイントから やりなおそう。", 3.0)
 		_stuck_from = global_position
 
@@ -377,6 +408,13 @@ func _steer_input(input: Vector2, delta: float) -> Vector3:
 	var turn := -input.x
 	# スティックの すこしだけ たおした ところは ゆっくり（こまかく ねらえる）
 	var want := signf(turn) * pow(absf(turn), 1.4) * TURN_SPEED
+	var g := _wall_glide(input, delta)
+	if g != 0.0:
+		want = g
+	elif _glide_turning and signf(turn_rate) != signf(want):
+		# じどうの まがりは すぐ やめる（手を はなした あとや 子どもが はんたいへ まわす ときに のこらない）
+		turn_rate = 0.0
+	_glide_turning = g != 0.0
 	var rate := TURN_ACCEL if absf(want) > absf(turn_rate) and signf(want) == signf(turn_rate) or turn_rate == 0.0 else TURN_STOP
 	turn_rate = move_toward(turn_rate, want, rate * delta)
 	if turn_rate != 0.0:
@@ -386,7 +424,141 @@ func _steer_input(input: Vector2, delta: float) -> Vector3:
 	var fwd := -input.y
 	if fwd < 0.0:
 		fwd *= BACK_RATE
+	elif _glide_slow:
+		fwd *= GLIDE_SPEED
 	return heading * fwd
+
+
+## かべから はなれる ための まわる はやさ（rad/s。0 ＝ まがらない）。
+## ↑ だけ おして（←→ なし）かべ（world）に ぶつかって いる ときだけ。子どもが ←→ を すこしでも おしたら やめる（さからわない。
+## タッチの すこしの かたむきも 子どもの はやさの まま：前は GLIDE_RATE まで 上げて、たのんだ 3〜4 ばい まわった）。
+## まがる がわ：まっすぐ ぶつかった ときは 行き先の がわ（うしろに ある 行き先は 見ない）、ななめなら いま かたむいて いる がわ。
+## いけ・てきの いる がわへは まがらない。
+## かべと ならんでも やめず、かべから GLIDE_AWAY（45°）はなれる 向きまで まがって へやの 中へ もどる。かべに そって
+## すすみ つづけると、かべぞいの てきへ はこばれ、うしろの かべで カメラが よったり はなれたり する（見なおしで 見つかった）。
+## かべから はなれた すぐ あとも（GLIDE_KEEP 秒）おぼえた かべの 向きで まがりきる。ふくろの ような ところは 同じ がわへ
+## まがり つづけて 出る。ひとつづきで GLIDE_MAX より まがらない（その 先は もどし（_check_stuck）に まかせる）
+func _wall_glide(input: Vector2, delta: float) -> float:
+	var n := Vector3.ZERO
+	var pushing := input.y < -0.3 and absf(input.x) < GLIDE_STEER and control_enabled and hit_stun <= 0.0
+	if pushing:
+		for i in get_slide_collision_count():
+			var c := get_slide_collision(i)
+			var body := c.get_collider() as CollisionObject3D
+			if body == null or (body.collision_layer & 1) == 0 or body.is_in_group("friend_solid"):
+				continue
+			var cn := c.get_normal()
+			if cn.y > 0.85:
+				continue
+			cn.y = 0.0
+			n += cn
+	n.y = 0.0
+	var touching := n.length() >= 0.2
+	if touching:
+		n = n.normalized()
+		_glide_n = n
+		_glide_free = 0.0
+	else:
+		_glide_free += delta
+		if not pushing or _glide_free > GLIDE_KEEP or _glide_n == Vector3.ZERO:
+			_glide_on = false
+			_glide_slow = false
+			_glide_side = 0.0
+			_glide_n = Vector3.ZERO
+			_glide_turned = 0.0
+			return 0.0
+		n = _glide_n
+	var into := heading.dot(-n)
+	if touching and into > GLIDE_ON:
+		_glide_on = true
+	elif into < -GLIDE_AWAY:
+		# まがりきった：つぎに ぶつかる かべでは また はじめから（せまい 場所で つづけて はねかえると GLIDE_MAX を こえて、
+		# その あと まがらなく なって いた）
+		if _glide_on:
+			_glide_turned = 0.0
+		_glide_on = false
+	_glide_slow = false
+	if not _glide_on or _glide_turned > GLIDE_MAX:
+		return 0.0
+	if _glide_side == 0.0:
+		_glide_side = _glide_pick_side(n)
+	_glide_turned += absf(turn_rate) * delta
+	_glide_slow = _glide_side != 0.0 and into > 0.0
+	return _glide_side * GLIDE_RATE
+
+
+## まがる がわ（＋ ＝ ひだり）。かべに そって ひだりまわりで すすむ 向きは (-n) を ＋90° まわした もの
+func _glide_pick_side(n: Vector3) -> float:
+	var left := (-n).rotated(Vector3.UP, PI / 2.0)
+	var side := 0.0
+	var head_on := heading.dot(-n) > GLIDE_HEAD_ON
+	if head_on and level != null and level.has_method("current_target_position"):
+		var tp: Vector3 = level.current_target_position()
+		if tp != Vector3.INF:
+			var to := tp - global_position
+			to.y = 0.0
+			if to.length() > 0.5 and to.dot(heading) > 0.0 and absf(to.normalized().dot(left)) > 0.15:
+				side = signf(to.dot(left))
+	if side == 0.0:
+		var lean := heading.dot(left)
+		side = 1.0 if lean >= 0.0 else -1.0
+	# いけ・ゆかの ない ところ・てきの いる ところへ むかう がわへは まがらない。まっすぐ ぶつかった ときは、もう 片がわの
+	# ほうが ましなら そちらへ（同じなら そのまま）。ななめの ときは まがらない（0）：はんたいへ まがると 子どもを ぎゃくもどり させる
+	var cost := _side_cost(_glide_exit(left * side, n))
+	if cost > 0:
+		if not head_on:
+			return 0.0
+		if _side_cost(_glide_exit(-left * side, n)) < cost:
+			side = -side
+	return side
+
+
+## かべに そう 向き along から かべを GLIDE_AWAY はなれた 向き（まがりおわった あと 船が すすむ 向き）
+static func _glide_exit(along: Vector3, n: Vector3) -> Vector3:
+	return (along * sqrt(1.0 - GLIDE_AWAY * GLIDE_AWAY) + n * GLIDE_AWAY).normalized()
+
+
+## d の 向きへ まがった ときの わるさ（0 ＝ よい）。まがりおわった 船は つぎの かべまで まっすぐ すすむ：
+## ゆかが ない（口の 外など）3、道（9 m）の そばに てきが いる・すぐ 先（12 m いない）に いえきの いけ 2、
+## その 先（GLIDE_POOL_LOOK m まで）で いけを とおる 1
+func _side_cost(d: Vector3) -> int:
+	var cost := 0
+	for h in get_tree().get_nodes_in_group("hazard"):
+		var pool := h as HazardPool
+		if pool == null or (level != null and not level.is_ancestor_of(pool)):
+			continue
+		var to := pool.global_position - global_position
+		to.y = 0.0
+		var along := clampf(to.dot(d), 0.0, GLIDE_POOL_LOOK)
+		if (to - d * along).length() < pool.radius + 0.5:
+			cost = maxi(cost, 2 if along < 12.0 else 1)
+	if _enemy_near(d, 9.0):
+		cost = maxi(cost, 2)
+	var space := get_world_3d().direct_space_state
+	for m in [3.0, 6.0]:
+		var at: Vector3 = global_position + d * m + Vector3.UP * 2.0
+		var g := space.intersect_ray(PhysicsRayQueryParameters3D.create(at, at + Vector3.DOWN * 14.0, 1))
+		if g.is_empty() or (g["normal"] as Vector3).y < 0.35:
+			return 3
+	return cost
+
+
+## d の 向きへ reach m すすむ 道から near m いないに いきて いる てきが いるか（てきは 数 ひき。まがる がわを えらぶ ときだけ よぶ）。
+## near は ピロリきんが かべの さいぼうを まわる 輪（半径 3.5 m）より 少し 大きく
+func _enemy_near(d: Vector3, reach: float, near := 4.0) -> bool:
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if not (e is Node3D) or not e.get("alive") or (level != null and not level.is_ancestor_of(e)):
+			continue
+		var to: Vector3 = (e as Node3D).global_position - global_position
+		to.y = 0.0
+		var along := clampf(to.dot(d), 0.0, reach)
+		if (to - d * along).length() < near:
+			return true
+	return false
+
+
+static func _hd(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
 
 
 func _camera_relative(input: Vector2) -> Vector3:
@@ -463,6 +635,16 @@ func _on_area_entered(area: Area3D) -> void:
 func _check_overlaps() -> void:
 	if not hitbox.monitoring:
 		return
+	# いけの 外に いる 時間（_in_pool_now は いけの on_player_stay が 立てる。前の フレームの ぶん）。
+	# へった あとの ちかちか（invulnerable）の あいだは 数えない：へった ときの はねかえりで いけの 外へ 出て、
+	# ↑ の まま もどって くると、べつの 1 かいに なって また へって いた（よこぎると 2 つ）
+	if _in_pool_now:
+		_pool_out = 0.0
+	elif invulnerable <= 0.0:
+		_pool_out += get_physics_process_delta_time()
+		if _pool_out >= POOL_REST:
+			_pool_hurt_lock = false
+	_in_pool_now = false
 	for area in hitbox.get_overlapping_areas():
 		if area.is_in_group("enemy_touch") and invulnerable <= 0.0 and not _respawning:
 			var src: Node3D = area.get_parent() if area.get_parent() is Node3D else area
@@ -505,6 +687,16 @@ func bump(from: Vector3, strength := 7.0, slow := 1.0) -> void:
 	slow_time = maxf(slow_time, slow)
 
 
+## いえきの いけが 毎フレーム よぶ（hazard_pool.gd）。いけで へるのは 1 かい：へった あとは どの いけからも
+## POOL_REST 秒 出て いるまで へらない（前は 1.2 びょうごとに へり、いけを よこぎると ハートが 2 つ へった）
+func pool_hurt(from: Vector3) -> void:
+	_in_pool_now = true
+	if _pool_hurt_lock or invulnerable > 0.0 or _respawning:
+		return
+	hurt(from)
+	_pool_hurt_lock = true
+
+
 func heal(n := 1) -> void:
 	hearts = mini(hearts + n, MAX_HEARTS)
 	hearts_changed.emit(hearts)
@@ -519,6 +711,7 @@ func _respawn() -> void:
 	t.tween_callback(func():
 		if level and level.has_method("respawn_position"):
 			global_position = level.respawn_position()
+			_face_restart()
 		hearts = MAX_HEARTS
 		hearts_changed.emit(hearts)
 		velocity = Vector3.ZERO
@@ -530,6 +723,25 @@ func _respawn() -> void:
 		invulnerable = 2.0
 		respawned.emit()
 	)
+
+
+## チェックポイントへ もどした ときに、つぎに 行く 向きを むかせ、カメラも すぐ うしろへ（level.respawn_heading）
+func _face_restart() -> void:
+	if level == null or not level.has_method("respawn_heading"):
+		return
+	var h: Vector3 = level.respawn_heading(global_position)
+	if h.length() > 0.1:
+		heading = h.normalized()
+		model.rotation.y = HoverBody.yaw_for(heading)
+	turn_rate = 0.0
+	_glide_turning = false
+	_glide_side = 0.0
+	_glide_on = false
+	_glide_slow = false
+	_glide_n = Vector3.ZERO
+	_glide_turned = 0.0
+	if camera != null and camera.has_method("snap_to_target"):
+		camera.snap_to_target()
 
 
 func _update_arrow(delta: float) -> void:
@@ -560,7 +772,20 @@ func _update_arrow(delta: float) -> void:
 	var sc := arrow.scale
 	var cb := cam.global_transform.basis.orthonormalized()
 	var bob := sin(Time.get_ticks_msec() / 200.0) * 0.1
-	arrow.global_transform = Transform3D(cb.scaled(sc), global_position + Vector3.UP * (ARROW_Y + bob))
+	var at := global_position + Vector3.UP * (ARROW_Y + bob)
+	# 画面の 上での 大きさは いつも 同じ：カメラが ふだんより 近い（かべの 前）ときは 小さく する。
+	# 画面の はしで 切れない ように、はみ出す ときは 内がわへ よせる（前は かべの 前で 大きく なって 上の はしで 切れた）
+	var depth := -(cam.global_transform.affine_inverse() * at).z
+	var k := clampf(depth / ARROW_REF_DEPTH, 0.1, 1.0)
+	(arrow.get_node("Dart") as Node3D).scale = Vector3(k, k, k)
+	if depth > cam.near:
+		var vs := get_viewport().get_visible_rect().size
+		var sp := cam.unproject_position(at)
+		var m := ARROW_EDGE * vs.y
+		var inside := Vector2(clampf(sp.x, m, vs.x - m), clampf(sp.y, m, vs.y - m))
+		if inside != sp:
+			at = cam.project_position(inside, depth)
+	arrow.global_transform = Transform3D(cb.scaled(sc), at)
 	# 行き先を カメラから 見た 向き（x ＝ 右、-z ＝ おく）。0 ＝ まえ（画面の 上）、＋ ＝ 右
 	var rel := cb.inverse() * to
 	var want := atan2(rel.x, -rel.z)

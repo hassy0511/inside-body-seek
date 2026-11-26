@@ -144,6 +144,7 @@ func _ready() -> void:
 		if _only_place == "" and _only_ep == "":
 			await _check_skip()
 			await _check_title()
+			await _check_title_escape()
 			await _check_back()
 			await _check_hit()
 			await _check_resume()
@@ -157,11 +158,19 @@ func _ready() -> void:
 			for id in STEER_PLACES:
 				if _only_place == "" or id == _only_place:
 					await _check_steering(id)
+			if _only_place == "" or _only_place == "mouth":
+				await _check_sign_fade()
+				await _check_no_floor_back()
+				await _check_lip_stay()
 			if _only_place == "" or _only_place == "esophagus":
 				await _check_esophagus()
 			if _only_place == "" or _only_place == "stomach":
 				await _check_pools()
+				await _check_pool_once()
+				await _check_wall_glide()
+				await _check_restart_heading()
 				await _check_arrow()
+				await _check_cam_wall()
 				await _check_static_friends()
 				await _check_friend_solid()
 				await _check_orbit_spacing()
@@ -1561,6 +1570,59 @@ func _check_title() -> void:
 		_fail("title: 「はじめる」で カルテえらびに 行かない")
 
 
+## タイトルの「きろくを けす」の かくにん画面：もどる（Esc の キー）で「やめる」と 同じに とじる。
+## フォーカスは 開いた ボタンへ もどり、なにも けさない。画面が 開いて いない ときの Esc は 前と 同じ（タイトルの まま）。
+func _check_title_escape() -> void:
+	SaveData.record_clear("ep01")
+	Game.show_title()
+	for i in 5:
+		await get_tree().process_frame
+	var scr = Game.screen()
+	if not (scr is TitleScreen) or scr.reset_button == null:
+		_fail("title esc: タイトルの「きろくを けす」が ない")
+		return
+	scr.reset_button.grab_focus()
+	await _tap("ui_accept")
+	if scr.reset_dialog == null:
+		_fail("title esc: 「きろくを けす」を おしても かくにん画面が 出ない")
+		return
+	var fo := get_viewport().gui_get_focus_owner()
+	if not (fo is Button) or not scr.reset_dialog.is_ancestor_of(fo):
+		_fail("title esc: かくにん画面の ボタンに フォーカスが ない")
+	var dlg: Control = scr.reset_dialog
+	await _tap_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	if not is_instance_valid(scr) or Game.screen() != scr:
+		_fail("title esc: かくにん画面で Esc を おしたら タイトルから 出た")
+		return
+	if scr.reset_dialog != null or is_instance_valid(dlg):
+		_fail("title esc: かくにん画面で Esc を おしても とじない")
+	elif get_viewport().gui_get_focus_owner() != scr.reset_button:
+		_fail("title esc: とじた あと フォーカスが「きろくを けす」に もどらない（%s）" % _ctl_name(get_viewport().gui_get_focus_owner()))
+	if not SaveData.is_cleared("ep01"):
+		_fail("title esc: Esc で きろくが きえた")
+	# かくにん画面が ない ときの Esc：前と 同じ（タイトルの まま、なにも けさない）
+	await _tap_key(KEY_ESCAPE)
+	if Game.screen() != scr or not SaveData.is_cleared("ep01"):
+		_fail("title esc: かくにん画面が ない ときの Esc で タイトルから 出たか きろくが きえた")
+	else:
+		_info("title esc: dialog closed by Esc, focus back on the button, save kept")
+	SaveData.reset()
+	SaveData.set_setting("volume", 0.0)
+
+
+## キーを 1 回 押して はなす（キーボードの Esc など。Input → Viewport → _unhandled_input の 本物の 道）
+func _tap_key(key: Key) -> void:
+	for down in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = key
+		ev.physical_keycode = key
+		ev.pressed = down
+		Input.parse_input_event(ev)
+		Input.flush_buffered_events()
+		await get_tree().process_frame
+
+
 ## よそうで「もどる」→ そうだんの さいごの ページ → 進むと また よそう（カルテえらびまで もどされない）
 func _check_back() -> void:
 	var id: String = EpisodeDB.ids()[0]
@@ -2094,6 +2156,63 @@ func _run_place(id: String) -> void:
 	await get_tree().process_frame
 
 
+## かんばん：カメラが 近づくと うすく なり、カメラが とどく 前に 消える（ついて くる カメラが 板を くぐって
+## 画面が 板で ふさがらない）。遠くでは そのまま 読める。ep02 の くちの とおりみち（のどの かんばんの 真下を とおる）で 見る。
+## Level の _process が 前の フレームの カメラで きめるので、きょりに 0.6 m の ゆとりを もつ。
+func _check_sign_fade() -> void:
+	_info("=== sign fade ===")
+	Game.start_episode("ep02", "scene", 0)
+	var lvl = Game.level
+	var w := 0.0
+	while (lvl == null or not lvl.started) and w < 10.0:
+		await get_tree().process_frame
+		w += get_process_delta_time()
+		lvl = Game.level
+	if lvl == null or lvl.signs.is_empty():
+		_fail("sign fade: ep02 の くちに かんばんが ない")
+		return
+	var near_seen := 99.0
+	var far_ok := false
+	var mid_ok := false          # 5〜8 m で うすく なりかけ（0.05〜0.95）を 見た
+	var last := {}               # かんばんごとの まえの [きょり, こさ]：近づく あいだに こく ならない
+	var bad := ""
+	var t := 0.0
+	while t < 20.0 and is_instance_valid(lvl) and not lvl.finished:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		Autopilot.drive(lvl, get_tree())
+		var cam := get_viewport().get_camera_3d()
+		if cam == null:
+			continue
+		for sg in lvl.signs:
+			var d: float = cam.global_position.distance_to(sg.global_position)
+			var a: float = sg.modulate.a if sg.visible else 0.0
+			if not cam.is_position_behind(sg.global_position):
+				near_seen = minf(near_seen, d)
+			if d < Level.SIGN_HIDE_NEAR - 0.6 and a > 0.01 and bad == "":
+				bad = "カメラから %.1f m で こさ %.2f（%.1f m より 近くは 見えない はず）" % [d, a, Level.SIGN_HIDE_NEAR]
+			if d > Level.SIGN_FADE_FAR + 0.6 and a < 0.99 and bad == "":
+				bad = "カメラから %.1f m で こさ %.2f（%.1f m より 遠くは そのまま 読める はず）" % [d, a, Level.SIGN_FADE_FAR]
+			if d > Level.SIGN_FADE_FAR + 0.6 and a >= 0.99:
+				far_ok = true
+			if d > 5.0 and d < 8.0 and a > 0.05 and a < 0.95:
+				mid_ok = true
+			var k: int = sg.get_instance_id()
+			if last.has(k) and d < last[k][0] - 0.05 and a > last[k][1] + 0.02 and bad == "":
+				bad = "カメラが %.1f m → %.1f m と 近づいたのに こさが %.2f → %.2f と こく なった" % [last[k][0], d, last[k][1], a]
+			last[k] = [d, a]
+	if bad != "":
+		_fail("sign fade: " + bad)
+	elif near_seen > Level.SIGN_HIDE_NEAR - 0.6 or not far_ok:
+		_fail("sign fade: カメラが かんばんに 近づかなかった（いちばん 近くて %.1f m）。しらべに ならない" % near_seen)
+	elif not mid_ok:
+		_fail("sign fade: カメラから 5〜8 m で うすく なりかけた かんばんを 見なかった（近づくと きゅうに 消える？）")
+	else:
+		_info("sign fade: ok (closest camera %.1f m)" % near_seen)
+	Game.show_episode_select()
+	await get_tree().process_frame
+
+
 # ---------------------------------------------------------------- 6b. しょくどうの なみ
 ## しょくどう（peristalsis.gd）：
 ## ・GLB に たべものの かたまりが 無い。かたまりの いない 場面（場所だけ・ep03 の とおりみち）には かたまりが 出ない
@@ -2469,12 +2588,16 @@ func _check_steering(id: String) -> void:
 	if mv.length() < 2.0 or mv.normalized().dot(h) < 0.8:
 		_fail("%s: ↑ で 船の むきへ すすまない（%.2f m、むきとの ずれ dot=%.2f）" % [where, mv.length(), mv.normalized().dot(h) if mv.length() > 0.01 else 0.0])
 	await _hold([], 0.4)
+	# ↓ の 前の 向きから はかる：↑ の あいだに かべに ぶつかると、かべに そって じぶんで まがる（player._wall_glide）
+	var y2: float = HoverBody.yaw_for(p.heading)
+	_info("%s: ↑ 0.6 びょうの あいだに じどうで まがった %.1f ど" % [where, rad_to_deg(absf(angle_difference(y1, y2)))])
+	h = p.heading
 	pos0 = p.global_position
 	await _hold(["move_down"], 0.8)
 	mv = p.global_position - pos0 - flow * 0.8
 	mv.y = 0.0
-	var flip := rad_to_deg(absf(angle_difference(y1, HoverBody.yaw_for(p.heading))))
-	var cam_flip := rad_to_deg(absf(angle_difference(y1, cam.yaw)))
+	var flip := rad_to_deg(absf(angle_difference(y2, HoverBody.yaw_for(p.heading))))
+	var cam_flip := rad_to_deg(absf(angle_difference(y2, cam.yaw)))
 	if mv.length() < 1.0 or mv.normalized().dot(-h) < 0.8:
 		_fail("%s: ↓ で うしろへ さがらない（%.2f m）" % [where, mv.length()])
 	if flip > 2.0 or cam_flip > 3.0:
@@ -2630,6 +2753,658 @@ func _check_pools() -> void:
 			_fail("pool r%.0f: 水の ふちが r から %.2f m ずれる" % [r, worst_geo])
 		if worst_hurt > 0.15:
 			_fail("pool r%.0f: あぶない ふちが r から %.2f m ずれる（水が 見えない 所で へる／水の 中で へらない）" % [r, worst_hurt])
+	await get_tree().process_frame
+
+
+## いえきの いけで へるのは 1 かい（player.pool_hurt）：↑ で いけを よこぎると ハート 1 つ、10 びょう いても 1 つ、
+## 出て 1.5 びょう まって また 入ると もう 1 つ、0.5 びょうで もどると へらない。ゆっくりに なる・しらせの 文は のこる
+func _check_pool_once() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "pool once stomach"
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			e.queue_free()
+	var hurts := [0]
+	p.hurt_happened.connect(func(): hurts[0] += 1)
+	var pools: Array = []
+	for n in lvl.get_children():
+		if n is HazardPool:
+			pools.append(n)
+	if pools.is_empty():
+		_fail("%s: いけが ない（この テストが 何も 見て いない）" % where)
+	var put := func(at: Vector3, h: Vector3) -> void:
+		p.global_position = at + Vector3.UP * 1.2
+		p.velocity = Vector3.ZERO
+		p.heading = h
+		p.invulnerable = 0.0
+		p.hit_stun = 0.0
+		p.hearts = p.MAX_HEARTS
+		lvl.camera.snap_to_target()
+	var said0 := _said.size()
+	var slow_seen := false
+	for h in pools:
+		var c: Vector3 = h.global_position
+		var r: float = h.radius
+		var d := Vector3(1, 0, 0)
+		# よこぎる（いけの 1 びょう ルールが のこらない ように 外で 2 びょう まって から）
+		put.call(c - d * (r + 2.0), d)
+		await _sim_wait(2.0)
+		put.call(c - d * (r + 2.0), d)
+		hurts[0] = 0
+		Input.action_press("move_up")
+		var t := 0.0
+		while t < 15.0 and (p.global_position - c).dot(d) < r + 1.0:
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+			if Vector2(p.global_position.x - c.x, p.global_position.z - c.z).length() < r - 1.0 and Vector2(p.velocity.x, p.velocity.z).length() < p.SPEED * 0.7:
+				slow_seen = true
+		Input.action_release("move_up")
+		var crossed: int = hurts[0]
+		# 10 びょう いる
+		put.call(c + d * (r + 3.0), d)
+		await _sim_wait(2.0)
+		hurts[0] = 0
+		put.call(c, d)
+		await _sim_wait(10.0, p)
+		var stay: int = hurts[0]
+		# 出て 1.5 びょう、また 入る
+		put.call(c + d * (r + 3.0), d)
+		await _sim_wait(1.5)
+		hurts[0] = 0
+		put.call(c, d)
+		await _sim_wait(2.0, p)
+		var again: int = hurts[0]
+		# 出て 0.5 びょうで もどる
+		put.call(c + d * (r + 3.0), d)
+		await _sim_wait(0.5)
+		hurts[0] = 0
+		put.call(c, d)
+		await _sim_wait(2.0, p)
+		var soon: int = hurts[0]
+		_info("%s r%.0f: よこぎる %d、10 びょう いる %d、1.5 びょう 出て もどる %d、0.5 びょうで もどる %d（ハート）" % [where, r, crossed, stay, again, soon])
+		if crossed != 1 or stay != 1 or again != 1 or soon != 0:
+			_fail("%s r%.0f: ハートの へりかたが ちがう（よこぎる %d／10 びょう %d／1.5 びょう あと %d／0.5 びょう あと %d。1・1・1・0 の はず）" % [where, r, crossed, stay, again, soon])
+	var warned := false
+	for i in range(said0, _said.size()):
+		if String(_said[i][1]).contains("いえきだ"):
+			warned = true
+	if not slow_seen:
+		_fail("%s: いけの 中で ゆっくりに ならない" % where)
+	if not warned:
+		_fail("%s: いけの しらせ（いえきだ！）が 出ない" % where)
+	Game.unload_level()
+	await get_tree().process_frame
+
+
+## シミュレーションの 秒 だけ まつ（hold に 船を わたすと その 場に とめて おく）
+func _sim_wait(secs: float, hold = null) -> void:
+	var t := 0.0
+	while t < secs:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		if hold != null:
+			hold.velocity.x = 0.0
+			hold.velocity.z = 0.0
+
+
+## かべで はねかえる（player._wall_glide）：い（胃）の かべ 3 か所に ↑ だけで まっすぐ ぶつかる。
+## 1 びょうより 長く とまらず、もどし（はさまっちゃった）が 出ず、さいごの 1 びょうで 4 m いじょう すすむ。
+## かべと ならんで おわらず、かべから はなれて へやの 中へ もどる（ふれた あと どの かべからも 3 m いじょう。かべに そって すすみ つづけない）。
+## ↑＋← ／ ↑＋→（子どもが まわす）では 子どもの 向きと はんたいに まわる フレームが 1 つも ない。
+## 手を はなすと かってに まわらない
+func _check_wall_glide() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "wall glide stomach"
+	p.invulnerable = 9999.0
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	await _check_glide_enemy(lvl, p, space)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			e.queue_free()
+	await get_tree().physics_frame
+	var runs := 0
+	for a in [0.0, 90.0, 180.0]:
+		var d := Vector3(cos(deg_to_rad(a)), 0.0, sin(deg_to_rad(a)))
+		var from := Vector3(0.0, 2.0, 0.0)
+		var g0: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 10, 0), Vector3(0, -10, 0), 1))
+		if not g0.is_empty():
+			from.y = g0["position"].y + 1.1
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + d * 80.0, 1))
+		if hit.is_empty():
+			_fail("%s: むき %.0f° に かべが ない" % [where, a])
+			continue
+		var n: Vector3 = hit["normal"]
+		n.y = 0.0
+		n = n.normalized() if n.length() > 0.2 else -d
+		var start: Vector3 = hit["position"] + n * 5.0
+		for keys in [["move_up"], ["move_up", "move_left"], ["move_up", "move_right"], []]:
+			p.global_position = start
+			p.velocity = Vector3.ZERO
+			p.heading = -n
+			p.turn_rate = 0.0
+			p._stuck_count = 0
+			p._stuck_time = 0.0
+			lvl.camera.snap_to_target()
+			await get_tree().physics_frame
+			# まず かべまで ↑（ひとりで まわる ばあいも ↑ の まま）
+			if keys.size() != 1:
+				Input.action_press("move_up")
+				await _sim_wait(0.9)
+				Input.action_release("move_up")
+			var said0 := _said.size()
+			for k in keys:
+				Input.action_press(k)
+			var t := 0.0
+			var anchor: Vector3 = p.global_position
+			var anchor_t := 0.0
+			var held := 0.0
+			var wrong := 0
+			var turned := 0.0
+			var prev_h: Vector3 = p.heading
+			var last := []
+			var touched := false
+			var gap_after := 0.0
+			var dur := 5.0 if keys.size() == 1 else 2.0
+			while t < dur:
+				await get_tree().physics_frame
+				t += get_physics_process_delta_time()
+				var pos: Vector3 = p.global_position
+				if keys.size() == 1:
+					var gap := _wall_gap(space, pos)
+					if gap < 1.5:
+						touched = true
+					elif touched:
+						gap_after = maxf(gap_after, gap)
+				if Vector2(pos.x - anchor.x, pos.z - anchor.z).length() > 0.3:
+					anchor = pos
+					anchor_t = t
+				held = maxf(held, t - anchor_t)
+				var dh: float = prev_h.signed_angle_to(p.heading, Vector3.UP)
+				prev_h = p.heading
+				turned += absf(dh)
+				if keys.has("move_left") and dh < -0.0005:
+					wrong += 1
+				if keys.has("move_right") and dh > 0.0005:
+					wrong += 1
+				last.append(pos)
+				if last.size() > 60:
+					last.pop_front()
+			for k in keys:
+				Input.action_release(k)
+			var rescued: bool = p._stuck_count > 0
+			for i in range(said0, _said.size()):
+				if String(_said[i][1]).begins_with("はさまっちゃった"):
+					rescued = true
+			var tail: float = Vector2(last[-1].x - last[0].x, last[-1].z - last[0].z).length()
+			var kname: String = "+".join(PackedStringArray(keys)) if not keys.is_empty() else "なし"
+			if keys == ["move_up"]:
+				runs += 1
+				_info("%s %.0f°: ↑ だけ 5 びょう、とまった いちばん 長い 時間 %.2f びょう、さいごの 1 びょうで %.1f m、まわった %.0f°、かべに ふれた あと かべから %.1f m まで はなれた" % [where, a, held, tail, rad_to_deg(turned), gap_after])
+				if held > 1.0:
+					_fail("%s %.0f°: ↑ で かべに ぶつかって %.1f びょう とまった" % [where, a, held])
+				if tail < 4.0:
+					_fail("%s %.0f°: かべから はなれて すすまない（さいごの 1 びょうで %.1f m）" % [where, a, tail])
+				if not touched or gap_after < 3.0:
+					_fail("%s %.0f°: かべから はなれない（かべに ふれた %s、その あと いちばん はなれて %.1f m。かべに そって すすみ つづける）" % [where, a, touched, gap_after])
+				if rescued:
+					_fail("%s %.0f°: もどし（はさまっちゃった）が はたらいた" % [where, a])
+			elif keys.is_empty():
+				if turned > 0.01:
+					_fail("%s %.0f°: 手を はなして いるのに %.1f° まわった" % [where, a, rad_to_deg(turned)])
+			elif wrong > 0:
+				_fail("%s %.0f° %s: 子どもの 向きと はんたいに まわった フレームが %d" % [where, a, kname, wrong])
+	if runs < 3:
+		_fail("%s: かべに ぶつける ところが %d か所しか ない" % [where, runs])
+	await _check_glide_along(lvl, p, space)
+	await _check_glide_touch(lvl, p, space)
+	Game.unload_level()
+	await get_tree().process_frame
+
+
+## い（胃）の まんなかから むき a° の かべ：{"wall": かべの 点, "n": かべの 面の 向き（よこ）}
+func _stomach_wall(space: PhysicsDirectSpaceState3D, a: float) -> Dictionary:
+	var d := Vector3(cos(deg_to_rad(a)), 0.0, sin(deg_to_rad(a)))
+	var from := Vector3(0.0, 2.0, 0.0)
+	var g0: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 10, 0), Vector3(0, -10, 0), 1))
+	if not g0.is_empty():
+		from.y = g0["position"].y + 1.1
+	var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + d * 80.0, 1))
+	if hit.is_empty():
+		return {}
+	var n: Vector3 = hit["normal"]
+	n.y = 0.0
+	n = n.normalized() if n.length() > 0.2 else -d
+	return {"wall": hit["position"], "n": n}
+
+
+## ゆかの ない ところへ 出た 船は 1 びょう いないに チェックポイントへ もどる（player.NO_FLOOR_BACK）。
+## 口の はしでは くちびるを ななめに こえて、ゆかと 場所の ふたの あいだの すきまへ 出られる。前は 2.5 びょう 外を おちて いた
+func _check_no_floor_back() -> void:
+	Game.start_stage("mouth")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "no floor back mouth"
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	# くちびるの むこう：船の ゆかさがし（上 4 m から 下 16 m）で 何も 見つからない ところを さがす
+	var spot := Vector3.INF
+	var z := 33.0
+	while z < 37.0 and spot == Vector3.INF:
+		for x in [0.0, 6.0, -6.0, 10.0, -10.0]:
+			var at := Vector3(x, 0.0, z)
+			if space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 4.0, at + Vector3.DOWN * 16.0, 1)).is_empty():
+				spot = at
+				break
+		z += 0.1
+	if spot == Vector3.INF:
+		_fail("%s: ゆかの ない ところが 見つからない（この テストが 何も 見て いない）" % where)
+	else:
+		p.global_position = spot
+		p.velocity = Vector3.ZERO
+		p._no_floor_time = 0.0
+		var home: Vector3 = lvl.respawn_position()
+		var t := 0.0
+		var back := -1.0
+		while t < 3.0 and back < 0.0:
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+			if (p.global_position as Vector3).distance_to(home) < 3.0:
+				back = t
+		_info("%s: (%.1f, %.1f) で ゆかが なく、%.2f びょうで チェックポイントへ もどった" % [where, spot.x, spot.z, back])
+		if back < 0.0 or back > 1.0:
+			_fail("%s: ゆかの ない ところから 1 びょう いないに もどらない（%.2f びょう。−1 ＝ 3 びょう まっても もどらない）" % [where, back])
+	Game.unload_level()
+	await get_tree().process_frame
+
+
+## 口の くちびるへ ↑ だけで ぶつかっても、ゆかの 外へ 出ない。じどうで まがる あいだ はやい ままだと、まがりながら
+## くちびるの 内がわの 坂を ななめに のぼって こえた（player.GLIDE_SPEED で ゆっくりに した）
+func _check_lip_stay() -> void:
+	Game.start_stage("mouth")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "lip stay mouth"
+	p.invulnerable = 9999.0
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			e.queue_free()
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	var runs := 0
+	var touched := 0
+	for x in [-10.0, -6.0, -2.0, 2.0, 6.0, 10.0]:
+		for deg in [0.0, 20.0, -20.0]:
+			var fl: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 10, 27), Vector3(x, -20, 27), 1))
+			if fl.is_empty():
+				continue
+			await _glide_put(p, lvl, fl["position"] + Vector3.UP * 1.1, Vector3(0, 0, 1).rotated(Vector3.UP, deg_to_rad(deg)))
+			p._no_floor_time = 0.0
+			Input.action_press("move_up")
+			var t := 0.0
+			var lost := 0.0
+			var lost_max := 0.0
+			var far := -INF
+			var glided := false
+			while t < 3.0:
+				await get_tree().physics_frame
+				var dt := get_physics_process_delta_time()
+				t += dt
+				lost = lost + dt if not p.floor_found else 0.0
+				lost_max = maxf(lost_max, lost)
+				far = maxf(far, p.global_position.z)
+				glided = glided or p._glide_turning
+			Input.action_release("move_up")
+			runs += 1
+			if glided:
+				touched += 1
+			if lost_max > 0.3:
+				_fail("%s x %.0f %+.0f°: ↑ だけで くちびるを こえて ゆかの 外へ 出た（ゆかが ない %.2f びょう、いちばん 前 z %.1f）" % [where, x, deg, lost_max, far])
+	_info("%s: %d 回 ↑ だけで くちびるへ（じどうで まがった %d 回）" % [where, runs, touched])
+	if runs < 12 or touched < 6:
+		_fail("%s: しらべた 回数 %d・じどうで まがった 回数 %d（この テストが 何も 見て いない）" % [where, runs, touched])
+	Game.unload_level()
+	await get_tree().process_frame
+
+
+## よこの 16 本の 線で はかった、いちばん 近い かべまでの きょり（ゆかの ような 面は 見ない。船が かべと 見る 面と 同じ きまり）
+func _wall_gap(space: PhysicsDirectSpaceState3D, pos: Vector3) -> float:
+	var best := 99.0
+	for i in 16:
+		var d := Vector3.FORWARD.rotated(Vector3.UP, TAU * i / 16.0)
+		var h: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(pos, pos + d * 12.0, 1))
+		if not h.is_empty() and (h["normal"] as Vector3).y <= 0.85:
+			best = minf(best, pos.distance_to(h["position"]))
+	return best
+
+
+func _glide_put(p, lvl, at: Vector3, h: Vector3) -> void:
+	p.global_position = at
+	p.velocity = Vector3.ZERO
+	p.heading = h.normalized()
+	p.turn_rate = 0.0
+	p._stuck_count = 0
+	p._stuck_time = 0.0
+	p._stuck_from = at
+	p._glide_side = 0.0
+	p._glide_n = Vector3.ZERO
+	p._glide_turned = 0.0
+	p._glide_on = false
+	p._glide_turning = false
+	lvl.camera.snap_to_target()
+	await get_tree().physics_frame
+
+
+## かべに ななめに あたる（↑ だけ、かべへ 20° と 30° より）：じどうの まがりで ぎゃくもどり しない。
+## 行き先が うしろに ある ばあいも（前は 行き先の がわへ まがって 160° まわり、もと来た ほうへ もどった）。
+## まがるのは かべから 45° はなれる 向きまで（あたった 角 ＋ 45°）
+func _check_glide_along(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
+	var where := "wall glide along"
+	var seen := 0
+	for a in [90.0, 270.0]:
+		var w := _stomach_wall(space, a)
+		if w.is_empty():
+			_fail("%s: むき %.0f° に かべが ない" % [where, a])
+			continue
+		var n: Vector3 = w["n"]
+		for side in [1.0, -1.0, 2.0, -2.0]:
+			var into_deg := 20.0 if absf(side) < 1.5 else 30.0
+			var along: Vector3 = n.rotated(Vector3.UP, signf(side) * PI / 2.0)
+			var h: Vector3 = along.rotated(Vector3.UP, deg_to_rad(into_deg))
+			if h.dot(-n) < 0.0:
+				h = along.rotated(Vector3.UP, deg_to_rad(-into_deg))
+			var start: Vector3 = w["wall"] + n * 1.8
+			await _glide_put(p, lvl, start, h)
+			var tp: Vector3 = lvl.current_target_position()
+			var behind: bool = tp != Vector3.INF and (tp - start).dot(along) < 0.0
+			Input.action_press("move_up")
+			var t := 0.0
+			var best := 0.0
+			var back := 0.0
+			var turn_early := 0.0
+			var turn_max := 0.0
+			while t < 3.0:
+				await get_tree().physics_frame
+				t += get_physics_process_delta_time()
+				var prog: float = (p.global_position - start).dot(along)
+				best = maxf(best, prog)
+				back = maxf(back, best - prog)
+				var tr := absf(rad_to_deg(h.signed_angle_to(p.heading, Vector3.UP)))
+				turn_max = maxf(turn_max, tr)
+				if t <= 1.5:
+					turn_early = maxf(turn_early, tr)
+			Input.action_release("move_up")
+			seen += 1
+			_info("%s %.0f° %+.0f（%.0f°）: かべに そって %.1f m（もどった %.1f m）、まがった 1.5 びょうで %.0f°・ぜんぶで %.0f°、行き先 %s" % [where, a, side, into_deg, best, back, turn_early, turn_max, "うしろ" if behind else "まえ"])
+			if best < 10.0 or back > 0.5:
+				_fail("%s %.0f° %+.0f: かべに そって すすまない・もどった（%.1f m すすみ、%.1f m もどった）" % [where, a, side, best, back])
+			if turn_early > into_deg + 60.0 or turn_max > 120.0:
+				_fail("%s %.0f° %+.0f: じどうで まがりすぎ（1.5 びょうで %.0f°、ぜんぶで %.0f°）" % [where, a, side, turn_early, turn_max])
+	if seen < 8:
+		_fail("%s: しらべた ところが %d" % [where, seen])
+
+
+## タッチの スティックを すこし（0.3）たおして かべに おしつけた とき、まわる はやさは ひろい ゆかと ほぼ 同じ
+## （前は じどうの まがりの はやさまで 上げて、たのんだ 3〜4 ばい まわった）。はんたいへは まわらない
+func _check_glide_touch(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
+	var where := "wall glide touch"
+	var free_turn := 0.0
+	var fl: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 10, 6), Vector3(0, -10, 6), 1))
+	await _glide_put(p, lvl, Vector3(0.0, (fl["position"].y if not fl.is_empty() else 0.0) + 1.1, 6.0), Vector3.FORWARD)
+	for key in ["move_right", "move_left"]:
+		var h0: Vector3 = p.heading
+		Input.action_press("move_up")
+		Input.action_press(key, 0.3)
+		await _sim_wait(1.0)
+		Input.action_release(key)
+		Input.action_release("move_up")
+		free_turn = maxf(free_turn, absf(rad_to_deg(h0.signed_angle_to(p.heading, Vector3.UP))))
+		await _glide_put(p, lvl, p.global_position, p.heading)
+	var seen := 0
+	for a in [0.0, 90.0, 180.0, 270.0]:
+		var w := _stomach_wall(space, a)
+		if w.is_empty():
+			continue
+		var n: Vector3 = w["n"]
+		for off in [45.0, -45.0]:
+			for key in ["move_right", "move_left"]:
+				var h: Vector3 = (-n).rotated(Vector3.UP, deg_to_rad(off))
+				await _glide_put(p, lvl, w["wall"] + n * 4.0, h)
+				Input.action_press("move_up")
+				await _sim_wait(1.0)
+				var h0: Vector3 = p.heading
+				Input.action_press(key, 0.3)
+				var t := 0.0
+				var wrong := 0.0
+				var prev: Vector3 = h0
+				while t < 1.0:
+					await get_tree().physics_frame
+					t += get_physics_process_delta_time()
+					var dh: float = rad_to_deg(prev.signed_angle_to(p.heading, Vector3.UP))
+					prev = p.heading
+					if (key == "move_right" and dh > 0.0) or (key == "move_left" and dh < 0.0):
+						wrong += absf(dh)
+				Input.action_release(key)
+				Input.action_release("move_up")
+				var turned := absf(rad_to_deg(h0.signed_angle_to(p.heading, Vector3.UP)))
+				seen += 1
+				if turned > free_turn * 1.5 + 2.0:
+					_fail("%s %.0f° %+.0f° %s: 0.3 の たおしで %.0f° まわった（ひろい ゆかでは %.0f°。1.5 ばいより 多い）" % [where, a, off, key, turned, free_turn])
+				if wrong > 0.5:
+					_fail("%s %.0f° %+.0f° %s: 子どもの 向きと はんたいに %.1f° まわった" % [where, a, off, key, wrong])
+	_info("%s: ひろい ゆかで 0.3 の たおし 1 びょう %.0f°、かべで %d 回 しらべた" % [where, free_turn, seen])
+	if seen < 8 or free_turn < 5.0:
+		_fail("%s: しらべた 回数 %d・ひろい ゆかの まわり %.0f°（この テストが 何も 見て いない）" % [where, seen, free_turn])
+
+
+## かべに まっすぐ ↑ で ぶつかった とき、まがった 先の 道の そばに てき（ピロリきん）が いれば、はんたいの がわへ まがる
+## （かべの さいぼうを まわる ピロリきんへ はこんで ハートを へらして いた）。いなければ もとの がわ（くらべ）
+func _check_glide_enemy(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
+	var where := "wall glide enemy"
+	var foe = null
+	var far := Vector3(500, -200, 500)
+	# ほかの てきは とめて 遠くへ（この あと すぐ 消す。がわを えらぶ きまりが 1 ぴきだけを 見る ように）
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			if e.get("alive"):
+				foe = e
+			e.process_mode = Node.PROCESS_MODE_DISABLED
+			e.global_position = far
+	var w := _stomach_wall(space, 0.0)
+	if foe == null or w.is_empty():
+		_fail("%s: てき・かべが ない" % where)
+		return
+	var n: Vector3 = w["n"]
+	# いえきの いけも この しらべの あいだだけ 遠くへ（がわを えらぶ きまりの うち、てきの ぶんだけを 見る）
+	var pools := []
+	for c in lvl.get_children():
+		if c is HazardPool:
+			pools.append([c, c.global_position])
+			c.global_position += Vector3(900, 0, 900)
+	var res := []
+	for with_foe in [false, true]:
+		var start: Vector3 = w["wall"] + n * 2.5
+		foe.global_position = far
+		if with_foe:
+			# さっき まがった がわの、まがりおわった 船が すすむ 道の 上（かべに そって 5 m）
+			var along: Vector3 = (-n).rotated(Vector3.UP, PI / 2.0) * signf(res[0])
+			foe.global_position = start + along * 5.0 + n * 0.5
+		await _glide_put(p, lvl, start, -n)
+		Input.action_press("move_up")
+		await _sim_wait(1.0)
+		Input.action_release("move_up")
+		res.append(rad_to_deg((-n).signed_angle_to(p.heading, Vector3.UP)))
+	foe.global_position = far
+	for pc in pools:
+		pc[0].global_position = pc[1]
+	_info("%s: てき なしで %+.0f°、その がわの 先に てきが いて %+.0f°" % [where, res[0], res[1]])
+	if absf(res[0]) < 10.0:
+		_fail("%s: てきが いなくても まがらない（%.0f°。この テストが 何も 見て いない）" % [where, res[0]])
+	elif absf(res[1]) < 10.0 or signf(res[1]) == signf(res[0]):
+		_fail("%s: てきの いる がわへ まがった・まがらない（てき なし %+.0f°、てき あり %+.0f°）" % [where, res[0], res[1]])
+
+
+## やりなおしの 向き（level.respawn_heading）：ハートが 0 に なって もどった あと、子どもが うごかせる
+## さいしょの フレームで 船は 行き先（矢印と おなじ）を 20° いないで むき、カメラも 船の うしろ（20° いない）。
+## くだ（しょうちょう）では 道の まえ。はさまって チェックポイントへ もどった ときも おなじ
+func _check_restart_heading() -> void:
+	for id in ["stomach", "intestine"]:
+		Game.start_stage(id)
+		var lvl = Game.level
+		while not lvl.started:
+			await get_tree().physics_frame
+		for i in 20:
+			await get_tree().physics_frame
+		var p = lvl.player
+		var tube: bool = String(lvl.stage.get("kind", "arena")) == "tube"
+		var hows: Array = ["rest"] if tube else ["rest", "stuck"]
+		for how in hows:
+			# うしろを むいて おく
+			var back: Vector3 = -(lvl.respawn_heading(lvl.respawn_position()) as Vector3)
+			p.heading = back.normalized()
+			lvl.camera.snap_to_target()
+			await get_tree().physics_frame
+			var cage: Array = []
+			if how == "rest":
+				p.hearts = 1
+				p.invulnerable = 0.0
+				p.hurt(p.global_position + back)
+				var n := 0
+				while (p._respawning or not p.control_enabled) and n < 300:
+					await get_tree().physics_frame
+					n += 1
+			else:
+				# 4 めんを かべで かこまれて うごけない：もどし 2 かいの あと チェックポイントへ
+				var cc := Vector3(-4.0, 0.0, -6.0)   # い（胃）の ひらけた ゆか（いけ・さいぼうから はなれた ところ）
+				var gq: Dictionary = lvl.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(cc + Vector3.UP * 10.0, cc + Vector3.DOWN * 10.0, 1))
+				if not gq.is_empty():
+					cc.y = gq["position"].y
+				for k in 4:
+					var d := Vector3.FORWARD.rotated(Vector3.UP, PI * 0.5 * k)
+					var wb := StaticBody3D.new()
+					wb.collision_layer = 1
+					var cs := CollisionShape3D.new()
+					var bx := BoxShape3D.new()
+					bx.size = Vector3(2.4, 6.0, 0.4)
+					cs.shape = bx
+					wb.add_child(cs)
+					lvl.add_child(wb)
+					wb.global_position = cc + d * 0.95 + Vector3.UP
+					wb.look_at(wb.global_position + d, Vector3.UP)
+					cage.append(wb)
+				p.global_position = cc + Vector3.UP * 1.2
+				p.velocity = Vector3.ZERO
+				p.invulnerable = 9999.0
+				await get_tree().physics_frame
+				Input.action_press("move_up")
+				var t := 0.0
+				var far: Vector3 = p.global_position
+				while t < 25.0 and p.global_position.distance_to(far) < 5.0:
+					await get_tree().physics_frame
+					t += get_physics_process_delta_time()
+				Input.action_release("move_up")
+				if t >= 25.0:
+					_fail("restart heading %s: かごの 中から チェックポイントへ もどらない" % id)
+			var want: Vector3
+			if tube:
+				want = lvl.path_direction_at(p.global_position)
+			else:
+				var tp: Vector3 = lvl.current_target_position()
+				want = (tp - p.global_position) if tp != Vector3.INF else lvl._spawn_heading
+			want.y = 0.0
+			# いけを よける ために まわした ぶん（level._clear_of_pools。90° まで）は ゆるす：船は respawn_heading を むく
+			var aim: Vector3 = lvl.respawn_heading(p.global_position)
+			var dodge: float = rad_to_deg(absf(aim.signed_angle_to(want.normalized(), Vector3.UP)))
+			if dodge > 90.5:
+				_fail("restart heading %s %s: いけを よけて %.0f° も まわした" % [id, how, dodge])
+			want = aim
+			var ang: float = rad_to_deg(absf((p.heading as Vector3).signed_angle_to(want.normalized(), Vector3.UP)))
+			var cam_err: float = rad_to_deg(absf(angle_difference(float(lvl.camera.yaw), HoverBody.yaw_for(want.normalized()))))
+			_info("restart heading %s %s: 船の 向きと %s の ずれ %.0f°、カメラ %.0f°" % [id, how, "道" if tube else "行き先", ang, cam_err])
+			if ang > 20.0:
+				_fail("restart heading %s %s: やりなおしの あと 船が %s を むいて いない（%.0f° ずれ）" % [id, how, "道の まえ" if tube else "行き先", ang])
+			if cam_err > 20.0:
+				_fail("restart heading %s %s: やりなおしの あと カメラが 船の うしろに いない（%.0f° ずれ）" % [id, how, cam_err])
+			for w in cage:
+				w.queue_free()
+			p.invulnerable = 0.0
+			p.hearts = p.MAX_HEARTS
+			await get_tree().physics_frame
+		Game.unload_level()
+		await get_tree().process_frame
+	await _check_restart_pools()
+
+
+## きゅうけいの あと ↑ を おした まま 4 びょう：いけに 入らない（い（胃）の 入口から 行き先への まっすぐの 道に いけが あり、
+## ↑ の ままの 子どもが すぐ ハートを へらした）。てきを 2 びょうずつ うごかして（行き先が かわる）6 かい
+func _check_restart_pools() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var where := "restart pools stomach"
+	var pools: Array = []
+	for h in lvl.get_children():
+		if h is HazardPool:
+			pools.append(h)
+	var enemies: Array = []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			enemies.append(e)
+	var crossed := 0
+	for k in 6:
+		for e in enemies:
+			e.process_mode = Node.PROCESS_MODE_INHERIT
+		p.invulnerable = 9999.0
+		await _sim_wait(2.0)
+		for e in enemies:
+			e.process_mode = Node.PROCESS_MODE_DISABLED
+		p.invulnerable = 0.0
+		p.hearts = 1
+		p.hurt(p.global_position + Vector3.BACK)
+		var n := 0
+		while (p._respawning or not p.control_enabled) and n < 400:
+			await get_tree().physics_frame
+			n += 1
+		var to: Vector3 = lvl.current_target_position() - p.global_position
+		to.y = 0.0
+		var line_hit := false
+		for pool in pools:
+			var c: Vector3 = pool.global_position - p.global_position
+			c.y = 0.0
+			var tt := clampf(c.dot(to.normalized()), 0.0, 20.0)
+			if (to.normalized() * tt).distance_to(c) < pool.radius:
+				line_hit = true
+		if line_hit:
+			crossed += 1
+		var hearts0: int = p.hearts
+		var in_pool := -1.0
+		Input.action_press("move_up")
+		var t := 0.0
+		while t < 4.0:
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+			for pool in pools:
+				if Vector2(p.global_position.x - pool.global_position.x, p.global_position.z - pool.global_position.z).length() < pool.radius and in_pool < 0.0:
+					in_pool = t
+		Input.action_release("move_up")
+		_info("%s %d: 行き先への まっすぐの 道に いけ %s、↑ 4 びょうで いけに %s" % [where, k, "あり" if line_hit else "なし", ("%.1f びょうで 入った" % in_pool) if in_pool >= 0.0 else "入らない"])
+		if in_pool >= 0.0:
+			_fail("%s %d: きゅうけいの あと ↑ だけで %.1f びょうで いけに 入った（ハート %d → %d）" % [where, k, in_pool, hearts0, p.hearts])
+	if crossed == 0:
+		_fail("%s: 行き先への まっすぐの 道に いけが ある ばあいが なかった（この テストが 何も 見て いない）" % where)
+	Game.unload_level()
 	await get_tree().process_frame
 
 
@@ -3205,6 +3980,208 @@ func _check_arrow() -> void:
 	if seen < 3 or hi - lo < 1.0:
 		_fail("%s: 矢印を 見た 向きが 少ない（%d 回、はば %.0f°。この テストが 何も 見て いない）" % [where, seen, rad_to_deg(hi - lo) if seen > 0 else 0.0])
 	Game.unload_level()
+
+
+## かべの 前の カメラ（follow_camera.gd の MIN_DIST）と 行き先の 矢印：い（胃）で 船を かべの 前に おいて、
+## かべを せに して とまる・すみで まわる・かべぞいの 坂で かべの ほうへ まわる・うしろの かべへ さがる。
+## カメラは 船の まんなかから CAM_NEAR_MIN より 近よらない（前は 2.5 m まで よって、ドームと パイロットの あたまが 画面の 下 半分を うめた）。
+## 矢印は 画面の 中に ぜんぶ 入り、ひろい ところより 大きく ならない（前は かべの 前で 2 ばい 以上に なり、上の はしで 切れた）
+## かべを ぬけると 場所の 外が 見える ところでは、カメラは かべの 手前まで よる（follow_camera.gd の _sees_void）ので 3.6 m より 近く なる
+const CAM_NEAR_MIN := 2.8
+const CAM_WALL_CASES := [
+	# Blender の 座標（x 右・y おく）、向き（0 ＝ おく、90 ＝ 右）、[[アクション, 秒] ...]
+	["back_wall", 26.0, 0.0, 270.0, [[[], 1.5]]],
+	["corner_turn", 19.5, -28.0, 135.0, [[[], 0.5], [["move_right"], 1.4], [[], 0.3]]],
+	["wall_slope", 26.5, 6.0, 0.0, [[["move_up"], 0.8], [["move_left"], 1.0], [[], 0.2]]],
+	["entrance", 2.5, -27.0, -14.0, [[[], 0.5], [["move_down"], 2.0], [[], 0.2]]],
+]
+
+
+func _check_cam_wall() -> void:
+	Game.start_stage("stomach")
+	var lvl = Game.level
+	while not lvl.started:
+		await get_tree().physics_frame
+	for i in 30:
+		await get_tree().physics_frame
+	var p = lvl.player
+	var space: PhysicsDirectSpaceState3D = lvl.get_world_3d().direct_space_state
+	var where := "camera wall stomach"
+	# ピロリきんは その場で 止める（矢印の 行き先に のこす。ぶつかって はねない）。いけは ない ところに おく
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if lvl.is_ancestor_of(e):
+			e.process_mode = Node.PROCESS_MODE_DISABLED
+	var place := func(bx: float, by: float, yaw_deg: float):
+		var at := Vector3(bx, 0.0, -by)
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 30.0, at + Vector3.DOWN * 30.0, 1))
+		p.global_position = Vector3(at.x, (hit["position"].y if not hit.is_empty() else 0.0) + 1.1, at.z)
+		p.velocity = Vector3.ZERO
+		p.heading = Vector3(sin(deg_to_rad(yaw_deg)), 0.0, -cos(deg_to_rad(yaw_deg)))
+		p.turn_rate = 0.0
+		p.invulnerable = 0.0
+		p.control_enabled = true
+		p.autopilot_target = Vector3.INF
+		lvl.camera.snap_to_target()
+	# ひろい ところ（かべから 遠い）での 矢印の 大きさ
+	place.call(0.0, -6.0, 20.0)
+	for i in 60:
+		await get_tree().physics_frame
+	var ref := _arrow_px(p)
+	if ref <= 0.0 or not p.arrow.visible:
+		_fail("%s: ひろい ところで 矢印が 見えない（この テストが 何も 見て いない）" % where)
+		Game.unload_level()
+		return
+	var seen := 0
+	for c in CAM_WALL_CASES:
+		place.call(c[1], c[2], c[3])
+		var min_d := INF
+		var px_lo := INF
+		var px_hi := 0.0
+		var out := 0
+		for st in c[4]:
+			for a in st[0]:
+				Input.action_press(a)
+			for i in int(round(float(st[1]) * 60.0)):
+				await get_tree().physics_frame
+				var cam: Camera3D = get_viewport().get_camera_3d()
+				min_d = minf(min_d, cam.global_position.distance_to(p.global_position))
+				if p.arrow.visible and i % 5 == 0:
+					var px := _arrow_px(p)
+					if px < 0.0:
+						out += 1
+					else:
+						px_lo = minf(px_lo, px)
+						px_hi = maxf(px_hi, px)
+			for a in st[0]:
+				Input.action_release(a)
+		_info("%s %s: カメラと 船の いちばん 近い きょり %.2f m、矢印 %.0f〜%.0f px（ひろい ところ %.0f px）、画面から はみ出し %d" % [where, c[0], min_d, px_lo if px_lo < INF else 0.0, px_hi, ref, out])
+		if min_d < CAM_NEAR_MIN:
+			_fail("%s %s: カメラが 船に %.2f m まで 近よった（%.1f m より 近い）" % [where, c[0], min_d, CAM_NEAR_MIN])
+		if out > 0:
+			_fail("%s %s: 矢印が 画面の はしで 切れた（%d 回）" % [where, c[0], out])
+		if px_hi > 0.0:
+			seen += 1
+			# 大きく なるのは 15 % まで。すすむ あいだは カメラが おくれて とおく なるので 小さく なる（ひろい ところでも 前から 2 わり ほど）
+			if px_lo < ref * 0.7 or px_hi > ref * 1.15:
+				_fail("%s %s: 矢印の 大きさが %.0f〜%.0f px（ひろい ところで とまって いる とき %.0f px。0.7〜1.15 ばいの 外）" % [where, c[0], px_lo, px_hi, ref])
+	if seen < 2:
+		_fail("%s: かべの 前で 矢印を 見た 場面が %d（この テストが 何も 見て いない）" % [where, seen])
+	await _check_cam_void(lvl, p, space)
+	await _check_arrow_edge(lvl, p, place)
+	Game.unload_level()
+
+
+## かべを せに して その場で まわる（ブラウザ版で カメラが かべを ぬけ、場所の 外の 何も ない ところが 画面の 4 わり ちかくを
+## 平らな 色で うめた ところ。い（胃）の 右の かべの ひだ）。画面の うち 外が 見える わりあい（_void_share）が 5 % を こえない。
+## カメラは 船の まんなかから HARD_DIST より 近よらない
+func _check_cam_void(lvl, p, space: PhysicsDirectSpaceState3D) -> void:
+	var where := "camera void stomach"
+	var seen := 0
+	for a in [0.0, 15.0, 345.0, 300.0]:
+		var w := _stomach_wall(space, a)
+		if w.is_empty():
+			_fail("%s: むき %.0f° に かべが ない" % [where, a])
+			continue
+		var n: Vector3 = w["n"]
+		var at: Vector3 = w["wall"] + n * 1.6
+		var fl: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 20.0, at + Vector3.DOWN * 40.0, 1))
+		if not fl.is_empty():
+			at.y = fl["position"].y + 1.1
+		await _glide_put(p, lvl, at, n)
+		var vmax := 0.0
+		var min_d := INF
+		var f := 0
+		for st in [["move_left", 2.5], ["move_right", 2.5]]:
+			Input.action_press(st[0])
+			for i in int(st[1] * 60.0):
+				await get_tree().physics_frame
+				var cam: Camera3D = get_viewport().get_camera_3d()
+				min_d = minf(min_d, cam.global_position.distance_to(p.global_position))
+				f += 1
+				if f % 6 == 0:
+					vmax = maxf(vmax, _void_share(cam, space))
+			Input.action_release(st[0])
+		seen += 1
+		_info("%s %.0f°: かべを せに まわって、外が 見える わりあい いちばん %.1f %%、カメラと 船 いちばん 近くて %.2f m" % [where, a, vmax * 100.0, min_d])
+		if vmax > 0.05:
+			_fail("%s %.0f°: カメラが かべを ぬけて、場所の 外が 画面の %.0f %% に 見えた（5 %% まで）" % [where, a, vmax * 100.0])
+		if min_d < FollowCamera.HARD_DIST - 0.1:
+			_fail("%s %.0f°: カメラが 船に %.2f m まで 近よった" % [where, a, min_d])
+	if seen < 3:
+		_fail("%s: しらべた かべが %d" % [where, seen])
+
+
+## 画面の うち、場所の どの 面の おもてにも あたらない（外の 何も ない ところが 見える）か、0.8 m より 近い かべを なめて 見る わりあい。32×18 の 線で はかる
+## （場所の 面は うらを 描かないので、うらの 面は とおす）
+func _void_share(cam: Camera3D, space: PhysicsDirectSpaceState3D) -> float:
+	var vs := get_viewport().get_visible_rect().size
+	var q := PhysicsRayQueryParameters3D.new()
+	q.collision_mask = 1
+	q.hit_back_faces = false
+	var miss := 0
+	for j in 18:
+		for i in 32:
+			var sp := Vector2((i + 0.5) / 32.0 * vs.x, (j + 0.5) / 18.0 * vs.y)
+			q.from = cam.project_ray_origin(sp)
+			q.to = q.from + cam.project_ray_normal(sp) * 200.0
+			var h := space.intersect_ray(q)
+			# 何にも あたらない（外が 見える）か、0.8 m より 近い かべを なめて 見る（平らな こい 色）
+			if h.is_empty() or q.from.distance_to(h["position"]) < 0.8:
+				miss += 1
+	return float(miss) / (32.0 * 18.0)
+
+
+## 矢印を 画面の 外へ おしだす カメラ（船の 2 m うしろ・船より ひくい ところから まっすぐ まえを 見る：矢印は 上の はしより 上）。
+## 矢印は はしの 内がわへ よせられて ぜんぶ 画面に 入る（ARROW_EDGE の よせ。大きさの へらし だけでは 入らない ところ）
+func _check_arrow_edge(lvl, p, place: Callable) -> void:
+	var where := "arrow edge stomach"
+	place.call(0.0, -6.0, 20.0)
+	for i in 30:
+		await get_tree().physics_frame
+	var rig = lvl.camera
+	rig.process_mode = Node.PROCESS_MODE_DISABLED
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	var worst := INF
+	var tried := 0
+	for k in 3:
+		var h: Vector3 = (p.heading as Vector3).rotated(Vector3.UP, deg_to_rad(-20.0 + 20.0 * k))
+		rig.global_transform = Transform3D(Basis.looking_at(h, Vector3.UP), p.global_position - h * 2.0 + Vector3.DOWN * 0.2)
+		rig._arm.spring_length = 0.0
+		rig._cam.position = Vector3.ZERO
+		for i in 3:
+			await get_tree().physics_frame
+		var vs := get_viewport().get_visible_rect().size
+		var raw := cam.unproject_position(p.global_position + Vector3.UP * p.ARROW_Y)
+		if Rect2(Vector2.ZERO, vs).has_point(raw) or not p.arrow.visible:
+			continue
+		tried += 1
+		var px := _arrow_px(p)
+		worst = minf(worst, px)
+		var c := cam.unproject_position((p.arrow.get_node("Dart") as Node3D).global_position)
+		_info("%s %d: よせない 位置は 画面の 外（y %.0f px）、矢印の まんなか (%.0f, %.0f)、大きさ %.0f px" % [where, k, raw.y, c.x, c.y, px])
+		if px < 0.0:
+			_fail("%s %d: 矢印が 画面の はしで 切れた（まんなか (%.0f, %.0f)）" % [where, k, c.x, c.y])
+	rig.process_mode = Node.PROCESS_MODE_INHERIT
+	rig.snap_to_target()
+	if tried == 0:
+		_fail("%s: 矢印が 画面の 外へ 出る カメラを 作れなかった（この テストが 何も 見て いない）" % where)
+
+
+## 行き先の 矢印の 画面の 上の 大きさ（px）。画面から はみ出したら -1
+func _arrow_px(p) -> float:
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	var vs := get_viewport().get_visible_rect().size
+	var dart: Node3D = p.arrow.get_node("Dart")
+	var pts: Array[Vector2] = []
+	for lp in [Vector3(0, 0.36, 0), Vector3(0.3, -0.3, 0), Vector3(-0.3, -0.3, 0)]:
+		var w: Vector3 = dart.global_transform * lp
+		if cam.is_position_behind(w):
+			return -1.0
+		var sp := cam.unproject_position(w)
+		if not Rect2(Vector2.ZERO, vs).has_point(sp):
+			return -1.0
+		pts.append(sp)
+	return maxf((pts[0] - pts[1]).length(), maxf((pts[0] - pts[2]).length(), (pts[1] - pts[2]).length()))
 
 
 func _check_back_hold(id: String) -> void:

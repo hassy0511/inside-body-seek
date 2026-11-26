@@ -7,6 +7,29 @@ extends Node3D
 
 ## のりものの ときの 回りこむ はやさ（1/秒）。まわって いる あいだの おくれは 約 12 ど、はなせば 0.3 びょうで ほぼ 0
 const STEER_FOLLOW := 9.5
+## ひろい 場所で かべが うしろに ある とき：まず 上がって 見おろす 角を ふかく して（MAX_RISE まで）きょりを たもつ
+## （前は ちぢむ だけで、ドームと パイロットの あたまが 画面の 下 半分を うめた。ブラウザ版の 見なおし）。
+## それでも たりない ときは かべを ぬけて 船から MIN_DIST を たもつ。場所の 面は うらを 描かない（stage_clay.gdshader の cull_back）
+## ので、ひだの うらからでも 中が 見える。ただし ぬけた 先で 場所の 外（何も ない ところ）が 画面に 入る ときは
+## （_sees_void。ブラウザ版で かべを せに まわると 画面の 4 わり ちかくが 平らな 色で うまった）かべの 手前まで よる。
+## その ときも 船の まんなかから HARD_DIST より 近よらない（船の 中に 入らない）。
+## くだの 場所と 俯瞰は 前の まま（SpringArm3D が かべの 手前で ちぢめる）
+const MIN_DIST := 3.6
+const HARD_DIST := 2.2
+const VOID_FAR := 90.0         # 画面の 向きに この m まで 場所の 面が ない ＝ 外が 見える
+const VOID_NEAR := 1.2         # 画面の 向きに この m より 近く 場所の 面が ある ＝ かべを なめて 見て いる（同じく よる）
+const KEEP_LEN := 4.2          # うでが この 長さより ちぢむ ときに 上がる（少し ちぢむ だけなら 上がらず、まえが 見える 角の まま）
+const MAX_RISE := 0.6          # 見おろす 角を ふやして よい 量（rad。ふつう 19 ど → いちばん 53 ど）
+const RISE_STEP := 0.1
+const RISE_RATE := 2.0         # 角が 目あてに 近づく はやさ（1/秒）
+const RISE_SPEED := 0.6        # 角が かわる いちばん はやい はやさ（rad/秒 ＝ 34 ど/秒）：ぐらっと しない
+const RISE_HOLD := 0.8         # 上がった あと この 秒は 下がらない（下がる ときは 半分の はやさ）
+const SHORTEN_RATE := 12.0     # かべで ちぢむ はやさ（1/秒）。おそいと カメラが かべの 外に 出て、外の 色が 画面の はしに 見える
+const STRETCH_RATE := 2.0      # かべから はなれて のびる はやさ（1/秒）
+const ARM_SPEED := 3.0         # のびる ときの いちばん はやい はやさ（m/秒）
+const SHORTEN_SPEED := 6.0     # ちぢむ ときの いちばん はやい はやさ（m/秒）：ぐっと よらない
+const SNAP_SPEED := 18.0       # 外が 見える ときに かべの 手前へ よる いちばん はやい はやさ（m/秒。0.3 m/フレーム）
+const CAM_RADIUS := 0.3
 
 var target: Node3D = null
 var level: Node = null
@@ -24,8 +47,13 @@ var _cur_distance := 5.2
 var _cur_pitch := -0.33
 var _cur_height := 0.8
 var _arm: SpringArm3D
+var _rise := 0.0       # かべの ために ふやした 見おろす 角（rad）
+var _short := 0.0      # かべの ために ちぢめた 長さ（m）
+var _rise_hold := 0.0
+var _probe: PhysicsShapeQueryParameters3D
 var _cam: Camera3D
 var _ray: PhysicsRayQueryParameters3D
+var _void_ray: PhysicsRayQueryParameters3D
 
 
 func _ready() -> void:
@@ -53,7 +81,18 @@ func snap_to_target() -> void:
 	_cur_height = height
 	_cur_distance = distance
 	_cur_pitch = pitch
+	_rise = 0.0
+	_short = 0.0
+	_rise_hold = 0.0
 	rotation = Vector3(pitch, yaw, 0)
+	if _keeps_distance():
+		# もどした すぐ あとも かべの 中から はじめない（目あての 角と 長さに すぐ 合わせる）
+		_arm.collision_mask = 0
+		_rise = _want_rise(_cur_distance)
+		rotation.x = _cur_pitch - _rise
+		_short = _cur_distance - _arm_length(_cur_distance)
+		_arm.spring_length = _cur_distance - _short
+		_cam.position = Vector3(0, 0, _arm.spring_length)
 
 
 func _desired_yaw() -> float:
@@ -110,7 +149,131 @@ func _physics_process(delta: float) -> void:
 		yw = 0.0
 	yaw = lerp_angle(yaw, ty, yw)
 	rotation = Vector3(_cur_pitch, yaw, 0)
-	_arm.spring_length = _cur_distance
+	if not _keeps_distance():
+		# 俯瞰に かわる ときは 上げた 角を なめらかに もどす（くだの 場所は はじめから 0）
+		_arm.collision_mask = 1
+		_rise = move_toward(_rise, 0.0, RISE_SPEED * delta)
+		rotation.x = _cur_pitch - _rise
+		_short = 0.0
+		_arm.spring_length = _cur_distance
+		return
+	# かべで きょりが たりない ときは まず 上がる。なめらかに（めあてが かわっても ぐらっと しない）
+	_arm.collision_mask = 0
+	var want_rise := _want_rise(_cur_distance)
+	# 上がった あと すぐには 下がらない（RISE_HOLD 秒 まって、半分の はやさで）：かべぞいで 上下に ゆれない
+	_rise_hold = RISE_HOLD if want_rise > _rise else maxf(_rise_hold - delta, 0.0)
+	if want_rise > _rise or _rise_hold <= 0.0:
+		var down := RISE_SPEED * (1.0 if want_rise > _rise else 0.5) * delta
+		_rise += clampf((want_rise - _rise) * (1.0 - exp(-RISE_RATE * delta)), -down, down)
+	rotation.x = _cur_pitch - _rise
+	var clear := _clear_length(_rise, _cur_distance)
+	var hard := _min_length(HARD_DIST)
+	var keep := maxf(clear, _min_length(MIN_DIST))
+	if keep > clear + 0.05 and _sees_void(keep):
+		keep = maxf(clear, hard)
+	var want_short := _cur_distance - keep
+	var k := 1.0 - exp(-(SHORTEN_RATE if want_short > _short else STRETCH_RATE) * delta)
+	_short += clampf((want_short - _short) * k, -ARM_SPEED * delta, SHORTEN_SPEED * delta)
+	var arm := maxf(_cur_distance - _short, hard)
+	# なめらかに よる とちゅうでも 外が 見える 長さには しない（かべの 手前まで。ただし 1 フレームで とばず SNAP_SPEED で よる）。
+	# よった ぶんは _short に のこす（外が 見えなく なっても もとの 長さへ ぱっと もどらず、ARM_SPEED で のびる）
+	if arm > clear + 0.05 and _sees_void(arm):
+		arm = maxf(maxf(clear, hard), _arm.spring_length - SNAP_SPEED * delta)
+		_short = _cur_distance - arm
+	_arm.spring_length = arm
+	# SpringArm3D は つぎの フレームで カメラを うごかす ので、ここで おいて おく（1 フレーム おくれて 近よらない）
+	_cam.position = Vector3(0, 0, _arm.spring_length)
+
+
+## かべを よけて きょりを たもつ のは ひろい 場所の ふつうの ときだけ
+func _keeps_distance() -> bool:
+	return not tube_mode and overview_center == Vector3.INF and is_inside_tree()
+
+
+## うでの 向き（カメラの 位置への 向き）を 角 rise ぶん 上げた ときに、かべに あたらない 長さ
+func _clear_length(rise: float, length: float) -> float:
+	var b := Basis.from_euler(Vector3(_cur_pitch - rise, yaw, 0))
+	var dir := b.z
+	if _probe == null:
+		_probe = PhysicsShapeQueryParameters3D.new()
+		var sh := SphereShape3D.new()
+		sh.radius = CAM_RADIUS
+		_probe.shape = sh
+		_probe.collision_mask = 1
+	_probe.transform = Transform3D(Basis(), global_position)
+	_probe.motion = dir * length
+	var r := get_world_3d().direct_space_state.cast_motion(_probe)
+	return length * r[0]
+
+
+## かべで きょりが たりない とき、どれだけ 上がるか：うでが KEEP_LEN（ふつうより みじかい ときは その 長さ）とれる いちばん ひくい 角。
+## どの 角でも とれない ときは いちばん 長く とれる 角（同じ くらいなら 高い ほう：かべに おしつけて いる あいだに
+## 角が もどって 横から かべを ぬけ、船に よって 見える のを ふせぐ）
+func _want_rise(length: float) -> float:
+	var need := minf(length, KEEP_LEN)
+	var best := 0.0
+	var best_len := -1.0
+	var rise := 0.0
+	while rise <= MAX_RISE + 0.001:
+		var l := _clear_length(rise, length)
+		if l >= need - 0.05:
+			return rise
+		if l > best_len - 0.2:
+			best = rise
+			best_len = maxf(l, best_len)
+		rise += RISE_STEP
+	return best
+
+
+## いまの 角で かべに あたらない 長さ（MIN_DIST を たもつ ために かべを ぬける のは、外が 見えない ときだけ）
+func _arm_length(length: float) -> float:
+	var clear := _clear_length(_rise, length)
+	var keep := maxf(clear, _min_length(MIN_DIST))
+	if keep > clear + 0.05 and _sees_void(keep):
+		keep = maxf(clear, _min_length(HARD_DIST))
+	return keep
+
+
+## うでの 長さ length の ところから 見た 画面に、場所の 外（どの 面の おもてにも あたらない 向き）が 入るか。
+## 画面の はしと まんなかの 15 本の 線で しらべる（うらの 面は 描かれないので とおりぬける）。かべの おもてを すぐ そば（VOID_NEAR）で
+## なめる ように 見る ときも 同じ（画面の はしが 平らな こい 色で うまる）。かべの うしろに いる ときだけ よぶ
+func _sees_void(length: float) -> bool:
+	var b := Basis.from_euler(rotation)
+	var at := global_position + b.z * length
+	var ty := tan(deg_to_rad(_cam.fov) * 0.5)
+	var vs := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(16, 9)
+	var tx := ty * vs.x / maxf(vs.y, 1.0)
+	var space := get_world_3d().direct_space_state
+	if _void_ray == null:
+		_void_ray = PhysicsRayQueryParameters3D.new()
+		_void_ray.collision_mask = 1
+		_void_ray.hit_back_faces = false
+	_void_ray.from = at
+	for v in [-1.0, 0.0, 1.0]:
+		for u in [-1.0, -0.5, 0.0, 0.5, 1.0]:
+			var dir := (b * Vector3(u * tx, v * ty, -1.0)).normalized()
+			_void_ray.to = at + dir * VOID_FAR
+			var h := space.intersect_ray(_void_ray)
+			if h.is_empty():
+				return true
+			# かべの おもてが VOID_NEAR m より 近い：かべを なめる ように 見て、画面の はしが 平らな こい 色で うまる
+			if (h["position"] as Vector3).distance_to(at) < VOID_NEAR:
+				return true
+	return false
+
+
+## 船の まんなかから dist はなれる うでの 長さ（カメラの 中心は 船より 上・おくれて ついて くる ので、計算で もとめる）
+func _min_length(dist: float) -> float:
+	if target == null:
+		return 0.0
+	var u := Basis.from_euler(rotation).z
+	var g: Vector3 = global_position - target.global_position
+	var b := u.dot(g)
+	var c := g.length_squared() - dist * dist
+	var disc := b * b - c
+	if disc <= 0.0:
+		return 0.0
+	return maxf(-b + sqrt(disc), 0.0)
 
 
 func camera() -> Camera3D:

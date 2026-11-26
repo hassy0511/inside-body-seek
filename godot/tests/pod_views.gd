@@ -16,7 +16,9 @@ const Autopilot := preload("res://tests/autopilot.gd")
 ## --hide=Window のように 書くと、その 名前の 部品を かくして 撮る（中を 見る とき）。--no-omni で 船の 明かり（player.gd の OmniLight）を 消す。
 ## --stage=mouth [--play=秒] を 書くと、モデルではなく 本物の 場所を 自動操縦で 進めてから、HUD を かくして 撮る
 ## （ピコの ふきだしが 船に 重なって 見えないので）。画面 全体（stage_<id>.png）と、船の まわりを 3 倍に した 絵（stage_<id>_zoom.png）。
-## --enemy も 書くと、いちばん 近い てきの まわりの 3 倍の 絵と、その てきを たたいた ときの 絵も 撮る（_shoot_enemy()）。
+## --enemy も 書くと、てきの まわりの 3 倍の 絵と、その てきを たたいた ときの 絵も 撮る（_shoot_enemy()）。
+## てきは id と 同じ 種類（pylori など）が いれば その うち 船に いちばん 近い もの、いなければ 船に いちばん 近い てき。
+## 撮る 前に 船を その てきから 約 4 m の ところへ 運び、てきの ほうを 向かせる（遠い てきは 小さすぎて 見えない）。
 
 const VIEWS := {
 	"front": [Vector3(0, 0, -1), Vector3.UP],
@@ -66,7 +68,7 @@ func _ready() -> void:
 			_ortho = float(a.substr(7))
 	DirAccess.make_dir_recursive_absolute(out)
 	if stage != "":
-		await _shoot_stage(stage, play, out)
+		await _shoot_stage(stage, play, out, id)
 		get_tree().quit()
 		return
 	_build()
@@ -207,7 +209,7 @@ func _fit_shift(b: Basis) -> Vector3:
 
 
 ## 本物の 場所で 撮る。セーブは user://save_pod_views.json（本物の セーブを さわらない）
-func _shoot_stage(stage: String, play: float, out: String) -> void:
+func _shoot_stage(stage: String, play: float, out: String, id := "") -> void:
 	Game.testing = true
 	var main: Node = load("res://src/main.tscn").instantiate()
 	add_child(main)
@@ -243,37 +245,96 @@ func _shoot_stage(stage: String, play: float, out: String) -> void:
 		zoom.resize(r.size.x * 3, r.size.y * 3, Image.INTERPOLATE_NEAREST)
 		zoom.save_png(out.path_join("stage_%s_zoom.png" % stage))
 	if OS.get_cmdline_user_args().has("--enemy"):
-		await _shoot_enemy(stage, out, cam)
+		await _shoot_enemy(stage, out, cam, id)
 	print("saved ", out.path_join("stage_%s.png" % stage))
 
 
-## --enemy：画面に いちばん 近く 映って いる てきの まわりを 3 倍に した 絵（stage_<id>_enemy.png）と、
-## その てきを 1 回 たたいた あとの 絵（_hit：時間を 1/20 に して 1 フレームあと。HP 1 なら やられて ふくらむ ところ／_gone：40 フレームあと）
-func _shoot_enemy(stage: String, out: String, cam: Camera3D) -> void:
+## --enemy：撮る 前に 船を てきから この m の ところへ 運ぶ
+const ENEMY_NEAR := 4.0
+
+
+## --enemy：えらんだ てきの まわりを 3 倍に した 絵（stage_<id>_enemy.png）と、
+## その てきを 1 回 たたいた あとの 絵（_hit：時間を 1/20 に して ゲームの 0.1 秒あと。HP 1 なら やられて ふくらむ ところ／
+## _gone：のこりの HP を たたいて 40 フレームあと）。切りとる 場所は いつも その てきの いる（いた）ところ。
+func _shoot_enemy(stage: String, out: String, cam: Camera3D, id: String) -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null:
+		print("saved nothing: no ship")
+		return
 	var best: Node3D = null
 	var bd := INF
-	for e in get_tree().get_nodes_in_group("enemy"):
-		var en := e as Node3D
-		if en == null or cam.is_position_behind(en.global_position):
-			continue
-		var d := en.global_position.distance_to(cam.global_position)
-		if d < bd:
-			bd = d
-			best = en
+	for want_kind in [true, false]:
+		for e in get_tree().get_nodes_in_group("enemy"):
+			var en := e as Node3D
+			if en == null or not en.get("alive") or (want_kind and en.get("kind") != id):
+				continue
+			var d := en.global_position.distance_to(player.global_position)
+			if d < bd:
+				bd = d
+				best = en
+		if best != null:
+			break
 	if best == null:
-		print("saved nothing: no enemy on screen")
+		print("saved nothing: no enemy in the place")
 		return
-	print("saved: enemy %s at %.1f m from the camera" % [best.get("kind"), bd])
+	# 船を てきから ENEMY_NEAR m の ところへ。いまの 船の ほうから、かべに あたらない 向きを さがす
+	var from: Vector3 = player.global_position - best.global_position
+	from.y = 0.0
+	from = from.normalized() if from.length() > 0.1 else Vector3.BACK
+	var space := get_viewport().get_world_3d().direct_space_state
+	var dir := from
+	for k in 12:
+		var a := deg_to_rad(30.0 * ((k + 1) / 2) * (1 if k % 2 == 0 else -1))
+		var c := from.rotated(Vector3.UP, a)
+		var q := PhysicsRayQueryParameters3D.create(best.global_position + Vector3.UP * 0.5, best.global_position + Vector3.UP * 0.5 + c * (ENEMY_NEAR + 1.5), 1)
+		if space.intersect_ray(q).is_empty():
+			dir = c
+			break
+	player.autopilot_target = Vector3.INF
+	player.autopilot_shoot = false
+	player.control_enabled = false
+	player.invulnerable = 1.0e6
+	player.velocity = Vector3.ZERO
+	player.heading = -dir
+	# 撮り おわる まで てきを その 場に とめる（まわる てき（ピロリきん）が はなれて いかない ように）。たたく ときに もどす
+	best.set_physics_process(false)
+	for i in 30:
+		# うく 高さが おちつく まで、よこの 位置は とめて おく（さかで すべらない ように）
+		var to: Vector3 = best.global_position + dir * ENEMY_NEAR
+		player.global_position = Vector3(to.x, player.global_position.y if i > 0 else best.global_position.y, to.z)
+		player.velocity = Vector3.ZERO
+		await get_tree().physics_frame
+	# 船を とめ、行き先の 矢印を かくす（矢印が てきの 上に 重なって 見えない ため）
+	player.set_physics_process(false)
+	player.arrow.visible = false
+	var camn = player.get("camera")
+	if camn != null and camn.has_method("snap_to_target"):
+		camn.snap_to_target()
+	for i in 4:
+		await get_tree().process_frame
+	cam = get_viewport().get_camera_3d()
+	var flat: Vector3 = best.global_position - player.global_position
+	print("saved: enemy %s at %.1f m from the ship (%.1f m across, %.1f m up), %.1f m from the camera" % [best.get("kind"), flat.length(), Vector2(flat.x, flat.z).length(), flat.y, best.global_position.distance_to(cam.global_position)])
 	var at := best.global_position
 	for s in [["enemy", 0], ["hit", 1], ["gone", 40]]:
 		if s[0] == "hit":
 			# 撮影は 1 フレームが 長いので、時間を ゆっくりに して ふくらむ ところを 撮る
 			Engine.time_scale = 0.05
-			best.call("take_hit", 1, at + Vector3(0, 0, 1))
+			best.set_physics_process(true)
+			best.call("take_hit", 1, best.global_position - dir)
 		elif s[0] == "gone":
 			Engine.time_scale = 1.0
-		for i in int(s[1]) + 1:
+			if is_instance_valid(best) and best.get("alive"):
+				best.call("take_hit", int(best.get("hp")), best.global_position - dir)
+		# hit は ゲームの 時間で 0.1 秒（やられた てきが いちばん ふくらむ ころ）。撮影の 1 フレームは 長さが ばらつく ので 時間で 数える
+		var waited := 0.0
+		var n := 0
+		while n < int(s[1]) + 1 or (s[0] == "hit" and waited < 0.1 and n < 400):
 			await get_tree().process_frame
+			waited += get_process_delta_time()
+			n += 1
+			if is_instance_valid(best):
+				at = best.global_position
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
 		var c := Vector2i(cam.unproject_position(at))
@@ -281,4 +342,5 @@ func _shoot_enemy(stage: String, out: String, cam: Camera3D) -> void:
 		var crop := img.get_region(r)
 		crop.resize(r.size.x * 3, r.size.y * 3, Image.INTERPOLATE_NEAREST)
 		crop.save_png(out.path_join("stage_%s_%s.png" % [stage, s[0]]))
+		print("saved %s: %s at screen %s, alive=%s" % [s[0], best.get("kind") if is_instance_valid(best) else "(freed)", c, best.get("alive") if is_instance_valid(best) else false])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveData.path))

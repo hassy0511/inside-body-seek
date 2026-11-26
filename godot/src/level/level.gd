@@ -92,6 +92,8 @@ var _seq_input_started := 0.0
 var _seq_pending := false
 var _spawn_heading := Vector3.FORWARD
 var _sign_font: Font
+## かんばん（板の Sprite3D か 文字だけの Label3D）。カメラが 近づくと うすく する（_fade_signs）
+var signs: Array[GeometryInstance3D] = []
 var data_warnings: Array[String] = []   # データの まちがい（テストが 失敗に する）
 
 
@@ -488,6 +490,7 @@ func _spawn_sign(text: String, pos: Vector3) -> void:
 	if board != null:
 		board.position = pos + Vector3.UP * 3.0
 		add_child(board)
+		signs.append(board)
 		return
 	var l := Label3D.new()
 	l.text = text
@@ -500,6 +503,7 @@ func _spawn_sign(text: String, pos: Vector3) -> void:
 	l.outline_size = 14
 	l.position = pos + Vector3.UP * 3.0
 	add_child(l)
+	signs.append(l)
 
 
 ## かんばんの 板：res://assets/ui/sign_board.png（クリーム色の まるい ふきだし、下に しっぽ）に 文字を のせた 絵。
@@ -514,7 +518,11 @@ const SIGN_FILL := Vector2i(392, 428)                                           
 const SIGN_INK := Color("#5A2630")
 const SIGN_EM_M := 1.28              # 文字の 大きさ m（前の 文字だけの かんばんと 同じ）
 const SIGN_MAX_W := 7.0            # 板の はばの 上限 m
-const SIGN_HIDE_NEAR := 4.0          # カメラから この m より 近い かんばんは 消す（画面を ふさがない）
+## カメラが かんばんに 近づくと うすく して、とおりぬける 前に 消す（ついて くる カメラが 板を くぐると 画面が 板で ふさがる）。
+## SIGN_FADE_FAR m より 遠い ときは そのまま 読める。SIGN_HIDE_NEAR m より 近い ときは 見えない。あいだは なめらかに うすく。
+## （visibility_range の フェードは この 描画方式・ブラウザ版では きかず、4 m の 手前で 画面の 3 分の 1 を ふさいで いた）
+const SIGN_FADE_FAR := 9.0
+const SIGN_HIDE_NEAR := 4.0
 const SIGN_SCALE := 2                # 画像を この 分の 1 に してから つかう（かるく する）
 static var _sign_src: Image = null
 
@@ -584,10 +592,34 @@ func _sign_board(text: String) -> Sprite3D:
 	sp.shaded = false
 	sp.modulate = Color(0.94, 0.94, 0.94)      # つやなし。光る ゴールより 明るく しない
 	sp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	sp.visibility_range_begin = SIGN_HIDE_NEAR
-	sp.visibility_range_begin_margin = 2.0
-	sp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	return sp
+
+
+## カメラからの きょりで かんばんの こさを きめる（0 ＝ 見えない、1 ＝ そのまま）
+static func sign_alpha(dist: float) -> float:
+	return smoothstep(SIGN_HIDE_NEAR, SIGN_FADE_FAR, dist)
+
+
+## かんばんを カメラからの きょりで うすく する。毎フレーム 木を さがさない（spawn の ときに signs に 入れた ものだけ）
+func _fade_signs() -> void:
+	if signs.is_empty():
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var cp := cam.global_position
+	for s in signs:
+		var a := sign_alpha(cp.distance_to(s.global_position))
+		s.visible = a > 0.0
+		var m: Color = s.get("modulate")
+		m.a = a
+		s.set("modulate", m)
+		if s is Label3D:
+			(s as Label3D).outline_modulate.a = a
+
+
+func _process(_delta: float) -> void:
+	_fade_signs()
 
 
 func _add_card_point(key: String, pos: Vector3, node: Node) -> void:
@@ -799,6 +831,59 @@ func finish() -> void:
 
 func respawn_position() -> Vector3:
 	return respawn_point + Vector3.UP * 1.0
+
+
+## やりなおし（きゅうけい・チェックポイントへの もどし）の あと 船が むく 向き：くだは 道の まえ、
+## ほかは いまの 行き先（矢印と おなじ）、なければ 場面の はじめの 向き（どちらも いけを とおるなら よける）。
+## 前は 前の 向きの まま もどしたので、かべを むいた 画面から はじまる ことが あった
+func respawn_heading(at: Vector3) -> Vector3:
+	if stage.get("kind", "arena") == "tube" and path.is_valid():
+		var pd: Vector3 = path.direction_at(at)
+		pd.y = 0.0
+		if pd.length() > 0.1:
+			return pd.normalized()
+	var want := _spawn_heading
+	var tp := current_target_position()
+	if tp != Vector3.INF:
+		var to := tp - at
+		to.y = 0.0
+		if to.length() > 0.5:
+			want = to.normalized()
+	return _clear_of_pools(at, want)
+
+
+## やりなおした 船が ↑ の まま 3 びょう ほど すすむ 道（RESPAWN_LOOK m）が いけを とおる ときは、近い がわへ 10° ずつ まわして よける
+## （い（胃）の 入口から 行き先への まっすぐの 道に いけが あり、↑ を おした ままの 子どもが すぐ ハートを へらして いた）。
+## 90° まわしても だめなら はじめの 向きの まま
+const RESPAWN_LOOK := 20.0
+func _clear_of_pools(at: Vector3, want: Vector3) -> Vector3:
+	var pools: Array = []
+	for c in get_children():
+		if c is HazardPool:
+			pools.append(c)
+	var block = _pool_on_line(at, want, pools)
+	if block == null:
+		return want
+	var to_pool: Vector3 = (block as Node3D).global_position - at
+	# いけの まんなかが ひだりに あれば みぎへ（－）、みぎに あれば ひだりへ（＋）まわす ほうが 近い
+	var away := -signf(want.cross(to_pool).y) if absf(want.cross(to_pool).y) > 0.001 else 1.0
+	for k in range(1, 10):
+		for s in [away, -away]:
+			var h := want.rotated(Vector3.UP, deg_to_rad(10.0 * k) * s)
+			if _pool_on_line(at, h, pools) == null:
+				return h
+	return want
+
+
+func _pool_on_line(at: Vector3, h: Vector3, pools: Array):
+	var a := Vector2(at.x, at.z)
+	var d := Vector2(h.x, h.z)
+	for pool in pools:
+		var c := Vector2(pool.global_position.x, pool.global_position.z)
+		var t := clampf((c - a).dot(d), 0.0, RESPAWN_LOOK)
+		if (a + d * t).distance_to(c) < float(pool.radius) + 1.0:
+			return pool
+	return null
 
 
 ## 矢印が指す「いま向かうところ」
