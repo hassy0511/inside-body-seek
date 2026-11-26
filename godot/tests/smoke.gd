@@ -2178,6 +2178,10 @@ func _check_sign_fade() -> void:
 	var mid_ok := false          # 5〜8 m で うすく なりかけ（0.05〜0.95）を 見た
 	var last := {}               # かんばんごとの まえの [きょり, こさ]：近づく あいだに こく ならない
 	var bad := ""
+	# チェックポイントの 旗も 同じ：カメラが 近づくと うすく なって 消える（船と カメラの あいだに 入って 画面を よこぎらない）
+	var flag_near := 99.0
+	var flag_mid := false
+	var flag_bad := ""
 	var t := 0.0
 	while t < 20.0 and is_instance_valid(lvl) and not lvl.finished:
 		await get_tree().process_frame
@@ -2203,6 +2207,26 @@ func _check_sign_fade() -> void:
 			if last.has(k) and d < last[k][0] - 0.05 and a > last[k][1] + 0.02 and bad == "":
 				bad = "カメラが %.1f m → %.1f m と 近づいたのに こさが %.2f → %.2f と こく なった" % [last[k][0], d, last[k][1], a]
 			last[k] = [d, a]
+		for cp in get_tree().get_nodes_in_group("checkpoint"):
+			if not lvl.is_ancestor_of(cp):
+				continue
+			var fd: float = cam.global_position.distance_to(cp.global_position + Vector3.UP * 2.0)
+			var fa: float = cp.flag_alpha if cp._flag.visible else 0.0
+			flag_near = minf(flag_near, fd)
+			if fd < Checkpoint.FLAG_HIDE_NEAR - 0.5 and fa > 0.01 and flag_bad == "":
+				flag_bad = "カメラから %.1f m で 旗の こさ %.2f（%.1f m より 近くは 見えない はず）" % [fd, fa, Checkpoint.FLAG_HIDE_NEAR]
+			if fd > Checkpoint.FLAG_FADE_FAR + 0.5 and fa < 0.99 and flag_bad == "":
+				flag_bad = "カメラから %.1f m で 旗の こさ %.2f（%.1f m より 遠くは そのまま 見える はず）" % [fd, fa, Checkpoint.FLAG_FADE_FAR]
+			if fa > 0.05 and fa < 0.95:
+				flag_mid = true
+	if flag_bad != "":
+		_fail("flag fade: " + flag_bad)
+	elif flag_near > Checkpoint.FLAG_HIDE_NEAR - 0.5:
+		_fail("flag fade: カメラが チェックポイントの 旗に 近づかなかった（いちばん 近くて %.1f m）。しらべに ならない" % flag_near)
+	elif not flag_mid:
+		_fail("flag fade: うすく なりかけた 旗を 見なかった（近づくと きゅうに 消える？）")
+	else:
+		_info("flag fade: ok (closest camera %.1f m)" % flag_near)
 	if bad != "":
 		_fail("sign fade: " + bad)
 	elif near_seen > Level.SIGN_HIDE_NEAR - 0.6 or not far_ok:

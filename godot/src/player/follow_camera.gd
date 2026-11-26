@@ -52,6 +52,7 @@ var _rise := 0.0       # かべの ために ふやした 見おろす 角（rad
 var _short := 0.0      # かべの ために ちぢめた 長さ（m）
 var _rise_hold := 0.0
 var _arm_ray: PhysicsRayQueryParameters3D
+var _probe: PhysicsShapeQueryParameters3D
 var _cam: Camera3D
 var _ray: PhysicsRayQueryParameters3D
 var _void_ray: PhysicsRayQueryParameters3D
@@ -118,6 +119,13 @@ func clear_overview() -> void:
 func _physics_process(delta: float) -> void:
 	if target == null:
 		return
+	_step(delta)
+	# カメラが うごいた あとで 矢印を 置く（船の ほうが 先に うごくので、船の 中で 置くと 1 コマ前の カメラに 合わせて しまう）
+	if target.has_method("camera_moved"):
+		target.camera_moved(delta)
+
+
+func _step(delta: float) -> void:
 	var ov := overview_center != Vector3.INF
 	var want_h := 6.0 if ov else height
 	var want_d := 36.0 if ov else distance
@@ -199,11 +207,27 @@ func _keeps_distance() -> bool:
 	return not tube_mode and overview_center == Vector3.INF and is_inside_tree()
 
 
-## うでの 向き（カメラの 位置への 向き）を 角 rise ぶん 上げた ときに、かべに あたらない 長さ。
-## 線 3 本（まんなかと、よこへ CAM_RADIUS ずらした 2 本）で はかる。球を うごかして はかる（cast_motion）と、口の こまかい 面では
-## 1 回 1.5 ミリ秒 かかり、角を さがす 7 回で 1 フレーム 10 ミリ秒を こえた（線は 1 本 0.005 ミリ秒）。
-## よこへ ずらす とちゅうに かべが ある ときは 0（球が はじめから かべに ふれて いる のと 同じ）
+## うでの 向き（カメラの 位置への 向き）を 角 rise ぶん 上げた ときに、かべに あたらない 長さ。球（半径 CAM_RADIUS）を うごかして はかる。
+## 口の こまかい 面では 1 回 1.5 ミリ秒 かかるので、1 フレームに よぶのは 決まった 角の 1 回だけ（前の SpringArm3D と 同じ 重さ）。
+## 角を さがす ほうは 線で はかる（_ray_length）
 func _clear_length(rise: float, length: float) -> float:
+	var b := Basis.from_euler(Vector3(_cur_pitch - rise, yaw, 0))
+	if _probe == null:
+		_probe = PhysicsShapeQueryParameters3D.new()
+		var sh := SphereShape3D.new()
+		sh.radius = CAM_RADIUS
+		_probe.shape = sh
+		_probe.collision_mask = 1
+	_probe.transform = Transform3D(Basis(), global_position)
+	_probe.motion = b.z * length
+	var r := get_world_3d().direct_space_state.cast_motion(_probe)
+	return length * r[0]
+
+
+## _clear_length の かるい 版：線 3 本（まんなかと、よこへ CAM_RADIUS ずらした 2 本。1 本 0.005 ミリ秒）。角を さがす 7 回に つかう
+## （球で 7 回 はかると 口で 1 フレーム 10 ミリ秒を こえた）。ほそい ものは 線の あいだを ぬけるので、決まった 角の 長さは 球で はかる。
+## よこへ ずらす とちゅうに かべが ある ときは 0（球が はじめから かべに ふれて いる のと 同じ）
+func _ray_length(rise: float, length: float) -> float:
 	var b := Basis.from_euler(Vector3(_cur_pitch - rise, yaw, 0))
 	var dir := b.z
 	var space := get_world_3d().direct_space_state
@@ -236,7 +260,7 @@ func _want_rise(length: float) -> float:
 	var best_len := -1.0
 	var rise := 0.0
 	while rise <= MAX_RISE + 0.001:
-		var l := _clear_length(rise, length)
+		var l := _ray_length(rise, length)
 		if l >= need - 0.05:
 			return rise
 		if l > best_len - 0.2:

@@ -272,7 +272,9 @@ func _physics_process(delta: float) -> void:
 	speed_mult = 1.0
 	external_push = Vector3.ZERO
 	carry_speed = 0.0
-	_update_arrow(delta)
+	# ふつうは カメラが うごいた あとに 置く（camera_moved）。カメラが 無い・とめて ある ときは ここで
+	if camera == null or not camera.has_method("_step") or not camera.can_process():
+		_update_arrow(delta)
 
 
 ## うごかない なかま（friend.gd の FriendSolid。まるい 柱）に まっすぐ ぶつかると、柱の まわりを すべれずに 止まる。
@@ -746,6 +748,11 @@ func _face_restart() -> void:
 	_glide_turned = 0.0
 	if camera != null and camera.has_method("snap_to_target"):
 		camera.snap_to_target()
+
+
+## カメラが うごいた あとに よばれる（follow_camera.gd）：矢印は いまの カメラに 合わせて 置く
+func camera_moved(delta: float) -> void:
+	_update_arrow(delta)
 
 
 func _update_arrow(delta: float) -> void:
